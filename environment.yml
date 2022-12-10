@@ -1,4 +1,4 @@
-name: pointnet
+name: blip
 channels:
   - pytorch
   - defaults

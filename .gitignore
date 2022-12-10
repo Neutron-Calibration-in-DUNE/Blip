@@ -1,2 +1,6 @@
-pointnet/processed/*
-pointnet/raw/*
+*.pt
+*.npz
+*.root
+*.pyc
+build/
+dist/

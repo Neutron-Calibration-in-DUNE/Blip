@@ -6,7 +6,7 @@ with open("README.md", "r") as file:
 
 setup(
     # name
-    name='pointnet',
+    name='blip',
 
     # current version
     #   MAJOR VERSION:  1
@@ -15,7 +15,7 @@ setup(
     version='1.0.0',
 
     # descriptions
-    description='.',
+    description='Blobs and Low-energy Interaction Pointnet.',
     long_description=long_description,
     long_description_content_type="text/markdown",
     keywords='',
@@ -25,7 +25,7 @@ setup(
     author_email='ncarrara.physics@gmail.com',
 
     # where to find the source
-    url='https://github.com/Neutron-Calibration-in-DUNE/PointNet',
+    url='https://github.com/Neutron-Calibration-in-DUNE/Blip',
 
     # requirements
     install_reqs = [],
