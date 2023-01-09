@@ -7,10 +7,12 @@ from torch_geometric.data import (
     Data,
     InMemoryDataset,
 )
+from torch.utils.data import Dataset, DataLoader
 from torch.utils.data import Subset, random_split
 from torch_geometric.loader import DataLoader
 
 from blip.utils.logger import Logger
+from blip.dataset import GenericDataset
 
 class Loader:
     """
