@@ -12,7 +12,7 @@ from torch.utils.data import Subset, random_split
 from torch_geometric.loader import DataLoader
 
 from blip.utils.logger import Logger
-from blip.dataset import GenericDataset
+#from blip.dataset import GenericDataset
 
 class Loader:
     """
@@ -30,12 +30,12 @@ class Loader:
         self.logger = Logger(self.name, file_mode='w')
         self.logger.info(f"constructing dataset loader.")
         # check that dataset is either a torch Dataset or
-        # inherited from GenericDataset
-        if not issubclass(type(dataset), Dataset):
-            if not issubclass(type(dataset), Dataset):
-                self.logger.error(f"specified dataset '{dataset}' is neither an instance of {Dataset} nor {GenericDataset}!\nAny dataset must be inherited from either of those two classes.")
-            else:
-                self.logger.warning(f"specified dataset is inherited from {Dataset} rather than {GenericDataset}, which may lead to unexpected behavior.")
+        # # inherited from GenericDataset
+        # if not issubclass(type(dataset), Dataset):
+        #     if not issubclass(type(dataset), Dataset):
+        #         self.logger.error(f"specified dataset '{dataset}' is neither an instance of {Dataset} nor {GenericDataset}!\nAny dataset must be inherited from either of those two classes.")
+        #     else:
+        #         self.logger.warning(f"specified dataset is inherited from {Dataset} rather than {GenericDataset}, which may lead to unexpected behavior.")
         # check for parameter compatability
         if batch_size <= 0:
             self.logger.error(f"specified batch size: {batch_size} not allowed, must be > 0!")

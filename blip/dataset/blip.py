@@ -16,16 +16,54 @@ from torch_geometric.data import (
 )
 from torch_geometric.io import read_txt_array
 
+from blip.utils.logger import Logger
 
-class GammaDataset(InMemoryDataset):
-    def __init__(self, root, num_samples, transform=None, pre_transform=None, pre_filter=None):
-        self.num_samples = num_samples
+class BlipDataset(InMemoryDataset):
+    def __init__(self, 
+        name:   str,
+        input_file: str,
+        features:   list=None,
+        classes:    list=None,
+        sample_weights: str=None,
+        class_weights:  str=None,
+        normalized:  bool=True,
+        root:   str=".", 
+        transform=None, 
+        pre_transform=None, 
+        pre_filter=None
+    ):
+        self.name = name
+        self.input_file = input_file 
+        self.logger = Logger(self.name, file_mode='w')
+        self.logger.info(f"constructing dataset.")
+        self.features = features
+        self.classes = classes
+        self.sample_weights = sample_weights
+        self.class_weights = class_weights
+        if sample_weights != None:
+            self.use_sample_weights = True
+        else:
+            self.use_sample_weights = False
+        if class_weights != None:
+            self.use_class_weights = True
+        else:
+            self.use_class_weights = False
+        self.normalized = normalized
+
+        self.logger.info(f"setting 'features': {self.features}.")
+        self.logger.info(f"setting 'classes': {self.classes}.")
+        self.logger.info(f"setting 'sample_weights': {self.sample_weights}.")
+        self.logger.info(f"setting 'class_weights': {self.class_weights}.")
+        self.logger.info(f"setting 'use_sample_weights': {self.use_sample_weights}.")
+        self.logger.info(f"setting 'use_class_weights': {self.use_class_weights}.")
+        self.logger.info(f"setting 'normalize': {self.normalized}.")
+
         super().__init__(root, transform, pre_transform, pre_filter)
         self.data, self.slices = torch.load(self.processed_paths[0])
 
     @property
     def raw_file_names(self):
-        return ['../data/gamma_pointcloud.npz']
+        return [self.input_file]
 
     @property
     def processed_file_names(self):
@@ -34,9 +72,9 @@ class GammaDataset(InMemoryDataset):
 
     def process(self):
         # Read data into huge `Data` list.
-        data = np.load('../data/gamma_pointcloud.npz', allow_pickle=True)
-        pos = data['pos'][:self.num_samples]
-        y = data['labels'][:self.num_samples]
+        data = np.load(self.input_file, allow_pickle=True)
+        pos = data['positions']
+        y = data['labels']
         data_list = [
             Data(
                 pos=torch.tensor(pos[ii]).type(torch.float),
@@ -44,7 +82,7 @@ class GammaDataset(InMemoryDataset):
                 y=torch.full((len(pos[ii]),1),y[ii]).type(torch.long), 
                 category=torch.tensor([y[ii]]).type(torch.long)
             )
-            for ii in range(self.num_samples)
+            for ii in range(len(pos))
         ]
 
         if self.pre_filter is not None:

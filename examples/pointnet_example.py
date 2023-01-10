@@ -1,7 +1,10 @@
 """
 Training loop for a BLIP model   
 """
+import torch_geometric.transforms as T
+
 # blip imports
+from blip.dataset.arrakis import Arrakis
 from blip.dataset.blip import BlipDataset
 from blip.utils.loader import Loader
 from blip.losses import LossHandler
@@ -23,29 +26,27 @@ if __name__ == "__main__":
     # clean up directories first
     save_model()
 
+    prepare_data = True
+    if prepare_data:
+        arrakis_dataset = Arrakis(
+            "../../ArrakisEventDisplay/data/multiple_neutron_arrakis.root"
+        )
+        arrakis_dataset.generate_training_data()
     """
     Now we load our dataset as a torch dataset (blipDataset),
     and then feed that into a dataloader.
     """
-    features = [
-            'gut_m0', 
-            'gut_m12', 
-            'gut_A0', 
-            'gut_tanb', 
-            'sign_mu'
-    ]
     blip_dataset = BlipDataset(
-        name="blip_dataset",
-        input_file='datasets/higgs_dm_lsp_symmetric.npz',
-        features = features,
-        classes = ['valid']
+        name = "blip_example",
+        input_file='../data/point_cloud_view0.npz',
+        root="."
     )
     blip_loader = Loader(
         blip_dataset, 
         batch_size=64,
-        test_split=0.1,
+        test_split=0.0,
         test_seed=100,
-        validation_split=0.1,
+        validation_split=0.0,
         validation_seed=100,
         num_workers=4
     )
@@ -54,8 +55,29 @@ if __name__ == "__main__":
     optimizer and metrics.
     """
     blip_config = {
-        # dimension of the input variables
-        'input_dimension':      3,
+        # input dimension
+        'input_dimension':  3,
+        # number of dynamic edge convs
+        'num_dynamic_edge_conv':    2,
+        # edge conv layer values
+        'edge_conv_mlp_layers': [
+            [64, 64],
+            [64, 64]
+        ],
+        'number_of_neighbors':  20,
+        'aggregation_operators': [
+            'sum', 'sum'
+        ],
+        # linear layer
+        'linear_output':    128,
+        'mlp_output_layers': [128, 256, 32],
+        'augmentations':    [
+            T.RandomJitter(0.03), 
+            T.RandomFlip(1), 
+            T.RandomShear(0.2)
+        ],
+        # number of augmentations per batch
+        'number_of_augmentations': 2
     }
     blip_model = BLIP(
         name = 'blip_test',
@@ -70,9 +92,9 @@ if __name__ == "__main__":
 
     # create criterions
     blip_loss_config = {
-        'L2OutputLoss':   {
+        'NTXEntropyLoss':   {
             'alpha':    1.0,
-            'reduction':'mean',
+            'temperature': 0.10,
         }        
     }
     blip_loss = LossHandler(
@@ -82,10 +104,10 @@ if __name__ == "__main__":
     
     # create metrics
     blip_metric_config = {
-        'LatentSaver':  {},
-        'TargetSaver':  {},
-        'InputSaver':   {},
-        'OutputSaver':  {},
+        # 'LatentSaver':  {},
+        # 'TargetSaver':  {},
+        # 'InputSaver':   {},
+        # 'OutputSaver':  {},
     }
     blip_metrics = MetricHandler(
         "blip_metric",

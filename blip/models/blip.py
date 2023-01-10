@@ -21,18 +21,23 @@ blip_config = {
     'num_dynamic_edge_conv':    2,
     # edge conv layer values
     'edge_conv_mlp_layers': [
-        []
+        [64, 64],
+        [64, 64]
     ],
     'number_of_neighbors':  20,
     'aggregation_operators': [
-        'max', 'max'
+        'sum', 'sum'
     ],
     # linear layer
     'linear_output':    128,
     'mlp_output_layers': [128, 256, 32],
     'augmentations':    [
-        T.RandomJitter(0.03), T.RandomFlip(1), T.RandomShear(0.2)
+        T.RandomJitter(0.03), 
+        T.RandomFlip(1), 
+        T.RandomShear(0.2)
     ],
+    # number of augmentations per batch
+    'number_of_augmentations': 2
 }
 
 class BLIP(GenericModel):
@@ -63,37 +68,45 @@ class BLIP(GenericModel):
         dictionary and fill it with individual modules.
         """
         self.logger.info(f"Attempting to build chunc architecture using cfg: {self.cfg}")
-        _model_dict = OrderedDict()
+        _edge_conv_dict = OrderedDict()
+        _linear_dict = OrderedDict()
+        _mlp_dict = OrderedDict()
 
         self.input_dimension = self.cfg['input_dimension']
+        _input_dimension = self.cfg['input_dimension']
+        _num_edge_conv_outputs = 0
         # Feature extraction
         # an example would be
         # self.conv1 = DynamicEdgeConv(MLP([2 * 3, 64, 64]), k, aggr)
         # self.conv2 = DynamicEdgeConv(MLP([2 * 64, 128]), k, aggr)
         for ii in range(self.cfg['num_dynamic_edge_conv']):
-            _model_dict[f'edge_conv_{ii}'] = DynamicEdgeConv(
-                MLP([]), 
+            _edge_conv_dict[f'edge_conv_{ii}'] = DynamicEdgeConv(
+                MLP([2 * _input_dimension] + self.cfg['edge_conv_mlp_layers'][ii]), 
                 self.cfg['number_of_neighbors'],
                 self.cfg['aggregation_operators'][ii]
             )
-        _num_edge_conv_outputs = sum(self.cfg['edge_conv_mlp_layers'][:,-1])
-
+            _input_dimension = self.cfg['edge_conv_mlp_layers'][ii][-1]
+            _num_edge_conv_outputs += _input_dimension
+        
         # add linear layer Encoder head
-        _model_dict[f'linear_layer'] = Linear(
+        _linear_dict[f'linear_layer'] = Linear(
             _num_edge_conv_outputs, 
             self.cfg['linear_output']
         )
 
         # add output mlp Projection head (See explanation in SimCLRv2)
-        _model_dict[f'mlp_output'] = MLP(
+        _mlp_dict[f'mlp_output'] = MLP(
             self.cfg['mlp_output_layers'],
             norm=None
         )
         
         # create the dictionaries
-        self.module_dict = nn.ModuleDict(_model_dict)
+        self.edge_conv_dict = nn.ModuleDict(_edge_conv_dict)
+        self.linear_dict = nn.ModuleDict(_linear_dict)
+        self.mlp_dict = nn.ModuleDict(_mlp_dict)
+
         # record the info
-        self.logger.info(f"Constructed BLIP with dictionary: {self.module_dict}.")
+        self.logger.info(f"Constructed BLIP with dictionaries:\n{self.edge_conv_dict}\n{self.linear_dict}\n{self.mlp_dict}.")
 
     
     def forward(self,
@@ -104,38 +117,40 @@ class BLIP(GenericModel):
         """
         x = x[0].to(self.device)
 
-        if train:
-            # Get 2 augmentations of the batch
-            print(x.pos.size())
-            augm_1 = self.augmentation(x)
-            augm_2 = self.augmentation(x)
+        if self.training:
+            # Get augmentations of the batch
+            pools, compacts = [], []
+            for ii in range(self.cfg['number_of_augmentations']):
+                augmentations = self.augmentation(x)
+                pos, batch = augmentations.pos, augmentations.batch
+                for ii, layer in enumerate(self.edge_conv_dict.keys()):
+                    pos = self.edge_conv_dict[layer](pos, batch)
+                    if ii == 0:
+                        linear_input = pos
+                    else:
+                        linear_input = torch.cat([linear_input, pos], dim=1)
 
-            # Extract properties
-            pos_1, batch_1 = augm_1.pos, augm_1.batch
-            pos_2, batch_2 = augm_2.pos, augm_2.batch
+                linear_output = self.linear_dict['linear_layer'](linear_input)
+                linear_pool = global_max_pool(linear_output, batch)
+                linear_compact = self.mlp_dict['mlp_output'](linear_pool)
+                pools.append(linear_pool)
+                compacts.append(linear_compact)
+            return pools, compacts
 
-            # Get representations for first augmented view
-            x1 = self.conv1(pos_1, batch_1)
-            x2 = self.conv2(x1, batch_1)
-            h_points_1 = self.lin1(torch.cat([x1, x2], dim=1))
-
-            # Get representations for second augmented view
-            x1 = self.conv1(pos_2, batch_2)
-            x2 = self.conv2(x1, batch_2)
-            h_points_2 = self.lin1(torch.cat([x1, x2], dim=1))
-            
-            # Global representation
-            h_1 = global_max_pool(h_points_1, batch_1)
-            h_2 = global_max_pool(h_points_2, batch_2)
         else:
-            x1 = self.conv1(x.pos, x.batch)
-            x2 = self.conv2(x1, x.batch)
-            h_points = self.lin1(torch.cat([x1, x2], dim=1))
-            return global_max_pool(h_points, x.batch)
+            pos, batch = x.pos, x.batch
+            linear_input = pos
 
-        # Transformation for loss function
-        compact_h_1 = self.mlp(h_1)
-        compact_h_2 = self.mlp(h_2)
+            for ii, layer in enumerate(self.edge_conv_dict.keys()):
+                    pos = self.edge_conv_dict[layer](pos, batch)
+                    if ii == 0:
+                        linear_input = pos
+                    else:
+                        linear_input = torch.cat([linear_input, pos], dim=1)
+            
+            linear_output = self.linear_dict['linear_layer'](linear_input)
+            linear_pool = global_max_pool(linear_output, batch)
+            linear_compact = self.mlp_dict['mlp_output'](linear_pool)
+            return linear_pool, linear_compact
 
-        return h_1, h_2, compact_h_1, compact_h_2
     

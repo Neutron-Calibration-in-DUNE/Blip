@@ -3,7 +3,7 @@ Container for generic losses
 """
 from blip.utils.logger import Logger
 from blip.losses import GenericLoss
-from blip.losses import L1Loss, L2Loss
+from blip.losses import L1Loss, L2Loss, NTXEntropyLoss
 from blip.utils.utils import get_method_arguments
 
 class LossHandler:
@@ -36,15 +36,7 @@ class LossHandler:
         self.available_criterions = {
             'L1Loss':           L1Loss,
             'L2Loss':           L2Loss,
-            'WassersteinLoss':  WassersteinLoss,
-            'ClusterLoss':      ClusterLoss,
-            'L2OutputLoss':     L2OutputLoss,
-            'LatentWassersteinLoss':        LatentWassersteinLoss,
-            'LatentWassersteinValidLoss':   LatentWassersteinValidLoss,
-            'LatentWassersteinInvalidLoss': LatentWassersteinInvalidLoss,
-            'SingleLatentWassersteinLoss':  SingleLatentWassersteinLoss,
-            'LatentBinaryLoss': LatentBinaryLoss,
-            'LatentClusterLoss':LatentClusterLoss,
+            'NTXEntropyLoss':   NTXEntropyLoss,
         }
         # check config
         for item in self.cfg.keys():

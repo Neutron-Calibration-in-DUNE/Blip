@@ -1,0 +1,3 @@
+[12:44:46] [INFO] [blip_test_optimizer]: learning rate set to 0.001
+[12:44:46] [INFO] [blip_test_optimizer]: momentum value set to 0.9
+[12:44:46] [INFO] [blip_test_optimizer]: using the Adam optimizer

@@ -281,7 +281,7 @@ class Trainer:
             self.logger.error(f"device: '{self.device}' and model device: '{self.criterion.device}' are different!")
         # TODO: run consistency check
         self.logger.info(f"running consistency check...")
-        self.__run_consistency_check(dataset_loader)
+        #self.__run_consistency_check(dataset_loader)
 
         self.model.save_model(flag='init')
         # setting values in callbacks

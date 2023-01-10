@@ -27,6 +27,10 @@ class Arrakis:
             adc_std = np.std(np.concatenate(adc)[(views == v)])
 
             label = self.point_cloud_data['label']
+            unique_labels = np.unique(label)
+            unique_label_ids = [ii for ii in range(len(unique_labels))]
+            label_map = {unique_labels[ii]: ii for ii in range(len(unique_labels))}
+            label_ids = np.array([label_map[l] for l in label])
             energy = self.point_cloud_data['total_energy'] * 10e5
 
             positions = []
@@ -44,6 +48,9 @@ class Arrakis:
                 temp_channel_mean = np.mean(temp_channel)
                 temp_adc_mean = np.mean(temp_adc)
 
+                if len(temp_tdc) <= 1:
+                    continue
+
                 for jj in range(len(temp_tdc)):
                     temp_pos.append([
                         (temp_tdc[jj] - temp_tdc_mean),
@@ -52,11 +59,11 @@ class Arrakis:
                     ])
                 if (temp_pos != []):
                     positions.append(np.array(temp_pos))
-                    labels.append(label[ii])
+                    labels.append(label_ids[ii])
                     total_energy.append(energy[ii])
 
             np.savez(
-                f"data/point_cloud_view{v}.npz",
+                f"../data/point_cloud_view{v}.npz",
                 positions=np.array(positions),
                 energies=np.array(total_energy),
                 labels=np.array(labels)
