@@ -115,42 +115,54 @@ class BLIP(GenericModel):
         """
         Iterate over the model dictionary
         """
-        x = x[0].to(self.device)
-
-        if self.training:
-            # Get augmentations of the batch
-            pools, compacts = [], []
-            for ii in range(self.cfg['number_of_augmentations']):
-                augmentations = self.augmentation(x)
-                pos, batch = augmentations.pos, augmentations.batch
-                for ii, layer in enumerate(self.edge_conv_dict.keys()):
-                    pos = self.edge_conv_dict[layer](pos, batch)
-                    if ii == 0:
-                        linear_input = pos
-                    else:
-                        linear_input = torch.cat([linear_input, pos], dim=1)
-
-                linear_output = self.linear_dict['linear_layer'](linear_input)
-                linear_pool = global_max_pool(linear_output, batch)
-                linear_compact = self.mlp_dict['mlp_output'](linear_pool)
-                pools.append(linear_pool)
-                compacts.append(linear_compact)
-            return pools, compacts
-
-        else:
-            pos, batch = x.pos, x.batch
-            linear_input = pos
-
+        x = x.to(self.device)
+        # if self.training:
+        # Get augmentations of the batch
+        pools, compacts = [], []
+        for ii in range(self.cfg['number_of_augmentations']):
+            augmentations = self.augmentation(x)
+            pos, batch = augmentations.pos, augmentations.batch
             for ii, layer in enumerate(self.edge_conv_dict.keys()):
-                    pos = self.edge_conv_dict[layer](pos, batch)
-                    if ii == 0:
-                        linear_input = pos
-                    else:
-                        linear_input = torch.cat([linear_input, pos], dim=1)
-            
+                pos = self.edge_conv_dict[layer](pos, batch)
+                if ii == 0:
+                    linear_input = pos
+                else:
+                    linear_input = torch.cat([linear_input, pos], dim=1)
+
             linear_output = self.linear_dict['linear_layer'](linear_input)
             linear_pool = global_max_pool(linear_output, batch)
             linear_compact = self.mlp_dict['mlp_output'](linear_pool)
-            return linear_pool, linear_compact
+            pools.append(linear_pool)
+            compacts.append(linear_compact)
 
+        indices = torch.arange(0, compacts[0].size(0), device=compacts[0].device)
+        labels = torch.cat([indices for ii in range(len(compacts))])
+        compacts = torch.cat(compacts)
+        pools = torch.cat(pools)
+
+        return pools, compacts, labels
     
+    def forward_eval(self,
+        x
+    ):
+        """
+        Iterate over the model dictionary
+        """
+        x = x.to(self.device)
+        # if self.training:
+        # Get augmentations of the batch
+        pos, batch = x.pos, x.batch
+        for ii, layer in enumerate(self.edge_conv_dict.keys()):
+            pos = self.edge_conv_dict[layer](pos, batch)
+            if ii == 0:
+                linear_input = pos
+            else:
+                linear_input = torch.cat([linear_input, pos], dim=1)
+
+        linear_output = self.linear_dict['linear_layer'](linear_input)
+        linear_pool = global_max_pool(linear_output, batch)
+        linear_compact = self.mlp_dict['mlp_output'](linear_pool)
+
+        labels = x.category
+
+        return linear_pool, linear_compact, labels

@@ -2,6 +2,10 @@
 Training loop for a BLIP model   
 """
 import torch_geometric.transforms as T
+from sklearn.manifold import TSNE
+import seaborn as sns
+import pandas as pd
+import matplotlib.pyplot as plt
 
 # blip imports
 from blip.dataset.arrakis import Arrakis
@@ -44,9 +48,9 @@ if __name__ == "__main__":
     blip_loader = Loader(
         blip_dataset, 
         batch_size=64,
-        test_split=0.0,
+        test_split=0.1,
         test_seed=100,
-        validation_split=0.0,
+        validation_split=0.1,
         validation_seed=100,
         num_workers=4
     )
@@ -138,6 +142,38 @@ if __name__ == "__main__":
     
     blip_trainer.train(
         blip_loader,
-        epochs=10,
-        checkpoint=25
+        epochs=25,
+        checkpoint=25,
+        save_predictions=False
     )
+
+    # Get sample batch
+    sample = next(iter(blip_loader.train_loader))
+
+    # Get representations
+    pools, compacts, labels = blip_model.forward_eval(sample)
+    compacts = compacts.cpu().detach()
+
+    labels = sample.category.cpu().detach().numpy()
+
+    # Get low-dimensional t-SNE Embeddings
+    h_embedded = TSNE(n_components=2, learning_rate='auto',
+                    init='random').fit_transform(compacts.numpy())
+
+    # Plot
+    ax = sns.scatterplot(x=h_embedded[:,0], y=h_embedded[:,1], hue=labels, 
+                        alpha=0.5, palette="tab10")
+
+    # Add labels to be able to identify the data points
+    annotations = list(range(len(h_embedded[:,0])))
+
+    def label_points(x, y, val, ax):
+        a = pd.concat({'x': x, 'y': y, 'val': val}, axis=1)
+        for i, point in a.iterrows():
+            ax.text(point['x']+.02, point['y'], str(int(point['val'])))
+
+    label_points(pd.Series(h_embedded[:,0]), 
+                pd.Series(h_embedded[:,1]), 
+                pd.Series(annotations), 
+                plt.gca())
+    plt.show()

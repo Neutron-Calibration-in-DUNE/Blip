@@ -1,6 +1,8 @@
-[12:44:46] [INFO] [blip_test_trainer]: constructing model trainer.
-[12:44:46] [INFO] [blip_test_trainer]: CUDA is available with devices:
-[12:44:46] [INFO] [blip_test_trainer]:  -- device: 0 - name: NVIDIA GeForce RTX 3070 Ti, compute: 8.6, memory: 8334737408
-[12:44:46] [INFO] [blip_test_trainer]: CUDA is available, using device 0 - NVIDIA GeForce RTX 3070 Ti
-[12:44:47] [INFO] [blip_test_trainer]: running consistency check...
-[12:44:47] [INFO] [blip_test_trainer]: training dataset 'blip_example' for 10 epochs.
+[15:46:12] [INFO] [blip_test_trainer]: constructing model trainer.
+[15:46:12] [INFO] [blip_test_trainer]: CUDA is available with devices:
+[15:46:12] [INFO] [blip_test_trainer]:  -- device: 0 - name: NVIDIA GeForce RTX 3070 Ti, compute: 8.6, memory: 8334737408
+[15:46:12] [INFO] [blip_test_trainer]: CUDA is available, using device 0 - NVIDIA GeForce RTX 3070 Ti
+[15:46:13] [INFO] [blip_test_trainer]: running consistency check...
+[15:46:14] [INFO] [blip_test_trainer]: passed consistency check.
+[15:46:14] [INFO] [blip_test_trainer]: training dataset 'blip_example' for 25 epochs.
+[15:47:09] [INFO] [blip_test_trainer]: training finished.
