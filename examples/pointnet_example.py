@@ -11,7 +11,7 @@ from blip.metrics import MetricHandler
 from blip.trainer import Trainer
 from blip.utils.callbacks import CallbackHandler
 from blip.utils.utils import get_files, save_model
-from blip.models import BLIP
+from blip.models import PointNetClassification 
 
 import torch
 import torch_geometric.transforms as T
@@ -59,9 +59,9 @@ if __name__ == "__main__":
         # input dimension
         'input_dimension':  3,
         # number of dynamic edge convs
-        'num_dynamic_edge_conv':    2,
+        'num_embedding':    2,
         # edge conv layer values
-        'edge_conv_mlp_layers': [
+        'embedding_mlp_layers': [
             [64, 64],
             [64, 64]
         ],
@@ -72,6 +72,7 @@ if __name__ == "__main__":
         # linear layer
         'linear_output':    128,
         'mlp_output_layers': [128, 256, 32],
+        'classification_layers': [32, 64, 32, blip_dataset.num_classes],
         'augmentations':    [
             T.RandomJitter(0.03), 
             T.RandomFlip(1), 
@@ -80,7 +81,7 @@ if __name__ == "__main__":
         # number of augmentations per batch
         'number_of_augmentations': 2
     }
-    blip_model = BLIP(
+    blip_model = PointNetClassification(
         name = 'blip_test',
         cfg  = blip_config
     ) 
@@ -96,6 +97,9 @@ if __name__ == "__main__":
         'NTXEntropyLoss':   {
             'alpha':    1.0,
             'temperature': 0.10,
+        },
+        'SparseCrossEntropyLoss': {
+            'alpha':    1.0
         }        
     }
     blip_loss = LossHandler(

@@ -14,14 +14,17 @@ blip/losses/l1_loss.py
 blip/losses/l2_loss.py
 blip/losses/loss_handler.py
 blip/losses/ntxent_loss.py
+blip/losses/sparse_cross_entropy_loss.py
 blip/metrics/__init__.py
+blip/metrics/confusion_matrix_metric.py
 blip/metrics/generic_metric.py
 blip/metrics/metric_handler.py
 blip/metrics/savers.py
 blip/models/__init__.py
-blip/models/blip.py
 blip/models/common.py
 blip/models/generic_model.py
+blip/models/pointnet_classification.py
+blip/models/pointnet_unsupervised.py
 blip/models/simple_pointnet.py
 blip/optimizers/__init__.py
 blip/optimizers/optimizers.py
@@ -35,6 +38,7 @@ blip/utils/timing.py
 blip/utils/utils.py
 blip/utils/callbacks/__init__.py
 blip/utils/callbacks/callback_handler.py
+blip/utils/callbacks/confusion_matrix_callback.py
 blip/utils/callbacks/embedding_callback.py
 blip/utils/callbacks/generic_callback.py
 blip/utils/callbacks/loss_callback.py

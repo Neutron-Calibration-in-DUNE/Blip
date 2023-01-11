@@ -48,7 +48,7 @@ class Arrakis:
                 temp_channel_mean = np.mean(temp_channel)
                 temp_adc_mean = np.mean(temp_adc)
 
-                if len(temp_tdc) <= 1:
+                if len(temp_tdc) < 1:
                     continue
 
                 for jj in range(len(temp_tdc)):
@@ -61,10 +61,13 @@ class Arrakis:
                     positions.append(np.array(temp_pos))
                     labels.append(label_ids[ii])
                     total_energy.append(energy[ii])
-
+            meta = {
+                "num_classes":  len(np.unique(labels))
+            }
             np.savez(
                 f"../data/point_cloud_view{v}.npz",
                 positions=np.array(positions),
                 energies=np.array(total_energy),
-                labels=np.array(labels)
+                labels=np.array(labels),
+                meta=meta
             )

@@ -94,6 +94,50 @@ class OutputSaver(GenericMetric):
     def compute(self):
         pass
 
+class ClassificationSaver(GenericMetric):
+    
+    def __init__(self,
+        name:   str='output_saver',
+        output_shape:   tuple=(),
+        latent_shape:   tuple=(),
+        target_shape:   tuple=(),
+        input_shape:    tuple=(),
+    ):
+        """
+        output Saver
+        """
+        super(ClassificationSaver, self).__init__(
+            name,
+            output_shape,
+            latent_shape,
+            target_shape,
+            input_shape
+        )
+         # create empty tensors for epoch 
+        self.batch_output = torch.empty(
+            size=(0,*self.output_shape), 
+            dtype=torch.float, device=self.device
+        )
+
+        self.epoch_output = None
+        
+    def reset_batch(self):
+        if len(self.batch_output) != 0:
+            self.epoch_output = self.batch_output
+        self.batch_output = torch.empty(
+            size=(0,*self.output_shape), 
+            dtype=torch.float, device=self.device
+        )
+
+    def update(self,
+        outputs,
+        data,
+    ):
+        self.batch_output = torch.cat((self.batch_output, outputs[1]),dim=0)
+
+    def compute(self):
+        pass
+
 class AugmentedTargetSaver(GenericMetric):
     
     def __init__(self,

@@ -1,2 +1,3 @@
 from .generic_model import GenericModel
-from .blip import BLIP
+from .pointnet_unsupervised import PointNetUnsupervised
+from .pointnet_classification import PointNetClassification

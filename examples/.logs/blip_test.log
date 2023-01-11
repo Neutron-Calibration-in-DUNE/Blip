@@ -1,13 +1,18 @@
-[08:30:15] [INFO] [blip_test]: configuring model.
-[08:30:15] [INFO] [blip_test]: Attempting to build chunc architecture using cfg: {'input_dimension': 3, 'num_dynamic_edge_conv': 2, 'edge_conv_mlp_layers': [[64, 64], [64, 64]], 'number_of_neighbors': 20, 'aggregation_operators': ['sum', 'sum'], 'linear_output': 128, 'mlp_output_layers': [128, 256, 32], 'augmentations': [RandomJitter(0.03), RandomFlip(axis=1, p=0.5), RandomShear(0.2)], 'number_of_augmentations': 2}
-[08:30:15] [INFO] [blip_test]: Constructed BLIP with dictionaries:
+[12:42:37] [INFO] [blip_test]: configuring model.
+[12:42:37] [INFO] [blip_test]: Attempting to build blip_test architecture using cfg: {'input_dimension': 3, 'num_embedding': 2, 'embedding_mlp_layers': [[64, 64], [64, 64]], 'number_of_neighbors': 20, 'aggregation_operators': ['sum', 'sum'], 'linear_output': 128, 'mlp_output_layers': [128, 256, 32], 'classification_layers': [32, 64, 32, 38], 'augmentations': [RandomJitter(0.03), RandomFlip(axis=1, p=0.5), RandomShear(0.2)], 'number_of_augmentations': 2}
+[12:42:37] [INFO] [blip_test]: Constructed PointNetClassification with dictionaries:
 ModuleDict(
-  (edge_conv_0): DynamicEdgeConv(nn=MLP(6, 64, 64), k=20)
-  (edge_conv_1): DynamicEdgeConv(nn=MLP(128, 64, 64), k=20)
+  (embedding_0): DynamicEdgeConv(nn=MLP(6, 64, 64), k=20)
+  (embedding_1): DynamicEdgeConv(nn=MLP(128, 64, 64), k=20)
 )
 ModuleDict(
   (linear_layer): Linear(in_features=128, out_features=128, bias=True)
+  (mlp_output): MLP(128, 256, 32)
 )
 ModuleDict(
+  (linear_layer): Linear(in_features=128, out_features=128, bias=True)
   (mlp_output): MLP(128, 256, 32)
+)
+ModuleDict(
+  (classification_output): MLP(32, 64, 32, 38)
 ).

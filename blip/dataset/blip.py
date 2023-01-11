@@ -75,6 +75,7 @@ class BlipDataset(InMemoryDataset):
         data = np.load(self.input_file, allow_pickle=True)
         pos = data['positions']
         y = data['labels']
+        self.num_classes = data['meta']['num_classes']
         data_list = [
             Data(
                 pos=torch.tensor(pos[ii]).type(torch.float),

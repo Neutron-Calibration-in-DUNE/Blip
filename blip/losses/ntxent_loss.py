@@ -26,7 +26,11 @@ class NTXEntropyLoss(GenericLoss):
     ):
         """Computes and returns/saves loss information"""
         embeddings = outputs[1]
-        labels = outputs[2]
+        indices = torch.arange(0, len(data.category), device=outputs[1].device)
+        labels = torch.cat([
+            indices
+            for ii in range(int(len(outputs[1])/len(data.category)))
+        ])
         loss = self.ntxent_loss(embeddings, labels)
         self.batch_loss = torch.cat((self.batch_loss, torch.tensor([[loss]], device=self.device)), dim=0)
         return self.alpha * loss

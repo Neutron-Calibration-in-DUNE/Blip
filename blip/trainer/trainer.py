@@ -200,6 +200,7 @@ class Trainer:
         #         if num_data_elements != 2:
         #             self.logger.error(f"dataset has ('{dataset_loader.dataset}:use_sample_weights=={dataset_loader.dataset.use_sample_weights}' and '{dataset_loader.dataset}:use_class_weights=={dataset_loader.dataset.use_class_weights}'), however 'len({dataset_loader.dataset}:__getitem__)=={num_data_elements}'! Perhaps an inconsistency in the definition of __getitem__!")
         # check model
+        self.model.eval()
         try:
             output = self.model(data)
         except Exception as e:
