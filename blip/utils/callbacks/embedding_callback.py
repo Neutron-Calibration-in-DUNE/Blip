@@ -31,7 +31,8 @@ class EmbeddingCallback(GenericCallback):
         if metrics_list != None:
             for name, metric in self.metrics_list.metrics.items():
                 if isinstance(metric, OutputSaver):
-                    self.output_name = name
+                    if(metric.output == "reductions"):
+                        self.output_name = name
                 if isinstance(metric, InputSaver):
                     self.input_name = name
                 if isinstance(metric, TargetSaver):

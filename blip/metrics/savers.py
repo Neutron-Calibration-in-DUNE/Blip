@@ -6,82 +6,34 @@ import torch.nn as nn
 
 from blip.metrics import GenericMetric
 
-class LatentSaver(GenericMetric):
-    
-    def __init__(self,
-        name:   str='latent_saver',
-        output_shape:   tuple=(),
-        latent_shape:   tuple=(),
-        target_shape:   tuple=(),
-        input_shape:    tuple=(),
-    ):
-        """
-        Latent Saver
-        """
-        super(LatentSaver, self).__init__(
-            name,
-            output_shape,
-            latent_shape,
-            target_shape,
-            input_shape
-        )
-         # create empty tensors for epoch 
-        self.batch_latent = torch.empty(
-            size=(0,*self.latent_shape), 
-            dtype=torch.float, device=self.device
-        )
-
-        self.epoch_latent = None
-        
-    def reset_batch(self):
-        if len(self.batch_latent) != 0:
-            self.epoch_latent = self.batch_latent
-        self.batch_latent = torch.empty(
-            size=(0,*self.latent_shape), 
-            dtype=torch.float, device=self.device
-        )
-
-    def update(self,
-        outputs,
-        data,
-    ):
-        self.batch_latent = torch.cat((self.batch_latent, outputs[0]),dim=0)
-
-    def compute(self):
-        pass
-
 class OutputSaver(GenericMetric):
     
     def __init__(self,
-        name:   str='output_saver',
-        output_shape:   tuple=(),
-        latent_shape:   tuple=(),
-        target_shape:   tuple=(),
-        input_shape:    tuple=(),
+        name:       str='output_saver',
+        shape:      tuple=(),
+        output:     str='reductions'
     ):
         """
-        output Saver
+        Output Saver
         """
+        self.output = output
         super(OutputSaver, self).__init__(
             name,
-            output_shape,
-            latent_shape,
-            target_shape,
-            input_shape
+            shape
         )
          # create empty tensors for epoch 
         self.batch_output = torch.empty(
-            size=(0,*self.output_shape), 
+            size=(self.shape), 
             dtype=torch.float, device=self.device
         )
 
         self.epoch_output = None
         
     def reset_batch(self):
-        if len(self.batch_output) != 0:
+        if self.batch_output == None:
             self.epoch_output = self.batch_output
         self.batch_output = torch.empty(
-            size=(0,*self.output_shape), 
+            size=(self.shape), 
             dtype=torch.float, device=self.device
         )
 
@@ -89,51 +41,10 @@ class OutputSaver(GenericMetric):
         outputs,
         data,
     ):
-        self.batch_output = torch.cat((self.batch_output, outputs[1]),dim=0)
-
-    def compute(self):
-        pass
-
-class ClassificationSaver(GenericMetric):
-    
-    def __init__(self,
-        name:   str='output_saver',
-        output_shape:   tuple=(),
-        latent_shape:   tuple=(),
-        target_shape:   tuple=(),
-        input_shape:    tuple=(),
-    ):
-        """
-        output Saver
-        """
-        super(ClassificationSaver, self).__init__(
-            name,
-            output_shape,
-            latent_shape,
-            target_shape,
-            input_shape
+        self.batch_output = torch.cat(
+            (self.batch_output, outputs[self.output]),
+            dim=0
         )
-         # create empty tensors for epoch 
-        self.batch_output = torch.empty(
-            size=(0,*self.output_shape), 
-            dtype=torch.float, device=self.device
-        )
-
-        self.epoch_output = None
-        
-    def reset_batch(self):
-        if len(self.batch_output) != 0:
-            self.epoch_output = self.batch_output
-        self.batch_output = torch.empty(
-            size=(0,*self.output_shape), 
-            dtype=torch.float, device=self.device
-        )
-
-    def update(self,
-        outputs,
-        data,
-    ):
-        self.batch_output = torch.cat((self.batch_output, outputs[1]),dim=0)
 
     def compute(self):
         pass
@@ -142,20 +53,16 @@ class AugmentedTargetSaver(GenericMetric):
     
     def __init__(self,
         name:   str='augmented_target_saver',
-        output_shape:   tuple=(),
-        latent_shape:   tuple=(),
-        target_shape:   tuple=(),
-        input_shape:    tuple=(),
+        shape:      tuple=(),
+        output:     str='reductions'
     ):
         """
         Augmented Target Saver
         """
         super(AugmentedTargetSaver, self).__init__(
             name,
-            output_shape,
-            latent_shape,
-            target_shape,
-            input_shape
+            shape,
+            output
         )
          # create empty tensors for epoch 
         self.batch_target = torch.empty(
@@ -190,20 +97,16 @@ class TargetSaver(GenericMetric):
     
     def __init__(self,
         name:   str='target_saver',
-        output_shape:   tuple=(),
-        latent_shape:   tuple=(),
-        target_shape:   tuple=(),
-        input_shape:    tuple=(),
+        shape:      tuple=(),
+        output:     str='reductions'
     ):
         """
         Target Saver
         """
         super(TargetSaver, self).__init__(
             name,
-            output_shape,
-            latent_shape,
-            target_shape,
-            input_shape
+            shape,
+            output
         )
          # create empty tensors for epoch 
         self.batch_target = torch.empty(
@@ -225,7 +128,10 @@ class TargetSaver(GenericMetric):
         outputs,
         data,
     ):
-        self.batch_target = torch.cat((self.batch_target, data.category.to(self.device)),dim=0)
+        self.batch_target = torch.cat(
+            (self.batch_target, data.category.to(self.device)),
+            dim=0
+        )
 
     def compute(self):
         pass
@@ -234,20 +140,16 @@ class InputSaver(GenericMetric):
     
     def __init__(self,
         name:   str='input_saver',
-        output_shape:   tuple=(),
-        latent_shape:   tuple=(),
-        target_shape:   tuple=(),
-        input_shape:    tuple=(),
+        shape:      tuple=(),
+        output:     str='reductions'
     ):
         """
         Input Saver
         """
         super(InputSaver, self).__init__(
             name,
-            output_shape,
-            latent_shape,
-            target_shape,
-            input_shape
+            shape,
+            output
         )
          # create empty tensors for epoch 
         self.batch_input = torch.empty(
@@ -268,7 +170,10 @@ class InputSaver(GenericMetric):
         outputs,
         data,
     ):
-        self.batch_input = torch.cat((self.batch_input, data.x.to(self.device)),dim=0)
+        self.batch_input = torch.cat(
+            (self.batch_input, data.x.to(self.device)),
+            dim=0
+        )
 
     def compute(self):
         pass

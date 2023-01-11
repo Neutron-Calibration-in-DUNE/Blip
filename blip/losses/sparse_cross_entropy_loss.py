@@ -24,10 +24,10 @@ class SparseCrossEntropyLoss(GenericLoss):
         data,
     ):
         """Computes and returns/saves loss information"""
-        embeddings = outputs[2]
+        embeddings = outputs['classifications']
         augmented_labels = torch.cat([
             data.category.to(self.device) 
-            for ii in range(int(len(outputs[1])/len(data.category)))
+            for ii in range(int(len(outputs['reductions'])/len(data.category)))
         ])
         loss = self.sparse_cross_entropy_loss(embeddings, augmented_labels)
         self.batch_loss = torch.cat((self.batch_loss, torch.tensor([[loss]], device=self.device)), dim=0)

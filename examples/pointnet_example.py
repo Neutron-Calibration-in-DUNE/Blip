@@ -109,11 +109,11 @@ if __name__ == "__main__":
     
     # create metrics
     blip_metric_config = {
-        'LatentSaver':  {},
-        'TargetSaver':  {},
-        'InputSaver':   {},
-        'OutputSaver':  {},
-        'AugmentedTargetSaver': {},
+        'OutputSaver':  {
+            'name': 'reductions_saver',
+            'output': 'reductions'
+        },
+        #'AugmentedTargetSaver': {},
     }
     blip_metrics = MetricHandler(
         "blip_metric",
@@ -124,10 +124,10 @@ if __name__ == "__main__":
     callback_config = {
         'loss':   {'criterion_list': blip_loss},
         'metric': {'metrics_list':   blip_metrics},
-        'embedding': {
-            'criterion_list':   blip_loss,
-            'metrics_list':     blip_metrics
-        },
+        # 'embedding': {
+        #     'criterion_list':   blip_loss,
+        #     'metrics_list':     blip_metrics
+        # },
     }
     blip_callbacks = CallbackHandler(
         "blip_callbacks",

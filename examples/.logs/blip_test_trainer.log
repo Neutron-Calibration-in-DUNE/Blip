@@ -1,8 +1,8 @@
-[12:42:37] [INFO] [blip_test_trainer]: constructing model trainer.
-[12:42:37] [INFO] [blip_test_trainer]: CUDA is available with devices:
-[12:42:37] [INFO] [blip_test_trainer]:  -- device: 0 - name: NVIDIA GeForce GTX 1070, compute: 6.1, memory: 8504934400
-[12:42:37] [INFO] [blip_test_trainer]: CUDA is available, using device 0 - NVIDIA GeForce GTX 1070
-[12:42:37] [INFO] [blip_test_trainer]: running consistency check...
-[12:42:38] [INFO] [blip_test_trainer]: passed consistency check.
-[12:42:38] [INFO] [blip_test_trainer]: training dataset 'blip_example' for 25 epochs.
-[12:44:29] [INFO] [blip_test_trainer]: training finished.
+[13:51:40] [INFO] [blip_test_trainer]: constructing model trainer.
+[13:51:40] [INFO] [blip_test_trainer]: CUDA is available with devices:
+[13:51:40] [INFO] [blip_test_trainer]:  -- device: 0 - name: NVIDIA GeForce GTX 1070, compute: 6.1, memory: 8504934400
+[13:51:40] [INFO] [blip_test_trainer]: CUDA is available, using device 0 - NVIDIA GeForce GTX 1070
+[13:51:41] [INFO] [blip_test_trainer]: running consistency check...
+[13:51:42] [INFO] [blip_test_trainer]: passed consistency check.
+[13:51:42] [INFO] [blip_test_trainer]: training dataset 'blip_example' for 25 epochs.
+[13:53:26] [INFO] [blip_test_trainer]: training finished.

@@ -10,20 +10,16 @@ class ConfusionMatrix(GenericMetric):
     
     def __init__(self,
         name:   str='confusion_matrix',
-        output_shape:   tuple=(),
-        latent_shape:   tuple=(),
-        target_shape:   tuple=(),
-        input_shape:    tuple=(),
+        shape:      tuple=(),
+        output:     str='reductions',
         num_classes:    int=2,
     ):
         """
         """
         super(ConfusionMatrix, self).__init__(
             name,
-            output_shape,
-            latent_shape,
-            target_shape,
-            input_shape,
+            shape,
+            output
         )
         self.num_classes = num_classes
 

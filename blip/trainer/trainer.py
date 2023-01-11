@@ -204,19 +204,28 @@ class Trainer:
         try:
             output = self.model(data)
         except Exception as e:
-            self.logger.error(f"model '{self.model}' forward function incompatible with data from dataset_loader! Perhaps you forgot 'x = x[0].to(self.device)'?: {e}")
+            self.logger.error(
+                f"model '{self.model}' forward function incompatible with data from dataset_loader!"
+                + f"  Perhaps you forgot 'x = x[0].to(self.device)'?: {e}"
+            )
         # make a shape list
-        self.num_output_elements = len(output)
+        self.num_output_elements = len(output.keys())
         if self.num_output_elements == 1:
-            self.output_shape = output.squeeze(0).shape
+            self.output_shape = {'output':output.squeeze(0).shape}
         else:
-            self.output_shape = [tensor.squeeze(0).shape for tensor in output]
+            self.output_shape = {
+                key:tensor.squeeze(0).shape 
+                for key, tensor in output.items()
+            }
         # confirm shapes and behavior with criterion
         for name, loss in self.criterion.losses.items():
             try:
                 loss_value = loss.loss(output, data)
             except Exception as e:
-                self.logger.error(f"loss function '{loss}' evaluation failed with inputs:\noutput={output}\ndata={data}\n{e}")
+                self.logger.error(
+                    f"loss function '{loss}' evaluation failed with inputs:"
+                    +f"\noutput={output}\ndata={data}\n{e}"
+                )
         
         # confirm shapes and behavior with metrics
         """
@@ -233,20 +242,20 @@ class Trainer:
             if self.num_output_elements == 1:
                 try:
                     test_output = torch.empty(
-                        size=(0,*output[0].shape), 
+                        size=(0,*self.output_shape), 
                         dtype=torch.float, device=self.device
                     )
                 except Exception as e:
                     self.logger.error(f"problem creating tensor with output shape '{output.shape}'.")
             else:
-                for ii in range(len(output)):
+                for key, value in self.output_shape.items():
                     try:
                         test_output = torch.empty(
-                            size=(0,*output[ii][0].shape), 
+                            size=(0,*value), 
                             dtype=torch.float, device=self.device
                         )
                     except Exception as e:
-                        self.logger.error(f"problem creating tensor with output shape '{output[ii].shape}'.")
+                        self.logger.error(f"problem creating tensor with output shape '{value}'.")
             try:
                 test_target = torch.empty(
                     size=(0,*target[0].shape), 
@@ -255,10 +264,7 @@ class Trainer:
             except Exception as e:
                 self.logger.error(f"problem creating tensor with target shape '{target.shape}'.")
             if isinstance(self.metrics, MetricHandler):
-                if self.num_output_elements == 1:
-                    self.metrics.set_shapes(output[0].shape, None, target[0].shape, input[0].shape)
-                else:
-                    self.metrics.set_shapes(output[1][0].shape, output[0][0].shape, target[0].shape, input[0].shape)
+                self.metrics.set_shapes(self.output_shape)
             self.metrics.reset_batch()
         # confirm shapes and behavior with callbacks
         self.criterion.reset_batch()

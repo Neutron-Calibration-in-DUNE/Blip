@@ -120,7 +120,7 @@ class PointNetClassification(GenericModel):
         x = x.to(self.device)
         # if self.training:
         # Get augmentations of the batch
-        pools, compacts, classifications = [], [], []
+        embeddings, pools, reductions, classifications = [], [], [], []
         for ii in range(self.cfg['number_of_augmentations']):
             augmentations = self.augmentation(x)
             pos, batch = augmentations.pos, augmentations.batch
@@ -133,18 +133,26 @@ class PointNetClassification(GenericModel):
 
             linear_output = self.reduction_dict['linear_layer'](linear_input)
             linear_pool = global_max_pool(linear_output, batch)
-            linear_compact = self.reduction_dict['mlp_output'](linear_pool)
+            linear_reduction = self.reduction_dict['mlp_output'](linear_pool)
 
-            classification = self.classification_dict['classification_output'](linear_compact)
+            classification = self.classification_dict['classification_output'](linear_reduction)
+
+            embeddings.append(linear_input)
             pools.append(linear_pool)
-            compacts.append(linear_compact)
+            reductions.append(linear_reduction)
             classifications.append(classification)
 
-        compacts = torch.cat(compacts)
+        embeddings = torch.cat(embeddings)
+        reductions = torch.cat(reductions)
         pools = torch.cat(pools)
         classifications = torch.cat(classifications)
 
-        return pools, compacts, classifications
+        return {
+            'embeddings': embeddings,
+            'pools': pools, 
+            'reductions': reductions, 
+            'classifications': classifications
+        }
     
     def forward_eval(self,
         x
@@ -164,8 +172,8 @@ class PointNetClassification(GenericModel):
 
         linear_output = self.reduction_dict['linear_layer'](linear_input)
         linear_pool = global_max_pool(linear_output, batch)
-        linear_compact = self.reduction_dict['mlp_output'](linear_pool)
+        linear_reduction = self.reduction_dict['mlp_output'](linear_pool)
 
         labels = x.category
 
-        return linear_pool, linear_compact, labels
+        return linear_pool, linear_reduction, labels

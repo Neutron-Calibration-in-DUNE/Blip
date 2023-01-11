@@ -3,7 +3,6 @@ Container for generic callbacks
 """
 from blip.utils.logger import Logger
 from blip.metrics import GenericMetric
-from blip.metrics.savers import LatentSaver, TargetSaver
 from blip.metrics.savers import OutputSaver, InputSaver
 from blip.metrics.savers import AugmentedTargetSaver
 from blip.utils.utils import get_method_arguments
@@ -35,9 +34,7 @@ class MetricHandler:
         # TODO: Make this automatic
         # list of available metrics
         self.available_metrics = {
-            'LatentSaver':  LatentSaver,
             'OutputSaver':  OutputSaver,
-            'TargetSaver':  TargetSaver,
             'InputSaver':   InputSaver,
             'AugmentedTargetSaver': AugmentedTargetSaver,
         }
@@ -68,16 +65,10 @@ class MetricHandler:
         self.device = device
     
     def set_shapes(self,
-        output_shape,
-        latent_shape,
-        target_shape,
-        input_shape,
+        output_shapes,
     ):
         for name, metric in self.metrics.items():
-            metric.output_shape = output_shape
-            metric.latent_shape = latent_shape
-            metric.target_shape = target_shape
-            metric.input_shape = input_shape
+            metric.shape = output_shapes[metric.output]
             metric.reset_batch()
 
     def reset_batch(self):  

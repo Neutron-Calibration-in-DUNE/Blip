@@ -20,9 +20,7 @@ class MetricCallback(GenericCallback):
             self.metric_names = [
                 name for name, metric in self.metrics_list.metrics.items()
                 if not sum([
-                    isinstance(metric, LatentSaver),
                     isinstance(metric, OutputSaver),
-                    isinstance(metric, TargetSaver),
                     isinstance(metric, InputSaver),
                     isinstance(metric, AugmentedTargetSaver),
                 ])
