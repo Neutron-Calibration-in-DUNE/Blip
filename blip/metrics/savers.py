@@ -45,7 +45,7 @@ class LatentSaver(GenericMetric):
         outputs,
         data,
     ):
-        self.batch_latent = torch.cat((self.batch_latent, outputs[1]),dim=0)
+        self.batch_latent = torch.cat((self.batch_latent, outputs[0]),dim=0)
 
     def compute(self):
         pass
@@ -89,7 +89,55 @@ class OutputSaver(GenericMetric):
         outputs,
         data,
     ):
-        self.batch_output = torch.cat((self.batch_output, outputs[0]),dim=0)
+        self.batch_output = torch.cat((self.batch_output, outputs[1]),dim=0)
+
+    def compute(self):
+        pass
+
+class AugmentedTargetSaver(GenericMetric):
+    
+    def __init__(self,
+        name:   str='augmented_target_saver',
+        output_shape:   tuple=(),
+        latent_shape:   tuple=(),
+        target_shape:   tuple=(),
+        input_shape:    tuple=(),
+    ):
+        """
+        Augmented Target Saver
+        """
+        super(AugmentedTargetSaver, self).__init__(
+            name,
+            output_shape,
+            latent_shape,
+            target_shape,
+            input_shape
+        )
+         # create empty tensors for epoch 
+        self.batch_target = torch.empty(
+            size=(0,*self.target_shape), 
+            dtype=torch.float, device=self.device
+        )
+
+        self.epoch_target = None
+        
+    def reset_batch(self):
+        if len(self.batch_target) != 0:
+            self.epoch_target = self.batch_target
+        self.batch_target = torch.empty(
+            size=(0,*self.target_shape), 
+            dtype=torch.float, device=self.device
+        )
+
+    def update(self,
+        outputs,
+        data,
+    ):
+        augmented_labels = torch.cat([
+            data.category.to(self.device) 
+            for ii in range(int(len(outputs[2])/len(data.category)))
+        ])
+        self.batch_target = torch.cat((self.batch_target, augmented_labels), dim=0)
 
     def compute(self):
         pass
@@ -133,7 +181,7 @@ class TargetSaver(GenericMetric):
         outputs,
         data,
     ):
-        self.batch_target = torch.cat((self.batch_target, data[1].to(self.device)),dim=0)
+        self.batch_target = torch.cat((self.batch_target, data.category.to(self.device)),dim=0)
 
     def compute(self):
         pass
@@ -176,7 +224,7 @@ class InputSaver(GenericMetric):
         outputs,
         data,
     ):
-        self.batch_input = torch.cat((self.batch_input, data[0].to(self.device)),dim=0)
+        self.batch_input = torch.cat((self.batch_input, data.x.to(self.device)),dim=0)
 
     def compute(self):
         pass

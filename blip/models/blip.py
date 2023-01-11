@@ -150,7 +150,6 @@ class BLIP(GenericModel):
         """
         x = x.to(self.device)
         # if self.training:
-        # Get augmentations of the batch
         pos, batch = x.pos, x.batch
         for ii, layer in enumerate(self.edge_conv_dict.keys()):
             pos = self.edge_conv_dict[layer](pos, batch)

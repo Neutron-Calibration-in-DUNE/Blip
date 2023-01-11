@@ -5,6 +5,7 @@ from blip.utils.logger import Logger
 from blip.metrics import GenericMetric
 from blip.metrics.savers import LatentSaver, TargetSaver
 from blip.metrics.savers import OutputSaver, InputSaver
+from blip.metrics.savers import AugmentedTargetSaver
 from blip.utils.utils import get_method_arguments
 
 class MetricHandler:
@@ -37,7 +38,8 @@ class MetricHandler:
             'LatentSaver':  LatentSaver,
             'OutputSaver':  OutputSaver,
             'TargetSaver':  TargetSaver,
-            'InputSaver':  InputSaver,
+            'InputSaver':   InputSaver,
+            'AugmentedTargetSaver': AugmentedTargetSaver,
         }
 
         # check config

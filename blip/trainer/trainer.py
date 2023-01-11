@@ -167,7 +167,7 @@ class Trainer:
             self.logger.error(f"problem indexing elements of dataset {dataset_loader.dataset}: {e}")
         num_data_elements = len(data)
         input = data.pos
-        target = data.y
+        target = data.category
         # if issubclass(type(dataset_loader.dataset), CHUNCDataset):
         #     # check consistency in definition of __getitem__
         #     feature_shape = dataset_loader.dataset.feature_shape
@@ -257,7 +257,7 @@ class Trainer:
                 if self.num_output_elements == 1:
                     self.metrics.set_shapes(output[0].shape, None, target[0].shape, input[0].shape)
                 else:
-                    self.metrics.set_shapes(output[0][0].shape, output[1][0].shape, target[0].shape, input[0].shape)
+                    self.metrics.set_shapes(output[1][0].shape, output[0][0].shape, target[0].shape, input[0].shape)
             self.metrics.reset_batch()
         # confirm shapes and behavior with callbacks
         self.criterion.reset_batch()

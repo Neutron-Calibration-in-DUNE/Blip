@@ -35,6 +35,7 @@ blip/utils/timing.py
 blip/utils/utils.py
 blip/utils/callbacks/__init__.py
 blip/utils/callbacks/callback_handler.py
+blip/utils/callbacks/embedding_callback.py
 blip/utils/callbacks/generic_callback.py
 blip/utils/callbacks/loss_callback.py
 blip/utils/callbacks/memory_callback.py

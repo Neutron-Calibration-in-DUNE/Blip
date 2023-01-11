@@ -4,6 +4,7 @@ Container for generic callbacks
 from blip.utils.logger import Logger
 from blip.utils.callbacks import GenericCallback
 from blip.utils.callbacks import LossCallback, MetricCallback
+from blip.utils.callbacks import EmbeddingCallback
 from blip.utils.utils import get_method_arguments
 
 class CallbackHandler:
@@ -34,6 +35,7 @@ class CallbackHandler:
         self.available_callbacks = {
             'loss':     LossCallback,
             'metric':   MetricCallback,
+            'embedding':EmbeddingCallback,
         }
         # check config
         for item in self.cfg.keys():

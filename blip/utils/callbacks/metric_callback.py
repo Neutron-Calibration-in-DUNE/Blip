@@ -23,7 +23,8 @@ class MetricCallback(GenericCallback):
                     isinstance(metric, LatentSaver),
                     isinstance(metric, OutputSaver),
                     isinstance(metric, TargetSaver),
-                    isinstance(metric, InputSaver)
+                    isinstance(metric, InputSaver),
+                    isinstance(metric, AugmentedTargetSaver),
                 ])
             ]
 

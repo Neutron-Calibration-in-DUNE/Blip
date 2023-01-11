@@ -26,7 +26,7 @@ You can optionally add the flag ``-n <name>`` to specify a name for the environm
 
 From here you can run:
 ```bash
-python setup.py install
+pip install .
 ```
 which should install the API for you.
 
@@ -37,7 +37,7 @@ which should install the API for you.
 ### Datasets
 ------------
 
-  One immediate way of addressing this is to come up with a common format for expressing datasets.  We can do this by imposing a set of constraints on how a dataset should be expressed in memory, which for now is done by creating a compressed numpy file (.npz) with the following minimal set of arrays:
+  <!-- One immediate way of addressing this is to come up with a common format for expressing datasets.  We can do this by imposing a set of constraints on how a dataset should be expressed in memory, which for now is done by creating a compressed numpy file (.npz) with the following minimal set of arrays:
 
 ```python
 
@@ -67,4 +67,4 @@ np.savez(
     event_class_weights=class_weights,
 )
 ```
-Here we have a set of arrays containing **features** (events), **classes** (classes), **sample_weights** (weights) and **class_weights** (class_weights), as well as a dictionary **meta** which contains information about who/when/where the dataset was created, as well as the number of events and a set of dictionaries describing the various items in the arrays.  Everything but the **sample_weights** and **class_weights** items are required in the meta dictionary, which will be checked whenever a dataset is loaded from an .npz file.
+Here we have a set of arrays containing **features** (events), **classes** (classes), **sample_weights** (weights) and **class_weights** (class_weights), as well as a dictionary **meta** which contains information about who/when/where the dataset was created, as well as the number of events and a set of dictionaries describing the various items in the arrays.  Everything but the **sample_weights** and **class_weights** items are required in the meta dictionary, which will be checked whenever a dataset is loaded from an .npz file. -->

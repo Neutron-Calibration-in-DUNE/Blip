@@ -1,6 +1,6 @@
-[15:46:12] [INFO] [blip_test]: configuring model.
-[15:46:12] [INFO] [blip_test]: Attempting to build chunc architecture using cfg: {'input_dimension': 3, 'num_dynamic_edge_conv': 2, 'edge_conv_mlp_layers': [[64, 64], [64, 64]], 'number_of_neighbors': 20, 'aggregation_operators': ['sum', 'sum'], 'linear_output': 128, 'mlp_output_layers': [128, 256, 32], 'augmentations': [RandomJitter(0.03), RandomFlip(axis=1, p=0.5), RandomShear(0.2)], 'number_of_augmentations': 2}
-[15:46:12] [INFO] [blip_test]: Constructed BLIP with dictionaries:
+[08:30:15] [INFO] [blip_test]: configuring model.
+[08:30:15] [INFO] [blip_test]: Attempting to build chunc architecture using cfg: {'input_dimension': 3, 'num_dynamic_edge_conv': 2, 'edge_conv_mlp_layers': [[64, 64], [64, 64]], 'number_of_neighbors': 20, 'aggregation_operators': ['sum', 'sum'], 'linear_output': 128, 'mlp_output_layers': [128, 256, 32], 'augmentations': [RandomJitter(0.03), RandomFlip(axis=1, p=0.5), RandomShear(0.2)], 'number_of_augmentations': 2}
+[08:30:15] [INFO] [blip_test]: Constructed BLIP with dictionaries:
 ModuleDict(
   (edge_conv_0): DynamicEdgeConv(nn=MLP(6, 64, 64), k=20)
   (edge_conv_1): DynamicEdgeConv(nn=MLP(128, 64, 64), k=20)
