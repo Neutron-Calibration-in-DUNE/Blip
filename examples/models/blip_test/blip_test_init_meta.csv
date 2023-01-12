@@ -1,17 +1,17 @@
 Meta information for model blip_test
-date:	01/11/2023 13:51:42
+date:	01/12/2023 12:09:31
 user:	ncarrara
 user_id:	1000
 System information:
 platform	Linux
-platform-release	5.15.0-56-generic
-platform-version	#62-Ubuntu SMP Tue Nov 22 19:54:14 UTC 2022
+platform-release	5.15.0-57-generic
+platform-version	#63-Ubuntu SMP Thu Nov 24 13:43:17 UTC 2022
 architecture	x86_64
-hostname	DAK1
+hostname	DAK0
 ip-address	127.0.1.1
-mac-address	18:c0:4d:0f:cf:3c
+mac-address	fc:34:97:a6:55:7d
 processor	x86_64
-ram	63 GB
+ram	31 GB
 
 Model configuration:
 
@@ -19,10 +19,10 @@ input_dimension	3
 num_embedding	2
 embedding_mlp_layers	[[64, 64], [64, 64]]
 number_of_neighbors	20
-aggregation_operators	['sum', 'sum']
+aggregation_operators	['max', 'max']
 linear_output	128
 mlp_output_layers	[128, 256, 32]
-classification_layers	[32, 64, 32, 38]
+classification_layers	[32, 64, 32, 1550]
 augmentations	[RandomJitter(0.03), RandomFlip(axis=1, p=0.5), RandomShear(0.2)]
 number_of_augmentations	2
 
@@ -51,12 +51,17 @@ reduction_dict.mlp_output.lins.0.weight	torch.Size([256, 128])
 reduction_dict.mlp_output.lins.0.bias	torch.Size([256])
 reduction_dict.mlp_output.lins.1.weight	torch.Size([32, 256])
 reduction_dict.mlp_output.lins.1.bias	torch.Size([32])
+reduction_dict.mlp_output.norms.0.module.weight	torch.Size([256])
+reduction_dict.mlp_output.norms.0.module.bias	torch.Size([256])
+reduction_dict.mlp_output.norms.0.module.running_mean	torch.Size([256])
+reduction_dict.mlp_output.norms.0.module.running_var	torch.Size([256])
+reduction_dict.mlp_output.norms.0.module.num_batches_tracked	torch.Size([])
 classification_dict.classification_output.lins.0.weight	torch.Size([64, 32])
 classification_dict.classification_output.lins.0.bias	torch.Size([64])
 classification_dict.classification_output.lins.1.weight	torch.Size([32, 64])
 classification_dict.classification_output.lins.1.bias	torch.Size([32])
-classification_dict.classification_output.lins.2.weight	torch.Size([38, 32])
-classification_dict.classification_output.lins.2.bias	torch.Size([38])
+classification_dict.classification_output.lins.2.weight	torch.Size([1550, 32])
+classification_dict.classification_output.lins.2.bias	torch.Size([1550])
 classification_dict.classification_output.norms.0.module.weight	torch.Size([64])
 classification_dict.classification_output.norms.0.module.bias	torch.Size([64])
 classification_dict.classification_output.norms.0.module.running_mean	torch.Size([64])

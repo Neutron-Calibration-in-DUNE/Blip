@@ -8,6 +8,7 @@ import os
 from sklearn.manifold import TSNE
 import seaborn as sns
 import pandas as pd
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 from blip.metrics.savers import *
 from blip.utils.callbacks import GenericCallback
@@ -17,38 +18,34 @@ class ConfusionMatrixCallback(GenericCallback):
     """
     """
     def __init__(self,
-        criterion_list,
         metrics_list,
     ):  
         super(ConfusionMatrixCallback, self).__init__()
-        self.criterion_list = criterion_list
-        self.loss_names = [loss.name for name, loss in self.criterion_list.losses.items()]
         self.metrics_list = metrics_list
         self.output_name = None
         self.target_name = None
         self.augmented_target_name = None
         self.input_name = None
+
         if metrics_list != None:
             for name, metric in self.metrics_list.metrics.items():
-                if isinstance(metric, OutputSaver):
-                    self.output_name = name
-                if isinstance(metric, InputSaver):
-                    self.input_name = name
-                if isinstance(metric, TargetSaver):
-                    self.target_name = name
-                if isinstance(metric, AugmentedTargetSaver):
-                    self.augmented_target_name = name
+                if isinstance(metric, DataSaver):
+                    if(metric.output == "classifications"):
+                        self.output_name = name
+                    elif(metric.output == "position"):
+                        self.input_name = name
+                    elif(metric.output == "category"):
+                        self.target_name = name
+                    elif(metric.output == "augmented_category"):
+                        self.augmented_target_name = name
 
-        if not os.path.isdir("plots/embedding/"):
-            os.makedirs("plots/embedding/")
+        if not os.path.isdir("plots/confusion_matrix/"):
+            os.makedirs("plots/confusion_matrix/")
 
         # containers for training metrics
         if self.output_name != None:
             self.training_output = None
             self.validation_output = None
-        if self.input_name != None:
-            self.training_input = None
-            self.validation_input = None
         if self.augmented_target_name != None:
             self.training_target = None
         if self.target_name != None:
@@ -62,53 +59,37 @@ class ConfusionMatrixCallback(GenericCallback):
     ):  
         if train_type == 'training':
             if self.output_name != None:
-                self.training_output = self.metrics_list.metrics[self.output_name].batch_output
-                self.metrics_list.metrics[self.output_name].reset_batch()
-            if self.input_name != None:
-                self.training_input = self.metrics_list.metrics[self.input_name].batch_input
-                self.metrics_list.metrics[self.input_name].reset_batch()
+                self.training_output = self.metrics_list.metrics[self.output_name].batch_data
             if self.augmented_target_name != None:
-                self.training_target = self.metrics_list.metrics[self.augmented_target_name].batch_target
-                self.metrics_list.metrics[self.augmented_target_name].reset_batch()  
-            if self.target_name != None:     
-                self.metrics_list.metrics[self.target_name].reset_batch()   
+                self.training_target = self.metrics_list.metrics[self.augmented_target_name].batch_data 
         else:
             if self.output_name != None:
-                self.validation_output = self.metrics_list.metrics[self.output_name].batch_output
-                self.metrics_list.metrics[self.output_name].reset_batch()
-            if self.input_name != None:
-                self.validation_input = self.metrics_list.metrics[self.input_name].batch_input
-                self.metrics_list.metrics[self.input_name].reset_batch()
-            if self.augmented_target_name != None:
-                self.metrics_list.metrics[self.augmented_target_name].reset_batch()  
+                self.validation_output = self.metrics_list.metrics[self.output_name].batch_data
             if self.target_name != None:
-                self.validation_target = self.metrics_list.metrics[self.target_name].batch_target
-                self.metrics_list.metrics[self.target_name].reset_batch()
+                self.validation_target = self.metrics_list.metrics[self.target_name].batch_data
 
     def evaluate_training(self):
         # plot the latent distributions
         if self.output_name != None:
-            # find embedding for the training data
-            # Get low-dimensional t-SNE Embeddings
-            embedding = TSNE(
-                n_components=2, 
-                learning_rate='auto',
-                init='random'
-            ).fit_transform(self.training_output.cpu().numpy())
-            targets = self.training_target.cpu().numpy()
-            unique_targets = np.unique(targets)
+            print(self.training_target)
+            print(self.training_output)
+            # compute confusion matrix for training data
+            targets = self.training_target.cpu().numpy().flatten()
+            outputs = np.argmax(self.training_output.cpu().numpy(),axis=1).flatten()
+            print(targets)
+            print(outputs)
+            confusion = confusion_matrix(
+                targets, outputs
+            )
+            print(confusion)
 
             fig, axs = plt.subplots(figsize=(10,6))
-            for target in unique_targets:
-                axs.scatter(
-                    embedding[:,0][(targets == target)],
-                    embedding[:,1][(targets == target)],
-                    label=f"{target}"
-                )
+            
+
             axs.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
-            plt.suptitle("Training TSNE projection")
+            plt.suptitle("Training Confusion Matrix")
             plt.tight_layout()
-            plt.savefig(f"plots/embedding/training_tsne.png")
+            plt.savefig(f"plots/confusion_matrix/training_confusion_matrix.png")
             
     def evaluate_testing(self):  
         pass

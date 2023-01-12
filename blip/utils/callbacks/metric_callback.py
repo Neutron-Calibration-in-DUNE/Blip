@@ -20,9 +20,7 @@ class MetricCallback(GenericCallback):
             self.metric_names = [
                 name for name, metric in self.metrics_list.metrics.items()
                 if not sum([
-                    isinstance(metric, OutputSaver),
-                    isinstance(metric, InputSaver),
-                    isinstance(metric, AugmentedTargetSaver),
+                    isinstance(metric, DataSaver),
                 ])
             ]
 
@@ -72,7 +70,6 @@ class MetricCallback(GenericCallback):
                 (temp_metrics, temp_metric),
                 dim=1
             )
-            self.metrics_list.metrics[name].reset_batch()
         # run through criteria
         if train_type == 'training':
             self.training_metrics = torch.cat(

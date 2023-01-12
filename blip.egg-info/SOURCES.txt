@@ -25,7 +25,6 @@ blip/models/common.py
 blip/models/generic_model.py
 blip/models/pointnet_classification.py
 blip/models/pointnet_unsupervised.py
-blip/models/simple_pointnet.py
 blip/optimizers/__init__.py
 blip/optimizers/optimizers.py
 blip/trainer/__init__.py

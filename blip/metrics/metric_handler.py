@@ -3,8 +3,7 @@ Container for generic callbacks
 """
 from blip.utils.logger import Logger
 from blip.metrics import GenericMetric
-from blip.metrics.savers import OutputSaver, InputSaver
-from blip.metrics.savers import AugmentedTargetSaver
+from blip.metrics.savers import DataSaver
 from blip.utils.utils import get_method_arguments
 
 class MetricHandler:
@@ -34,19 +33,19 @@ class MetricHandler:
         # TODO: Make this automatic
         # list of available metrics
         self.available_metrics = {
-            'OutputSaver':  OutputSaver,
-            'InputSaver':   InputSaver,
-            'AugmentedTargetSaver': AugmentedTargetSaver,
+            'saver':       DataSaver,
         }
 
         # check config
         for item in self.cfg.keys():
-            if item not in self.available_metrics.keys():
-                self.logger.error(f"specified callback '{item}' is not an available type! Available types:\n{self.available_metrics}")
-            argdict = get_method_arguments(self.available_metrics[item])
+            if self.cfg[item]['metric'] not in self.available_metrics.keys():
+                self.logger.error(f"specified metric '{self.cfg[item]['metric']}' is not an available type! Available types:\n{self.available_metrics}")
+            argdict = get_method_arguments(self.available_metrics[self.cfg[item]['metric']])
             for value in self.cfg[item].keys():
+                if value == "metric":
+                    continue
                 if value not in argdict.keys():
-                    self.logger.error(f"specified callback value '{item}:{value}' not a constructor parameter for '{item}'! Constructor parameters:\n{argdict}")
+                    self.logger.error(f"specified metric value '{item}:{value}' not a constructor parameter for '{item}'! Constructor parameters:\n{argdict}")
             for value in argdict.keys():
                 if argdict[value] == None:
                     if value not in self.cfg[item].keys():
@@ -54,7 +53,7 @@ class MetricHandler:
         
         self.metrics = {}
         for item in self.cfg.keys():
-            self.metrics[item] = self.available_metrics[item](**self.cfg[item])
+            self.metrics[item] = self.available_metrics[self.cfg[item]['metric']](**self.cfg[item])
 
     def set_device(self,
         device

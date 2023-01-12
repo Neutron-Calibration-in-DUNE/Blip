@@ -96,8 +96,7 @@ class PointNetUnsupervised(GenericModel):
 
         # add output mlp Projection head (See explanation in SimCLRv2)
         _mlp_dict[f'mlp_output'] = MLP(
-            self.cfg['mlp_output_layers'],
-            norm=None
+            self.cfg['mlp_output_layers']
         )
         
         # create the dictionaries

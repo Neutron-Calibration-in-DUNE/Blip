@@ -217,6 +217,10 @@ class Trainer:
                 key:tensor.squeeze(0).shape 
                 for key, tensor in output.items()
             }
+        self.output_shape["position"] = input.shape
+        self.output_shape["category"] = target.shape
+        self.output_shape["augmented_category"] = target.shape
+
         # confirm shapes and behavior with criterion
         for name, loss in self.criterion.losses.items():
             try:
@@ -447,6 +451,7 @@ class Trainer:
                         )
                     else:
                         metrics_training_loop = enumerate(dataset_loader.train_loader, 0)
+                    self.metrics.reset_batch()
                     for ii, data in metrics_training_loop:
                         # update metrics
                         self.timers.timers['training_metrics'].start()
@@ -533,6 +538,7 @@ class Trainer:
                         )
                     else:
                         metrics_validation_loop = enumerate(dataset_loader.validation_loader, 0)
+                    self.metrics.reset_batch()
                     for ii, data in metrics_validation_loop:
                         # update metrics
                         self.timers.timers['validation_metrics'].start()
@@ -592,6 +598,7 @@ class Trainer:
 
                 # update metrics
                 if self.metrics != None:
+                    self.metrics.reset_batch()
                     self.metrics.update(outputs, data)
 
                 # update progress bar
@@ -657,6 +664,7 @@ class Trainer:
                     )
                 else:
                     metrics_training_loop = enumerate(dataset_loader.train_loader, 0)
+                self.metrics.reset_batch()
                 for ii, data in metrics_training_loop:
                     outputs = self.model(data)
                     self.metrics.update(outputs, data)
@@ -690,6 +698,7 @@ class Trainer:
                         )
                     else:
                         metrics_validation_loop = enumerate(dataset_loader.validation_loader, 0)
+                    self.metrics.reset_batch()
                     for ii, data in metrics_validation_loop:
                         outputs = self.model(data)
                         self.metrics.update(outputs, data)
@@ -720,6 +729,7 @@ class Trainer:
                 outputs = self.model(data)
                 loss = self.criterion.loss(outputs, data)
                 if self.metrics != None:
+                    self.metrics.reset_batch()
                     self.metrics.update(outputs, data)
                 if (progress_bar == 'all' or progress_bar == 'test'):
                     test_loop.set_description(f"Testing: Batch [{ii+1}/{dataset_loader.num_test_batches}]")
@@ -797,6 +807,7 @@ class Trainer:
         # make sure to set model to eval() during validation!
         self.model.eval()
         with torch.no_grad():
+            self.metrics.reset_batch()
             for ii, data in inference_loop:
                 # get the network output
                 outputs = self.model(data)

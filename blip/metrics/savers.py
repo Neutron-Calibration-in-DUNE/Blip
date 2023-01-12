@@ -6,172 +6,88 @@ import torch.nn as nn
 
 from blip.metrics import GenericMetric
 
-class OutputSaver(GenericMetric):
+class DataSaver(GenericMetric):
     
     def __init__(self,
-        name:       str='output_saver',
-        shape:      tuple=(),
-        output:     str='reductions'
+        metric:       str='data_saver',
+        shape:        tuple=(),
+        output:       str='position'
     ):
         """
-        Output Saver
+        Data Saver
         """
-        self.output = output
-        super(OutputSaver, self).__init__(
-            name,
+        super(DataSaver, self).__init__(
+            metric,
             shape
         )
+        self.output = output
+
          # create empty tensors for epoch 
-        self.batch_output = torch.empty(
-            size=(self.shape), 
-            dtype=torch.float, device=self.device
+        self.batch_data = torch.empty(
+            size=(0, *self.shape),
+            dtype=torch.float,device='cpu'
         )
 
-        self.epoch_output = None
+        self.epoch_data = None
+
+        if self.output == "position":
+            self.update = self._update_position
+        elif self.output == "category":
+            self.update = self._update_category
+        elif self.output == "augmented_category":
+            self.update = self._update_augmented_category
+        else:
+            self.update = self._update
         
     def reset_batch(self):
-        if self.batch_output == None:
-            self.epoch_output = self.batch_output
-        self.batch_output = torch.empty(
-            size=(self.shape), 
-            dtype=torch.float, device=self.device
+        if self.batch_data == None:
+            self.epoch_data = self.batch_data
+        self.batch_data = torch.empty(
+            size=(0, *self.shape),
+            dtype=torch.float,device='cpu'
         )
 
-    def update(self,
+    def _update(self,
         outputs,
         data,
     ):
-        self.batch_output = torch.cat(
-            (self.batch_output, outputs[self.output]),
+        self.batch_data = torch.cat(
+            (self.batch_data, outputs[self.output].detach().cpu()),
             dim=0
         )
 
-    def compute(self):
-        pass
-
-class AugmentedTargetSaver(GenericMetric):
-    
-    def __init__(self,
-        name:   str='augmented_target_saver',
-        shape:      tuple=(),
-        output:     str='reductions'
+    def _update_position(self,
+        outputs,
+        data,
     ):
-        """
-        Augmented Target Saver
-        """
-        super(AugmentedTargetSaver, self).__init__(
-            name,
-            shape,
-            output
-        )
-         # create empty tensors for epoch 
-        self.batch_target = torch.empty(
-            size=(0,*self.target_shape), 
-            dtype=torch.float, device=self.device
+        self.batch_data = torch.cat(
+            (self.batch_data, data.pos.detach().cpu()),
+            dim=0
         )
 
-        self.epoch_target = None
-        
-    def reset_batch(self):
-        if len(self.batch_target) != 0:
-            self.epoch_target = self.batch_target
-        self.batch_target = torch.empty(
-            size=(0,*self.target_shape), 
-            dtype=torch.float, device=self.device
+    def _update_category(self,
+        outputs,
+        data,
+    ):
+        print(self.shape)
+        print(self.batch_data)
+        print(data.category)
+        print(data.category.shape)
+        self.batch_data = torch.cat(
+            (self.batch_data, data.category.detach().cpu()),
+            dim=0
         )
-
-    def update(self,
+    
+    def _update_augmented_category(self,
         outputs,
         data,
     ):
         augmented_labels = torch.cat([
-            data.category.to(self.device) 
-            for ii in range(int(len(outputs[2])/len(data.category)))
+            data.category.to('cpu') 
+            for ii in range(int(len(outputs["reductions"])/len(data.category)))
         ])
-        self.batch_target = torch.cat((self.batch_target, augmented_labels), dim=0)
-
-    def compute(self):
-        pass
-
-class TargetSaver(GenericMetric):
-    
-    def __init__(self,
-        name:   str='target_saver',
-        shape:      tuple=(),
-        output:     str='reductions'
-    ):
-        """
-        Target Saver
-        """
-        super(TargetSaver, self).__init__(
-            name,
-            shape,
-            output
-        )
-         # create empty tensors for epoch 
-        self.batch_target = torch.empty(
-            size=(0,*self.target_shape), 
-            dtype=torch.float, device=self.device
-        )
-
-        self.epoch_target = None
-        
-    def reset_batch(self):
-        if len(self.batch_target) != 0:
-            self.epoch_target = self.batch_target
-        self.batch_target = torch.empty(
-            size=(0,*self.target_shape), 
-            dtype=torch.float, device=self.device
-        )
-
-    def update(self,
-        outputs,
-        data,
-    ):
-        self.batch_target = torch.cat(
-            (self.batch_target, data.category.to(self.device)),
-            dim=0
-        )
-
-    def compute(self):
-        pass
-
-class InputSaver(GenericMetric):
-    
-    def __init__(self,
-        name:   str='input_saver',
-        shape:      tuple=(),
-        output:     str='reductions'
-    ):
-        """
-        Input Saver
-        """
-        super(InputSaver, self).__init__(
-            name,
-            shape,
-            output
-        )
-         # create empty tensors for epoch 
-        self.batch_input = torch.empty(
-            size=(0,*self.input_shape), 
-            dtype=torch.float, device=self.device
-        )
-        self.epoch_input = None
-        
-    def reset_batch(self):
-        if len(self.batch_input) != 0:
-            self.epoch_input = self.batch_input
-        self.batch_input = torch.empty(
-            size=(0,*self.input_shape), 
-            dtype=torch.float, device=self.device
-        )
-
-    def update(self,
-        outputs,
-        data,
-    ):
-        self.batch_input = torch.cat(
-            (self.batch_input, data.x.to(self.device)),
+        self.batch_data = torch.cat(
+            (self.batch_data, augmented_labels.detach().cpu()), 
             dim=0
         )
 

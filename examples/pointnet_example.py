@@ -27,10 +27,10 @@ if __name__ == "__main__":
     # clean up directories first
     save_model()
 
-    prepare_data = True
+    prepare_data = False
     if prepare_data:
         arrakis_dataset = Arrakis(
-            "../../ArrakisEventDisplay/data/multiple_neutron_arrakis.root"
+            "../../ArrakisEventDisplay/data/multiple_neutron_arrakis1.root"
         )
         arrakis_dataset.generate_training_data()
     """
@@ -67,12 +67,12 @@ if __name__ == "__main__":
         ],
         'number_of_neighbors':  20,
         'aggregation_operators': [
-            'sum', 'sum'
+            'max', 'max'
         ],
         # linear layer
         'linear_output':    128,
         'mlp_output_layers': [128, 256, 32],
-        'classification_layers': [32, 64, 32, blip_dataset.num_classes],
+        'classification_layers': [32, 64, 32, blip_dataset.number_classes],
         'augmentations':    [
             T.RandomJitter(0.03), 
             T.RandomFlip(1), 
@@ -109,11 +109,22 @@ if __name__ == "__main__":
     
     # create metrics
     blip_metric_config = {
-        'OutputSaver':  {
-            'name': 'reductions_saver',
+        'reductions_saver':  {
+            'metric': 'saver',
             'output': 'reductions'
         },
-        #'AugmentedTargetSaver': {},
+        'classifications_saver':  {
+            'metric': 'saver',
+            'output': 'classifications'
+        },
+        'category_saver': {
+            'metric': 'saver',
+            'output': 'category'
+        },
+        'augmented_category_saver': {
+            'metric': 'saver',
+            'output': 'augmented_category'
+        }
     }
     blip_metrics = MetricHandler(
         "blip_metric",
@@ -125,9 +136,11 @@ if __name__ == "__main__":
         'loss':   {'criterion_list': blip_loss},
         'metric': {'metrics_list':   blip_metrics},
         # 'embedding': {
-        #     'criterion_list':   blip_loss,
         #     'metrics_list':     blip_metrics
         # },
+        'confusion_matrix': {
+            'metrics_list':     blip_metrics
+        },
     }
     blip_callbacks = CallbackHandler(
         "blip_callbacks",
@@ -148,7 +161,7 @@ if __name__ == "__main__":
     
     blip_trainer.train(
         blip_loader,
-        epochs=25,
+        epochs=1,
         checkpoint=25,
-        save_predictions=False
+        save_predictions=True
     )

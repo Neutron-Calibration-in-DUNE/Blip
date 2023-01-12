@@ -26,7 +26,7 @@ pointnet_classification_config = {
     ],
     'number_of_neighbors':  20,
     'aggregation_operators': [
-        'sum', 'sum'
+        'max', 'max'
     ],
     # linear layer
     'linear_output':    128,
@@ -94,8 +94,7 @@ class PointNetClassification(GenericModel):
         )
         # add output mlp Projection head (See explanation in SimCLRv2)
         _reduction_dict[f'mlp_output'] = MLP(
-            self.cfg['mlp_output_layers'],
-            norm=None
+            self.cfg['mlp_output_layers']
         )
 
         _classification_dict[f'classification_output'] = MLP(
@@ -108,7 +107,11 @@ class PointNetClassification(GenericModel):
         self.classification_dict = nn.ModuleDict(_classification_dict)
 
         # record the info
-        self.logger.info(f"Constructed PointNetClassification with dictionaries:\n{self.embedding_dict}\n{self.reduction_dict}\n{self.reduction_dict}\n{self.classification_dict}.")
+        self.logger.info(
+            f"Constructed PointNetClassification with dictionaries:"
+            + f"\n{self.embedding_dict}\n{self.reduction_dict}"
+            + f"\n{self.reduction_dict}\n{self.classification_dict}."
+        )
 
     
     def forward(self,
@@ -120,10 +123,35 @@ class PointNetClassification(GenericModel):
         x = x.to(self.device)
         # if self.training:
         # Get augmentations of the batch
-        embeddings, pools, reductions, classifications = [], [], [], []
-        for ii in range(self.cfg['number_of_augmentations']):
-            augmentations = self.augmentation(x)
-            pos, batch = augmentations.pos, augmentations.batch
+        if self.training:
+            embeddings, pools, reductions, classifications = [], [], [], []
+            for ii in range(self.cfg['number_of_augmentations']):
+                augmentations = self.augmentation(x)
+                pos, batch = augmentations.pos, augmentations.batch
+                for ii, layer in enumerate(self.embedding_dict.keys()):
+                    pos = self.embedding_dict[layer](pos, batch)
+                    if ii == 0:
+                        linear_input = pos
+                    else:
+                        linear_input = torch.cat([linear_input, pos], dim=1)
+
+                linear_output = self.reduction_dict['linear_layer'](linear_input)
+                linear_pool = global_max_pool(linear_output, batch)
+                linear_reduction = self.reduction_dict['mlp_output'](linear_pool)
+
+                classification = self.classification_dict['classification_output'](linear_reduction)
+
+                embeddings.append(linear_input)
+                pools.append(linear_pool)
+                reductions.append(linear_reduction)
+                classifications.append(classification)
+
+            embeddings = torch.cat(embeddings)
+            reductions = torch.cat(reductions)
+            pools = torch.cat(pools)
+            classifications = torch.cat(classifications)
+        else:
+            pos, batch = x.pos, x.batch
             for ii, layer in enumerate(self.embedding_dict.keys()):
                 pos = self.embedding_dict[layer](pos, batch)
                 if ii == 0:
@@ -131,21 +159,11 @@ class PointNetClassification(GenericModel):
                 else:
                     linear_input = torch.cat([linear_input, pos], dim=1)
 
-            linear_output = self.reduction_dict['linear_layer'](linear_input)
-            linear_pool = global_max_pool(linear_output, batch)
-            linear_reduction = self.reduction_dict['mlp_output'](linear_pool)
+            embeddings = self.reduction_dict['linear_layer'](linear_input)
+            pools = global_max_pool(embeddings, batch)
+            reductions = self.reduction_dict['mlp_output'](pools)
 
-            classification = self.classification_dict['classification_output'](linear_reduction)
-
-            embeddings.append(linear_input)
-            pools.append(linear_pool)
-            reductions.append(linear_reduction)
-            classifications.append(classification)
-
-        embeddings = torch.cat(embeddings)
-        reductions = torch.cat(reductions)
-        pools = torch.cat(pools)
-        classifications = torch.cat(classifications)
+            classifications = self.classification_dict['classification_output'](reductions)
 
         return {
             'embeddings': embeddings,
@@ -153,27 +171,3 @@ class PointNetClassification(GenericModel):
             'reductions': reductions, 
             'classifications': classifications
         }
-    
-    def forward_eval(self,
-        x
-    ):
-        """
-        Iterate over the model dictionary
-        """
-        x = x.to(self.device)
-        # if self.training:
-        pos, batch = x.pos, x.batch
-        for ii, layer in enumerate(self.embedding_dict.keys()):
-            pos = self.embedding_dict[layer](pos, batch)
-            if ii == 0:
-                linear_input = pos
-            else:
-                linear_input = torch.cat([linear_input, pos], dim=1)
-
-        linear_output = self.reduction_dict['linear_layer'](linear_input)
-        linear_pool = global_max_pool(linear_output, batch)
-        linear_reduction = self.reduction_dict['mlp_output'](linear_pool)
-
-        labels = x.category
-
-        return linear_pool, linear_reduction, labels

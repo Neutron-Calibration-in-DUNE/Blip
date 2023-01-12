@@ -50,6 +50,9 @@ class BlipDataset(InMemoryDataset):
             self.use_class_weights = False
         self.normalized = normalized
 
+        data = np.load(self.input_file, allow_pickle=True)
+        self.number_classes = data['meta'].item()['num_classes']
+
         self.logger.info(f"setting 'features': {self.features}.")
         self.logger.info(f"setting 'classes': {self.classes}.")
         self.logger.info(f"setting 'sample_weights': {self.sample_weights}.")
@@ -75,7 +78,7 @@ class BlipDataset(InMemoryDataset):
         data = np.load(self.input_file, allow_pickle=True)
         pos = data['positions']
         y = data['labels']
-        self.num_classes = data['meta']['num_classes']
+        
         data_list = [
             Data(
                 pos=torch.tensor(pos[ii]).type(torch.float),
