@@ -3,7 +3,12 @@ Container for generic callbacks
 """
 from blip.utils.logger import Logger
 from blip.metrics import GenericMetric
-from blip.metrics.savers import DataSaver
+from blip.metrics import AUROCMetric
+from blip.metrics import ConfusionMatrixMetric
+from blip.metrics import DiceScoreMetric
+from blip.metrics import JaccardIndexMetric
+from blip.metrics import PrecisionMetric
+from blip.metrics import RecallMetric
 from blip.utils.utils import get_method_arguments
 
 class MetricHandler:
@@ -33,14 +38,19 @@ class MetricHandler:
         # TODO: Make this automatic
         # list of available metrics
         self.available_metrics = {
-            'saver':       DataSaver,
+            'auroc':            AUROCMetric,
+            'confusion_matrix': ConfusionMatrixMetric,
+            'dice_score':       DiceScoreMetric,
+            'jaccard_index':    JaccardIndexMetric,
+            'precision':        PrecisionMetric,
+            'recall':           RecallMetric,
         }
 
         # check config
         for item in self.cfg.keys():
-            if self.cfg[item]['metric'] not in self.available_metrics.keys():
-                self.logger.error(f"specified metric '{self.cfg[item]['metric']}' is not an available type! Available types:\n{self.available_metrics}")
-            argdict = get_method_arguments(self.available_metrics[self.cfg[item]['metric']])
+            if item not in self.available_metrics.keys():
+                self.logger.error(f"specified metric '{item}' is not an available type! Available types:\n{self.available_metrics}")
+            argdict = get_method_arguments(self.available_metrics[item])
             for value in self.cfg[item].keys():
                 if value == "metric":
                     continue
@@ -53,26 +63,24 @@ class MetricHandler:
         
         self.metrics = {}
         for item in self.cfg.keys():
-            self.metrics[item] = self.available_metrics[self.cfg[item]['metric']](**self.cfg[item])
+            self.metrics[item] = self.available_metrics[item](**self.cfg[item])
 
     def set_device(self,
         device
     ):  
         for name, metric in self.metrics.items():
-            metric.set_device(device)
-            metric.reset_batch()
+            metric.metric.to(device)
+            metric.reset()
         self.device = device
     
     def set_shapes(self,
-        output_shapes,
+        input_shapes,
     ):
-        for name, metric in self.metrics.items():
-            metric.shape = output_shapes[metric.output]
-            metric.reset_batch()
+        pass
 
-    def reset_batch(self):  
+    def reset(self):  
         for name, metric in self.metrics.items():
-            metric.reset_batch()
+            metric.reset()
 
     def add_metric(self,
         metric:   GenericMetric

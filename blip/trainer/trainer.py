@@ -206,20 +206,20 @@ class Trainer:
         except Exception as e:
             self.logger.error(
                 f"model '{self.model}' forward function incompatible with data from dataset_loader!"
-                + f"  Perhaps you forgot 'x = x[0].to(self.device)'?: {e}"
+                + f"  Perhaps you forgot 'x = x.to(self.device)'?: {e}"
             )
         # make a shape list
         self.num_output_elements = len(output.keys())
         if self.num_output_elements == 1:
-            self.output_shape = {'output':output.squeeze(0).shape}
+            self.input_shape = {'output':output.squeeze(0).shape}
         else:
-            self.output_shape = {
+            self.input_shape = {
                 key:tensor.squeeze(0).shape 
                 for key, tensor in output.items()
             }
-        self.output_shape["position"] = input.shape
-        self.output_shape["category"] = target.shape
-        self.output_shape["augmented_category"] = target.shape
+        self.input_shape["position"] = input.shape
+        self.input_shape["category"] = target.shape
+        self.input_shape["augmented_category"] = target.shape
 
         # confirm shapes and behavior with criterion
         for name, loss in self.criterion.losses.items():
@@ -246,13 +246,13 @@ class Trainer:
             if self.num_output_elements == 1:
                 try:
                     test_output = torch.empty(
-                        size=(0,*self.output_shape), 
+                        size=(0,*self.input_shape), 
                         dtype=torch.float, device=self.device
                     )
                 except Exception as e:
                     self.logger.error(f"problem creating tensor with output shape '{output.shape}'.")
             else:
-                for key, value in self.output_shape.items():
+                for key, value in self.input_shape.items():
                     try:
                         test_output = torch.empty(
                             size=(0,*value), 
@@ -268,8 +268,8 @@ class Trainer:
             except Exception as e:
                 self.logger.error(f"problem creating tensor with target shape '{target.shape}'.")
             if isinstance(self.metrics, MetricHandler):
-                self.metrics.set_shapes(self.output_shape)
-            self.metrics.reset_batch()
+                self.metrics.set_shapes(self.input_shape)
+            self.metrics.reset()
         # confirm shapes and behavior with callbacks
         self.criterion.reset_batch()
         self.logger.info("passed consistency check.")
@@ -451,7 +451,7 @@ class Trainer:
                         )
                     else:
                         metrics_training_loop = enumerate(dataset_loader.train_loader, 0)
-                    self.metrics.reset_batch()
+                    self.metrics.reset()
                     for ii, data in metrics_training_loop:
                         # update metrics
                         self.timers.timers['training_metrics'].start()
@@ -538,7 +538,7 @@ class Trainer:
                         )
                     else:
                         metrics_validation_loop = enumerate(dataset_loader.validation_loader, 0)
-                    self.metrics.reset_batch()
+                    self.metrics.reset()
                     for ii, data in metrics_validation_loop:
                         # update metrics
                         self.timers.timers['validation_metrics'].start()
@@ -598,7 +598,7 @@ class Trainer:
 
                 # update metrics
                 if self.metrics != None:
-                    self.metrics.reset_batch()
+                    self.metrics.reset()
                     self.metrics.update(outputs, data)
 
                 # update progress bar
@@ -664,7 +664,7 @@ class Trainer:
                     )
                 else:
                     metrics_training_loop = enumerate(dataset_loader.train_loader, 0)
-                self.metrics.reset_batch()
+                self.metrics.reset()
                 for ii, data in metrics_training_loop:
                     outputs = self.model(data)
                     self.metrics.update(outputs, data)
@@ -698,7 +698,7 @@ class Trainer:
                         )
                     else:
                         metrics_validation_loop = enumerate(dataset_loader.validation_loader, 0)
-                    self.metrics.reset_batch()
+                    self.metrics.reset()
                     for ii, data in metrics_validation_loop:
                         outputs = self.model(data)
                         self.metrics.update(outputs, data)
@@ -729,7 +729,7 @@ class Trainer:
                 outputs = self.model(data)
                 loss = self.criterion.loss(outputs, data)
                 if self.metrics != None:
-                    self.metrics.reset_batch()
+                    self.metrics.reset()
                     self.metrics.update(outputs, data)
                 if (progress_bar == 'all' or progress_bar == 'test'):
                     test_loop.set_description(f"Testing: Batch [{ii+1}/{dataset_loader.num_test_batches}]")
@@ -796,30 +796,31 @@ class Trainer:
         
         # set up array for predictions
         if self.num_output_elements == 1:
-            predictions = torch.empty(size=(0,*self.output_shape), dtype=torch.float).to(self.device)
+            predictions = torch.empty(size=(0,*self.input_shape), dtype=torch.float).to(self.device)
         else:
-            predictions = [
-                torch.empty(size=(0,*self.output_shape[ii]), dtype=torch.float).to(self.device)
-                for ii in range(len(self.output_shape))
-            ]
+            predictions = {
+                key: torch.empty(size=(0, *self.input_shape[key]), dtype=torch.float).to(self.device)
+                for key in self.input_shape.keys()
+            }
         
         self.logger.info(f"running inference on dataset '{dataset_loader.dataset.name}'.")
         # make sure to set model to eval() during validation!
         self.model.eval()
         with torch.no_grad():
-            self.metrics.reset_batch()
+            self.metrics.reset()
             for ii, data in inference_loop:
                 # get the network output
                 outputs = self.model(data)
 
                 # add predictions
                 if self.num_output_elements == 1:
-                    predictions = torch.cat((predictions, outputs),dim=0)
+                    predictions = torch.cat((predictions, outputs["outputs"]),dim=0)
                 else:
-                    predictions = [
-                        torch.cat((predictions[jj],outputs[jj]),dim=0)
-                        for jj in range(len(self.output_shape))
-                    ]
+                    for jj, key in enumerate(outputs.keys()):
+                        predictions[key] = torch.cat(
+                            (predictions[key], outputs[key]),
+                            dim=0
+                        )
 
                 # compute loss
                 loss = self.criterion.loss(outputs, data)

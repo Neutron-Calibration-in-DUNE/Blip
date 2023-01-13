@@ -6,6 +6,7 @@ import torch
 from matplotlib import pyplot as plt
 
 from blip.metrics.savers import *
+from blip.metrics import *
 from blip.utils.callbacks import GenericCallback
 
 class MetricCallback(GenericCallback):
@@ -20,7 +21,8 @@ class MetricCallback(GenericCallback):
             self.metric_names = [
                 name for name, metric in self.metrics_list.metrics.items()
                 if not sum([
-                    isinstance(metric, DataSaver),
+                    isinstance(metric, AUROCMetric),
+                    isinstance(metric, ConfusionMatrixMetric),
                 ])
             ]
 

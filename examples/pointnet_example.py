@@ -45,9 +45,9 @@ if __name__ == "__main__":
     blip_loader = Loader(
         blip_dataset, 
         batch_size=64,
-        test_split=0.1,
+        test_split=0.3,
         test_seed=100,
-        validation_split=0.1,
+        validation_split=0.3,
         validation_seed=100,
         num_workers=4
     )
@@ -72,11 +72,14 @@ if __name__ == "__main__":
         # linear layer
         'linear_output':    128,
         'mlp_output_layers': [128, 256, 32],
-        'classification_layers': [32, 64, 32, blip_dataset.number_classes],
+        'classification_layers': [
+            32, 64, 32, blip_dataset.number_classes
+        ],
         'augmentations':    [
             T.RandomJitter(0.03), 
             T.RandomFlip(1), 
-            T.RandomShear(0.2)
+            T.RandomShear(0.2),
+            T.RandomRotate(axis=2)
         ],
         # number of augmentations per batch
         'number_of_augmentations': 2
@@ -109,21 +112,23 @@ if __name__ == "__main__":
     
     # create metrics
     blip_metric_config = {
-        'reductions_saver':  {
-            'metric': 'saver',
-            'output': 'reductions'
+        'auroc': {
+            'num_classes': blip_dataset.number_classes
         },
-        'classifications_saver':  {
-            'metric': 'saver',
-            'output': 'classifications'
+        'confusion_matrix': {
+            'num_classes': blip_dataset.number_classes
         },
-        'category_saver': {
-            'metric': 'saver',
-            'output': 'category'
+        'dice_score': {
+            'num_classes': blip_dataset.number_classes
         },
-        'augmented_category_saver': {
-            'metric': 'saver',
-            'output': 'augmented_category'
+        'jaccard_index': {
+            'num_classes': blip_dataset.number_classes
+        },
+        'precision': {
+            'num_classes': blip_dataset.number_classes
+        },
+        'recall': {
+            'num_classes': blip_dataset.number_classes
         }
     }
     blip_metrics = MetricHandler(
@@ -138,9 +143,9 @@ if __name__ == "__main__":
         # 'embedding': {
         #     'metrics_list':     blip_metrics
         # },
-        'confusion_matrix': {
-            'metrics_list':     blip_metrics
-        },
+        # 'confusion_matrix': {
+        #     'metrics_list':     blip_metrics
+        # },
     }
     blip_callbacks = CallbackHandler(
         "blip_callbacks",
@@ -161,7 +166,7 @@ if __name__ == "__main__":
     
     blip_trainer.train(
         blip_loader,
-        epochs=1,
+        epochs=25,
         checkpoint=25,
         save_predictions=True
     )

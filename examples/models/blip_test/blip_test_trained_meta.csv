@@ -1,5 +1,5 @@
 Meta information for model blip_test
-date:	01/12/2023 06:28:50
+date:	01/12/2023 20:20:09
 user:	ncarrara
 user_id:	1000
 System information:
@@ -19,7 +19,7 @@ input_dimension	3
 num_embedding	2
 embedding_mlp_layers	[[64, 64], [64, 64]]
 number_of_neighbors	20
-aggregation_operators	['sum', 'sum']
+aggregation_operators	['max', 'max']
 linear_output	128
 mlp_output_layers	[128, 256, 32]
 classification_layers	[32, 64, 32, 1550]
@@ -51,6 +51,11 @@ reduction_dict.mlp_output.lins.0.weight	torch.Size([256, 128])
 reduction_dict.mlp_output.lins.0.bias	torch.Size([256])
 reduction_dict.mlp_output.lins.1.weight	torch.Size([32, 256])
 reduction_dict.mlp_output.lins.1.bias	torch.Size([32])
+reduction_dict.mlp_output.norms.0.module.weight	torch.Size([256])
+reduction_dict.mlp_output.norms.0.module.bias	torch.Size([256])
+reduction_dict.mlp_output.norms.0.module.running_mean	torch.Size([256])
+reduction_dict.mlp_output.norms.0.module.running_var	torch.Size([256])
+reduction_dict.mlp_output.norms.0.module.num_batches_tracked	torch.Size([])
 classification_dict.classification_output.lins.0.weight	torch.Size([64, 32])
 classification_dict.classification_output.lins.0.bias	torch.Size([64])
 classification_dict.classification_output.lins.1.weight	torch.Size([32, 64])

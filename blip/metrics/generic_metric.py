@@ -9,27 +9,25 @@ class GenericMetric:
     def __init__(self,
         name:       str='generic',
         shape:      tuple=(),
-        output:     str='reductions',
+        input:      str='reductions',
         when_compute:   str='all',
     ):
         self.name = name
         self.shape = shape
-        self.output = output
+        self.input = input
         self.when_compute = when_compute
         # set device to none for now
         self.device = 'cpu'
 
         # create empty tensors for evaluation
         self.batch_metric = torch.empty(
-            size=(0,1), 
+            size=(self.shape), 
             dtype=torch.float, device=self.device
         )
+        self.metric = None
 
-    def reset_batch(self):
-        self.batch_metric = torch.empty(
-            size=(0,1), 
-            dtype=torch.float, device=self.device
-        )
+    def reset(self):
+        return self.metric.reset()
 
     def update(self,
         outputs,
@@ -41,7 +39,7 @@ class GenericMetric:
         device
     ):  
         self.device = device
-        self.reset_batch()
+        self.reset()
 
     def compute(self):
         pass

@@ -3,30 +3,26 @@ Confusion matrix metric.
 """
 import torch
 import torch.nn as nn
-from torchmetrics.classification import ConfusionMatrix
-from torchmetrics.classification import MulticlassConfusionMatrix
+from torchmetrics.classification import Dice
 from blip.metrics import GenericMetric
 
-class ConfusionMatrixMetric(GenericMetric):
+class DiceScoreMetric(GenericMetric):
     
     def __init__(self,
-        name:       str='confusion_matrix',
+        name:       str='dice_score',
         shape:      tuple=(),
         input:      str='classifications',
         num_classes:    int=2,
     ):
         """
         """
-        super(ConfusionMatrixMetric, self).__init__(
+        super(DiceScoreMetric, self).__init__(
             name,
             shape,
             input
         )
         self.num_classes = num_classes
-        if self.num_classes == 2:
-            self.metric = ConfusionMatrix(task="binary", num_classes=2)
-        else:
-            self.metric = MulticlassConfusionMatrix(num_classes=self.num_classes)
+        self.metric = Dice(num_classes=self.num_classes)
         
 
     def update(self,
