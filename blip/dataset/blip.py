@@ -51,7 +51,8 @@ class BlipDataset(InMemoryDataset):
         self.normalized = normalized
 
         data = np.load(self.input_file, allow_pickle=True)
-        self.number_classes = data['meta'].item()['num_classes']
+        self.number_classes = data['meta'].item()['num_group_classes']
+        print(self.number_classes)
 
         self.logger.info(f"setting 'features': {self.features}.")
         self.logger.info(f"setting 'classes': {self.classes}.")
@@ -77,7 +78,7 @@ class BlipDataset(InMemoryDataset):
         # Read data into huge `Data` list.
         data = np.load(self.input_file, allow_pickle=True)
         pos = data['positions']
-        y = data['labels']
+        y = data['group_labels']
         
         data_list = [
             Data(

@@ -1,5 +1,5 @@
 Meta information for model blip_test
-date:	01/12/2023 19:52:13
+date:	01/13/2023 10:54:02
 user:	ncarrara
 user_id:	1000
 System information:
@@ -22,8 +22,8 @@ number_of_neighbors	20
 aggregation_operators	['max', 'max']
 linear_output	128
 mlp_output_layers	[128, 256, 32]
-classification_layers	[32, 64, 32, 1550]
-augmentations	[RandomJitter(0.03), RandomFlip(axis=1, p=0.5), RandomShear(0.2)]
+classification_layers	[32, 64, 32, 3]
+augmentations	[RandomJitter(0.03), RandomFlip(axis=1, p=0.5), RandomShear(0.2), RandomRotate((-15, 15), axis=2)]
 number_of_augmentations	2
 
 Model dictionary:
@@ -60,8 +60,8 @@ classification_dict.classification_output.lins.0.weight	torch.Size([64, 32])
 classification_dict.classification_output.lins.0.bias	torch.Size([64])
 classification_dict.classification_output.lins.1.weight	torch.Size([32, 64])
 classification_dict.classification_output.lins.1.bias	torch.Size([32])
-classification_dict.classification_output.lins.2.weight	torch.Size([1550, 32])
-classification_dict.classification_output.lins.2.bias	torch.Size([1550])
+classification_dict.classification_output.lins.2.weight	torch.Size([3, 32])
+classification_dict.classification_output.lins.2.bias	torch.Size([3])
 classification_dict.classification_output.norms.0.module.weight	torch.Size([64])
 classification_dict.classification_output.norms.0.module.bias	torch.Size([64])
 classification_dict.classification_output.norms.0.module.running_mean	torch.Size([64])

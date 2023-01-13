@@ -27,10 +27,10 @@ if __name__ == "__main__":
     # clean up directories first
     save_model()
 
-    prepare_data = False
+    prepare_data = True
     if prepare_data:
         arrakis_dataset = Arrakis(
-            "../../ArrakisEventDisplay/data/multiple_neutron_arrakis1.root"
+            "../../ArrakisEventDisplay/data/multiple_neutron_arrakis3.root"
         )
         arrakis_dataset.generate_training_data()
     """
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     )
     blip_loader = Loader(
         blip_dataset, 
-        batch_size=64,
+        batch_size=50,
         test_split=0.3,
         test_seed=100,
         validation_split=0.3,
@@ -79,7 +79,7 @@ if __name__ == "__main__":
             T.RandomJitter(0.03), 
             T.RandomFlip(1), 
             T.RandomShear(0.2),
-            T.RandomRotate(axis=2)
+            T.RandomRotate(15, axis=2)
         ],
         # number of augmentations per batch
         'number_of_augmentations': 2

@@ -1,20 +1,20 @@
-[19:52:12] [INFO] [blip_example_loader]: constructing dataset loader.
-[19:52:12] [INFO] [blip_example_loader]: batch_size:  64.
-[19:52:12] [INFO] [blip_example_loader]: test_split:  0.3.
-[19:52:12] [INFO] [blip_example_loader]: test_seed:   100.
-[19:52:12] [INFO] [blip_example_loader]: validation_split: 0.3.
-[19:52:12] [INFO] [blip_example_loader]: validation_seed: 100.
-[19:52:12] [INFO] [blip_example_loader]: num_workers: 4.
-[19:52:12] [INFO] [blip_example_loader]: use_sample_weights: False.
-[19:52:12] [INFO] [blip_example_loader]: use_class_weights: False.
-[19:52:12] [INFO] [blip_example_loader]: number of total samples: 115744.
-[19:52:12] [INFO] [blip_example_loader]: number of all batches: 1809.
-[19:52:12] [INFO] [blip_example_loader]: number of total training samples: 81020
-[19:52:12] [INFO] [blip_example_loader]: number of test samples: 34724
-[19:52:12] [INFO] [blip_example_loader]: number of test batches: 543
-[19:52:12] [INFO] [blip_example_loader]: number of training samples: 56714
-[19:52:12] [INFO] [blip_example_loader]: number of training batches per epoch: 887
-[19:52:12] [INFO] [blip_example_loader]: number of validation samples: 24306
-[19:52:12] [INFO] [blip_example_loader]: number of validation batches per epoch: 380
-[19:52:12] [INFO] [blip_example_loader]: created train/test split with random seed: 100.
-[19:52:12] [INFO] [blip_example_loader]: created train/validation split with random seed: 100.
+[10:54:00] [INFO] [blip_example_loader]: constructing dataset loader.
+[10:54:00] [INFO] [blip_example_loader]: batch_size:  50.
+[10:54:00] [INFO] [blip_example_loader]: test_split:  0.3.
+[10:54:00] [INFO] [blip_example_loader]: test_seed:   100.
+[10:54:00] [INFO] [blip_example_loader]: validation_split: 0.3.
+[10:54:00] [INFO] [blip_example_loader]: validation_seed: 100.
+[10:54:00] [INFO] [blip_example_loader]: num_workers: 4.
+[10:54:00] [INFO] [blip_example_loader]: use_sample_weights: False.
+[10:54:00] [INFO] [blip_example_loader]: use_class_weights: False.
+[10:54:00] [INFO] [blip_example_loader]: number of total samples: 23645.
+[10:54:00] [INFO] [blip_example_loader]: number of all batches: 473.
+[10:54:00] [INFO] [blip_example_loader]: number of total training samples: 16551
+[10:54:00] [INFO] [blip_example_loader]: number of test samples: 7094
+[10:54:00] [INFO] [blip_example_loader]: number of test batches: 142
+[10:54:00] [INFO] [blip_example_loader]: number of training samples: 11585
+[10:54:00] [INFO] [blip_example_loader]: number of training batches per epoch: 232
+[10:54:00] [INFO] [blip_example_loader]: number of validation samples: 4966
+[10:54:00] [INFO] [blip_example_loader]: number of validation batches per epoch: 100
+[10:54:00] [INFO] [blip_example_loader]: created train/test split with random seed: 100.
+[10:54:00] [INFO] [blip_example_loader]: created train/validation split with random seed: 100.
