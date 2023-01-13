@@ -30,7 +30,7 @@ if __name__ == "__main__":
     prepare_data = True
     if prepare_data:
         arrakis_dataset = Arrakis(
-            "../../ArrakisEventDisplay/data/multiple_neutron_arrakis3.root"
+            "../../ArrakisEventDisplay/data/multiple_neutron_arrakis1.root"
         )
         arrakis_dataset.generate_training_data()
     """
@@ -134,6 +134,7 @@ if __name__ == "__main__":
     blip_metrics = MetricHandler(
         "blip_metric",
         cfg=blip_metric_config,
+        labels=blip_dataset.labels
     )
 
     # create callbacks
@@ -143,9 +144,9 @@ if __name__ == "__main__":
         # 'embedding': {
         #     'metrics_list':     blip_metrics
         # },
-        # 'confusion_matrix': {
-        #     'metrics_list':     blip_metrics
-        # },
+        'confusion_matrix': {
+            'metrics_list':     blip_metrics
+        },
     }
     blip_callbacks = CallbackHandler(
         "blip_callbacks",

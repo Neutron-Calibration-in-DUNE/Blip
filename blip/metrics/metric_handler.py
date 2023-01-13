@@ -17,7 +17,8 @@ class MetricHandler:
     def __init__(self,
         name:   str,
         cfg:    dict={},
-        metrics:  list=[],
+        metrics:list=[],
+        labels: list=[],
     ):
         self.name = name
         self.logger = Logger(self.name, file_mode="w")
@@ -32,6 +33,7 @@ class MetricHandler:
 
         # set to whatever the last call of set_device was.
         self.device = 'None'
+        self.labels = labels
     
     def process_config(self):
         # list of available criterions

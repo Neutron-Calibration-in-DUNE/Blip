@@ -168,8 +168,10 @@ class Arrakis:
                     axs.hist(
                         group_adc, 
                         bins=100, 
+                        range=[np.min(summed_adc),np.max(summed_adc)], 
                         histtype='step',
                         stacked=True,
+                        density=True,
                         label=f"{label}"
                     )
                 axs.set_xlabel("Summed ADC [counts]")
@@ -181,7 +183,7 @@ class Arrakis:
                 plt.savefig(self.arrakis_dir + f"group_summed_adc_view{v}.png")
 
                 fig, axs = plt.subplots(figsize=(10,6))
-                for label in unique_labels[(label_hist > .1)]:
+                for label in unique_labels[(label_hist > .01)]:
                     group_adc = summed_adc[(label_names == label)]
                     axs.hist(
                         group_adc, 
@@ -189,6 +191,7 @@ class Arrakis:
                         range=[np.min(summed_adc),np.max(summed_adc)], 
                         histtype='step',
                         stacked=True,
+                        density=True,
                         label=f"{label}"
                     )
                 axs.set_xlabel("Summed ADC [counts]")

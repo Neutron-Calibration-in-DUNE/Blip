@@ -22,184 +22,63 @@ class ConfusionMatrixCallback(GenericCallback):
     ):  
         super(ConfusionMatrixCallback, self).__init__()
         self.metrics_list = metrics_list
-        self.output_name = None
-        self.target_name = None
-        self.augmented_target_name = None
-        self.input_name = None
-
-        if metrics_list != None:
-            for name, metric in self.metrics_list.metrics.items():
-                if isinstance(metric, DataSaver):
-                    if(metric.output == "classifications"):
-                        self.output_name = name
-                    elif(metric.output == "position"):
-                        self.input_name = name
-                    elif(metric.output == "category"):
-                        self.target_name = name
-                    elif(metric.output == "augmented_category"):
-                        self.augmented_target_name = name
-
+        if "confusion_matrix" in self.metrics_list.metrics.keys():
+            self.metric = self.metrics_list.metrics["confusion_matrix"]
         if not os.path.isdir("plots/confusion_matrix/"):
             os.makedirs("plots/confusion_matrix/")
+        
+        self.training_confusion = None
+        self.validation_confusion = None
+        self.test_confusion = None
 
-        # containers for training metrics
-        if self.output_name != None:
-            self.training_output = None
-            self.validation_output = None
-        if self.augmented_target_name != None:
-            self.training_target = None
-        if self.target_name != None:
-            self.validation_target = None
-            
     def reset_batch(self):
-        pass
+        self.training_confusion = None
+        self.validation_confusion = None
+        self.test_confusion = None
 
     def evaluate_epoch(self,
         train_type='training'
     ):  
-        if train_type == 'training':
-            if self.output_name != None:
-                self.training_output = self.metrics_list.metrics[self.output_name].batch_data
-            if self.augmented_target_name != None:
-                self.training_target = self.metrics_list.metrics[self.augmented_target_name].batch_data 
+        if train_type == "training":
+            self.training_confusion = self.metric.compute()
+        elif train_type == "validation":
+            self.validation_confusion = self.metric.compute()
         else:
-            if self.output_name != None:
-                self.validation_output = self.metrics_list.metrics[self.output_name].batch_data
-            if self.target_name != None:
-                self.validation_target = self.metrics_list.metrics[self.target_name].batch_data
+            self.test_confusion = self.metric.compute()
 
     def evaluate_training(self):
-        # plot the latent distributions
-        if self.output_name != None:
-            print(self.training_target)
-            print(self.training_output)
-            # compute confusion matrix for training data
-            targets = self.training_target.cpu().numpy().flatten()
-            outputs = np.argmax(self.training_output.cpu().numpy(),axis=1).flatten()
-            print(targets)
-            print(outputs)
-            confusion = confusion_matrix(
-                targets, outputs
-            )
-            print(confusion)
+        # plot the training confusion matrix
+        training_display = ConfusionMatrixDisplay(
+            self.training_confusion.cpu().numpy(),
+            display_labels = self.metrics_list.labels
+        ) 
+        training_display.plot()       
+        plt.suptitle("Training Confusion Matrix")
+        plt.tight_layout()
+        plt.savefig(f"plots/confusion_matrix/training_confusion_matrix.png")
+        plt.close()
 
-            fig, axs = plt.subplots(figsize=(10,6))
-            
-
-            axs.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
-            plt.suptitle("Training Confusion Matrix")
-            plt.tight_layout()
-            plt.savefig(f"plots/confusion_matrix/training_confusion_matrix.png")
+        validation_display = ConfusionMatrixDisplay(
+            self.validation_confusion.cpu().numpy(),
+            display_labels = self.metrics_list.labels
+        ) 
+        validation_display.plot()       
+        plt.suptitle("Validation Confusion Matrix")
+        plt.tight_layout()
+        plt.savefig(f"plots/confusion_matrix/validation_confusion_matrix.png")
+        plt.close()
             
     def evaluate_testing(self):  
-        pass
-
-        # # evaluate metrics from training and validation
-        # if self.metrics_list == None:
-        #     return
-        # epoch_ticks = np.arange(1,self.epochs+1)
-        # # training plot
-        # fig, axs = plt.subplots(figsize=(10,5))
-        # if len(self.training_metrics) != 0:
-        #     for ii, metric in enumerate(self.metric_names):
-        #         temp_metric = self.training_metrics[:,ii]
-        #         final_metric_value = f"(final={temp_metric[-1]:.2e})"
-        #         axs.plot(
-        #             epoch_ticks,
-        #             temp_metric.cpu().numpy(),
-        #             c=self.plot_colors[-(ii+1)],
-        #             label=rf"{metric}"
-        #         )
-        #         axs.plot([],[],
-        #             marker='',
-        #             linestyle='',
-        #             label=rf"{final_metric_value}"
-        #         )
-        #     axs.set_xlabel("epoch")
-        #     axs.set_ylabel("metric")
-        #     axs.set_yscale('log')
-        #     plt.title("metric vs. epoch (training)")
-        #     plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
-        #     plt.tight_layout()
-        #     plt.savefig("plots/epoch_training_metrics.png")
-        
-        # if len(self.validation_metrics) != 0:
-        #     fig, axs = plt.subplots(figsize=(10,5))
-        #     for ii, metric in enumerate(self.metric_names):
-        #         temp_metric = self.validation_metrics[:,ii]
-        #         final_metric_value = f"(final={temp_metric[-1]:.2e})"
-        #         axs.plot(
-        #             epoch_ticks,
-        #             temp_metric.cpu().numpy(),
-        #             c=self.plot_colors[-(ii+1)],
-        #             label=rf"{metric}"
-        #         )
-        #         axs.plot([],[],
-        #             marker='',
-        #             linestyle='',
-        #             label=rf"{final_metric_value}"
-        #         )
-        #     axs.set_xlabel("epoch")
-        #     axs.set_ylabel("metric")
-        #     axs.set_yscale('log')
-        #     plt.title("metric vs. epoch (validation)")
-        #     plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
-        #     plt.tight_layout()
-        #     plt.savefig("plots/epoch_validation_metrics.png")
-
-        # if len(self.training_metrics) != 0 and len(self.validation_metrics) != 0:
-        #     fig, axs = plt.subplots(figsize=(10,5))
-        #     for ii, metric in enumerate(self.metric_names):
-        #         temp_training_metric = self.training_metrics[:,ii]
-        #         temp_validation_metric = self.validation_metrics[:,ii]
-        #         final_training_metric_value = f"(final={temp_training_metric[-1]:.2e})"
-        #         final_validation_metric_value = f"(final={temp_validation_metric[-1]:.2e})"
-        #         axs.plot(
-        #             epoch_ticks,
-        #             temp_training_metric.cpu().numpy(),
-        #             c=self.plot_colors[-(ii+1)],
-        #             linestyle='-',
-        #             label=rf"{metric}"
-        #         )
-        #         axs.plot([],[],
-        #             marker='',
-        #             linestyle='',
-        #             label=rf"{final_training_metric_value}"
-        #         )
-        #         axs.plot(
-        #             epoch_ticks,
-        #             temp_validation_metric.cpu().numpy(),
-        #             c=self.plot_colors[-(ii+1)],
-        #             linestyle='--',
-        #             label=rf"{metric}"
-        #         )
-        #         axs.plot([],[],
-        #             marker='',
-        #             linestyle='',
-        #             label=rf"{final_validation_metric_value}"
-        #         )
-        #     if len(self.test_metrics) != 0:
-        #         for ii, metric in enumerate(self.metric_names):
-        #             temp_metric = self.test_metrics[:,ii]
-        #             final_metric_value = f"(final={temp_metric[-1]:.2e})"
-        #             axs.plot([],[],
-        #                 marker='x',
-        #                 linestyle='',
-        #                 c=self.plot_colors[-(ii+1)],
-        #                 label=rf"(test) {metric}"
-        #             )
-        #             axs.plot([],[],
-        #             marker='',
-        #             linestyle='',
-        #             label=rf"{final_metric_value}"
-        #         )
-        #     axs.set_xlabel("epoch")
-        #     axs.set_ylabel("metric")
-        #     axs.set_yscale('log')
-        #     plt.title("metric vs. epoch")
-        #     plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
-        #     plt.tight_layout()
-        #     plt.savefig("plots/epoch_metrics.png")
+        # plot the training confusion matrix
+        test_display = ConfusionMatrixDisplay(
+            self.test_confusion.cpu().numpy(),
+            display_labels = self.metrics_list.labels
+        ) 
+        test_display.plot()       
+        plt.suptitle("Test Confusion Matrix")
+        plt.tight_layout()
+        plt.savefig(f"plots/confusion_matrix/test_confusion_matrix.png")
+        plt.close()
 
     def evaluate_inference(self):
         pass

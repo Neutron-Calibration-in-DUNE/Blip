@@ -51,8 +51,9 @@ class BlipDataset(InMemoryDataset):
         self.normalized = normalized
 
         data = np.load(self.input_file, allow_pickle=True)
-        self.number_classes = data['meta'].item()['num_group_classes']
-        print(self.number_classes)
+        self.meta = data['meta'].item()
+        self.number_classes = self.meta['num_group_classes']
+        self.labels = self.meta['group_classes']
 
         self.logger.info(f"setting 'features': {self.features}.")
         self.logger.info(f"setting 'classes': {self.classes}.")

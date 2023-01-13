@@ -1,7 +1,12 @@
-[10:54:00] [INFO] [blip_test_trainer]: constructing model trainer.
-[10:54:00] [INFO] [blip_test_trainer]: CUDA is available with devices:
-[10:54:00] [INFO] [blip_test_trainer]:  -- device: 0 - name: NVIDIA GeForce RTX 3070 Ti, compute: 8.6, memory: 8334737408
-[10:54:00] [INFO] [blip_test_trainer]: CUDA is available, using device 0 - NVIDIA GeForce RTX 3070 Ti
-[10:54:01] [INFO] [blip_test_trainer]: running consistency check...
-[10:54:02] [INFO] [blip_test_trainer]: passed consistency check.
-[10:54:02] [INFO] [blip_test_trainer]: training dataset 'blip_example' for 25 epochs.
+[12:33:53] [INFO] [blip_test_trainer]: constructing model trainer.
+[12:33:53] [INFO] [blip_test_trainer]: CUDA is available with devices:
+[12:33:53] [INFO] [blip_test_trainer]:  -- device: 0 - name: NVIDIA GeForce GTX 1070, compute: 6.1, memory: 8504934400
+[12:33:53] [INFO] [blip_test_trainer]: CUDA is available, using device 0 - NVIDIA GeForce GTX 1070
+[12:33:54] [INFO] [blip_test_trainer]: running consistency check...
+[12:33:54] [INFO] [blip_test_trainer]: passed consistency check.
+[12:33:54] [INFO] [blip_test_trainer]: training dataset 'blip_example' for 2 epochs.
+[12:34:56] [INFO] [blip_test_trainer]: training finished.
+[12:35:01] [INFO] [blip_test_trainer]: Running inference to save predictions.
+[12:35:01] [INFO] [blip_test_trainer]: running inference on dataset 'blip_example'.
+[12:35:12] [INFO] [blip_test_trainer]: saved predictions array 'blip_test_predictions' to dataset file '../data/point_cloud_view0.npz'.
+[12:35:12] [INFO] [blip_test_trainer]: returning predictions.

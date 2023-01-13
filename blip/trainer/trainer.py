@@ -293,6 +293,7 @@ class Trainer:
         # TODO: run consistency check
         self.logger.info(f"running consistency check...")
         self.__run_consistency_check(dataset_loader)
+        self.num_classes = dataset_loader.dataset.number_classes
 
         self.model.save_model(flag='init')
         # setting values in callbacks
@@ -588,6 +589,8 @@ class Trainer:
             test_loop = enumerate(dataset_loader.test_loader, 0)
         # make sure to set model to eval() during validation!
         self.model.eval()
+        if self.metrics != None:
+            self.metrics.reset()
         with torch.no_grad():
             for ii, data in test_loop:
                 # get the network output
@@ -598,7 +601,6 @@ class Trainer:
 
                 # update metrics
                 if self.metrics != None:
-                    self.metrics.reset()
                     self.metrics.update(outputs, data)
 
                 # update progress bar
@@ -796,12 +798,13 @@ class Trainer:
         
         # set up array for predictions
         if self.num_output_elements == 1:
-            predictions = torch.empty(size=(0,*self.input_shape), dtype=torch.float).to(self.device)
+            predictions = torch.empty(size=(self.input_shape), dtype=torch.float).to(self.device)
         else:
-            predictions = {
-                key: torch.empty(size=(0, *self.input_shape[key]), dtype=torch.float).to(self.device)
-                for key in self.input_shape.keys()
-            }
+            predictions = {}
+            for key in self.input_shape.keys():
+                if (key == "position" or key == "embeddings" or key == "pools" or "category" in key):
+                    continue
+                predictions[key] = torch.empty(size=(0, *self.input_shape[key]), dtype=torch.float).to(self.device)
         
         self.logger.info(f"running inference on dataset '{dataset_loader.dataset.name}'.")
         # make sure to set model to eval() during validation!
@@ -817,11 +820,11 @@ class Trainer:
                     predictions = torch.cat((predictions, outputs["outputs"]),dim=0)
                 else:
                     for jj, key in enumerate(outputs.keys()):
-                        predictions[key] = torch.cat(
-                            (predictions[key], outputs[key]),
-                            dim=0
-                        )
-
+                        if key in predictions.keys():
+                            predictions[key] = torch.cat(
+                                (predictions[key], outputs[key]),
+                                dim=0
+                            )
                 # compute loss
                 loss = self.criterion.loss(outputs, data)
 
@@ -833,13 +836,13 @@ class Trainer:
                 if (progress_bar == True):
                     inference_loop.set_description(f"Inference: Batch [{ii+1}/{num_batches}]")
                     inference_loop.set_postfix_str(f"loss={loss.item():.2e}")
-        if self.num_output_elements != 1:
-            predictions = torch.cat(predictions, dim=1)
+        for key in predictions.keys():
+            predictions[key] = predictions[key].cpu().numpy()
         # save predictions if wanted
         if save_predictions:
             predictions_name = self.model.name + "_predictions"
             predictions_dict = {
-                predictions_name: predictions.cpu(),
+                predictions_name: predictions,
                 predictions_name+'_indices': inference_indices
             }
             utils.append_npz(
