@@ -1,17 +1,17 @@
 Meta information for model blip_test
-date:	01/13/2023 12:37:05
+date:	01/14/2023 15:41:40
 user:	ncarrara
 user_id:	1000
 System information:
 platform	Linux
-platform-release	5.15.0-56-generic
-platform-version	#62-Ubuntu SMP Tue Nov 22 19:54:14 UTC 2022
+platform-release	5.15.0-58-generic
+platform-version	#64-Ubuntu SMP Thu Jan 5 11:43:13 UTC 2023
 architecture	x86_64
-hostname	DAK1
+hostname	DAK0
 ip-address	127.0.1.1
-mac-address	18:c0:4d:0f:cf:3c
+mac-address	fc:34:97:a6:55:7d
 processor	x86_64
-ram	63 GB
+ram	31 GB
 
 Model configuration:
 

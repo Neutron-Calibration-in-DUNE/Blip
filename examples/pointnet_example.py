@@ -27,10 +27,10 @@ if __name__ == "__main__":
     # clean up directories first
     save_model()
 
-    prepare_data = True
+    prepare_data = False
     if prepare_data:
         arrakis_dataset = Arrakis(
-            "../../ArrakisEventDisplay/data/multiple_neutron_arrakis1.root"
+            "../../ArrakisEventDisplay/data/multiple_neutron_arrakis4.root"
         )
         arrakis_dataset.generate_training_data()
     """
@@ -167,7 +167,7 @@ if __name__ == "__main__":
     
     blip_trainer.train(
         blip_loader,
-        epochs=25,
+        epochs=2,
         checkpoint=25,
         save_predictions=True
     )

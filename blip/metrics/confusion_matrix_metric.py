@@ -28,11 +28,33 @@ class ConfusionMatrixMetric(GenericMetric):
         else:
             self.metric = MulticlassConfusionMatrix(num_classes=self.num_classes)
         
-
+        self.batch_probabilities = torch.empty(
+            size=(0, self.num_classes + 1),
+            dtype=torch.float, device=self.device
+        )
+    
+    def reset_probabilities(self):
+        self.batch_probabilities = torch.empty(
+            size=(0, self.num_classes + 1),
+            dtype=torch.float, device=self.device
+        )
+        
     def update(self,
         outputs,
         data,
     ):
+        softmax = nn.functional.softmax(
+            outputs["classifications"], 
+            dim=1, dtype=torch.float
+        )
+        predictions = torch.cat(
+            (softmax, data.category.unsqueeze(1)),
+            dim=1
+        ).to(self.device)
+        self.batch_probabilities = torch.cat(
+            (self.batch_probabilities, predictions),
+            dim=0
+        )
         self.metric.update(outputs["classifications"], data.category)
 
     def compute(self):
