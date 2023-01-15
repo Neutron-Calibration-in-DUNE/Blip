@@ -32,10 +32,19 @@ class ConfusionMatrixMetric(GenericMetric):
             size=(0, self.num_classes + 1),
             dtype=torch.float, device=self.device
         )
+        self.batch_summed_adc = torch.empty(
+            size=(0, 1),
+            dtype=torch.float, device=self.device
+        )
+
     
     def reset_probabilities(self):
         self.batch_probabilities = torch.empty(
             size=(0, self.num_classes + 1),
+            dtype=torch.float, device=self.device
+        )
+        self.batch_summed_adc = torch.empty(
+            size=(0, 1),
             dtype=torch.float, device=self.device
         )
         
@@ -43,6 +52,7 @@ class ConfusionMatrixMetric(GenericMetric):
         outputs,
         data,
     ):
+        # get output probabilities for each class
         softmax = nn.functional.softmax(
             outputs["classifications"], 
             dim=1, dtype=torch.float
@@ -51,8 +61,15 @@ class ConfusionMatrixMetric(GenericMetric):
             (softmax, data.category.unsqueeze(1)),
             dim=1
         ).to(self.device)
+
         self.batch_probabilities = torch.cat(
             (self.batch_probabilities, predictions),
+            dim=0
+        )
+        
+        # get summed adc from input
+        self.batch_summed_adc = torch.cat(
+            (self.batch_summed_adc, data.summed_adc.unsqueeze(1).to(self.device)),
             dim=0
         )
         self.metric.update(outputs["classifications"], data.category)

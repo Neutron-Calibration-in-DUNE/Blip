@@ -79,14 +79,16 @@ class BlipDataset(InMemoryDataset):
         # Read data into huge `Data` list.
         data = np.load(self.input_file, allow_pickle=True)
         pos = data['positions']
+        summed_adc = data['summed_adc']
         y = data['group_labels']
-        
+
         data_list = [
             Data(
                 pos=torch.tensor(pos[ii]).type(torch.float),
                 x=torch.zeros(pos[ii].shape).type(torch.float),
                 y=torch.full((len(pos[ii]),1),y[ii]).type(torch.long), 
-                category=torch.tensor([y[ii]]).type(torch.long)
+                category=torch.tensor([y[ii]]).type(torch.long),
+                summed_adc=torch.tensor(summed_adc[ii]).type(torch.float)
             )
             for ii in range(len(pos))
         ]

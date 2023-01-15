@@ -151,6 +151,7 @@ class Arrakis:
                 f"../data/point_cloud_view{v}.npz",
                 positions=positions,
                 energies=total_energy,
+                summed_adc=summed_adc,
                 group_labels=group_labels,
                 group_names=group_names,
                 labels=labels,
