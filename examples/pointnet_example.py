@@ -167,7 +167,7 @@ if __name__ == "__main__":
     
     blip_trainer.train(
         blip_loader,
-        epochs=2,
+        epochs=25,
         checkpoint=25,
         save_predictions=True
     )

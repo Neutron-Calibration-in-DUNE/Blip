@@ -193,7 +193,10 @@ dependencies:
   - pip:
       - awkward==2.0.5
       - awkward-cpp==6
+      - imageio==2.24.0
       - pyqt5-sip==12.11.0
       - pytorch-metric-learning==1.6.3
+      - torchmetrics==0.11.0
+      - tsne-torch==1.0.1
+      - tsnecuda==3.0.1
       - uproot==5.0.2
-prefix: /home/ncarrara/anaconda3/envs/blip

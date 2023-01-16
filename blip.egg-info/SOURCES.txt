@@ -35,6 +35,7 @@ blip/optimizers/optimizers.py
 blip/trainer/__init__.py
 blip/trainer/trainer.py
 blip/utils/__init__.py
+blip/utils/display.py
 blip/utils/loader.py
 blip/utils/logger.py
 blip/utils/memory.py
