@@ -1,0 +1,3 @@
+[08:57:00] [INFO] [arrakis]: constructing arrakis dataset.
+[08:57:01] [INFO] [arrakis]: creating arrakis plots directory 'plots/arrakis/'
+[08:57:01] [INFO] [arrakis]: generating training data from file: ../../../ArrakisEventDisplay/data/multiple_neutron_arrakis_shifted_gain_test2.root

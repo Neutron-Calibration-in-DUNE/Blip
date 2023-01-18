@@ -25,6 +25,8 @@ class Arrakis:
         if not os.path.isdir(self.arrakis_dir):
             self.logger.info(f"creating arrakis plots directory '{self.arrakis_dir}'")
             os.makedirs(self.arrakis_dir)
+        if not os.path.isdir("data/"):
+            os.makedirs("data/")
 
     def generate_training_data(self,
         plot_group_statistics:  bool=True
@@ -148,7 +150,7 @@ class Arrakis:
             }
 
             np.savez(
-                f"../data/point_cloud_view{v}.npz",
+                f"data/point_cloud_view{v}.npz",
                 positions=positions,
                 energies=total_energy,
                 summed_adc=summed_adc,

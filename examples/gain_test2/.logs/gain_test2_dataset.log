@@ -1,0 +1,8 @@
+[08:57:04] [INFO] [gain_test2_dataset]: constructing dataset.
+[08:57:04] [INFO] [gain_test2_dataset]: setting 'features': None.
+[08:57:04] [INFO] [gain_test2_dataset]: setting 'classes': None.
+[08:57:04] [INFO] [gain_test2_dataset]: setting 'sample_weights': None.
+[08:57:04] [INFO] [gain_test2_dataset]: setting 'class_weights': None.
+[08:57:04] [INFO] [gain_test2_dataset]: setting 'use_sample_weights': False.
+[08:57:04] [INFO] [gain_test2_dataset]: setting 'use_class_weights': False.
+[08:57:04] [INFO] [gain_test2_dataset]: setting 'normalize': True.

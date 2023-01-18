@@ -1,0 +1,20 @@
+[08:57:05] [INFO] [gain_test2_dataset_loader]: constructing dataset loader.
+[08:57:05] [INFO] [gain_test2_dataset_loader]: batch_size:  50.
+[08:57:05] [INFO] [gain_test2_dataset_loader]: test_split:  0.3.
+[08:57:05] [INFO] [gain_test2_dataset_loader]: test_seed:   100.
+[08:57:05] [INFO] [gain_test2_dataset_loader]: validation_split: 0.3.
+[08:57:05] [INFO] [gain_test2_dataset_loader]: validation_seed: 100.
+[08:57:05] [INFO] [gain_test2_dataset_loader]: num_workers: 4.
+[08:57:05] [INFO] [gain_test2_dataset_loader]: use_sample_weights: False.
+[08:57:05] [INFO] [gain_test2_dataset_loader]: use_class_weights: False.
+[08:57:05] [INFO] [gain_test2_dataset_loader]: number of total samples: 11460.
+[08:57:05] [INFO] [gain_test2_dataset_loader]: number of all batches: 230.
+[08:57:05] [INFO] [gain_test2_dataset_loader]: number of total training samples: 8021
+[08:57:05] [INFO] [gain_test2_dataset_loader]: number of test samples: 3439
+[08:57:05] [INFO] [gain_test2_dataset_loader]: number of test batches: 69
+[08:57:05] [INFO] [gain_test2_dataset_loader]: number of training samples: 5614
+[08:57:05] [INFO] [gain_test2_dataset_loader]: number of training batches per epoch: 113
+[08:57:05] [INFO] [gain_test2_dataset_loader]: number of validation samples: 2407
+[08:57:05] [INFO] [gain_test2_dataset_loader]: number of validation batches per epoch: 49
+[08:57:05] [INFO] [gain_test2_dataset_loader]: created train/test split with random seed: 100.
+[08:57:05] [INFO] [gain_test2_dataset_loader]: created train/validation split with random seed: 100.
