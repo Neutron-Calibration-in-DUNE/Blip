@@ -2,7 +2,6 @@
 Training loop for a BLIP model   
 """
 # blip imports
-from blip.dataset.arrakis import Arrakis
 from blip.dataset.blip import BlipDataset
 from blip.utils.loader import Loader
 from blip.losses import LossHandler
@@ -13,13 +12,7 @@ from blip.utils.callbacks import CallbackHandler
 from blip.utils.utils import get_files, save_model
 from blip.models import PointNetClassification 
 
-import torch
 import torch_geometric.transforms as T
-
-import numpy as np
-import os
-import shutil
-from datetime import datetime
 
 
 if __name__ == "__main__":
@@ -27,12 +20,6 @@ if __name__ == "__main__":
     # clean up directories first
     save_model()
 
-    prepare_data = True
-    if prepare_data:
-        arrakis_dataset = Arrakis(
-            "../../../ArrakisEventDisplay/data/multiple_neutron_arrakis_shifted_gain_test2.root"
-        )
-        arrakis_dataset.generate_training_data()
     """
     Now we load our dataset as a torch dataset (blipDataset),
     and then feed that into a dataloader.
