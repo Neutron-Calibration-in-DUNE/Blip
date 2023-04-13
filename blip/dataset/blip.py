@@ -52,8 +52,8 @@ class BlipDataset(InMemoryDataset):
 
         data = np.load(self.input_file, allow_pickle=True)
         self.meta = data['meta'].item()
-        self.number_classes = self.meta['num_group_classes']
-        self.labels = self.meta['group_classes']
+        #self.number_classes = self.meta['num_group_classes']
+        self.labels = self.meta['classes']
 
         self.logger.info(f"setting 'features': {self.features}.")
         self.logger.info(f"setting 'classes': {self.classes}.")
@@ -78,17 +78,17 @@ class BlipDataset(InMemoryDataset):
     def process(self):
         # Read data into huge `Data` list.
         data = np.load(self.input_file, allow_pickle=True)
-        pos = data['positions']
-        summed_adc = data['summed_adc']
-        y = data['group_labels']
+        pos = data['point_cloud']
+        adc = data['adc']
+        y = data['labels']
 
         data_list = [
             Data(
                 pos=torch.tensor(pos[ii]).type(torch.float),
                 x=torch.zeros(pos[ii].shape).type(torch.float),
-                y=torch.full((len(pos[ii]),1),y[ii]).type(torch.long), 
+                #y=torch.full((len(pos[ii]),1),y[ii]).type(torch.long), 
                 category=torch.tensor([y[ii]]).type(torch.long),
-                summed_adc=torch.tensor(summed_adc[ii]).type(torch.float)
+                summed_adc=torch.tensor(adc[ii]).type(torch.float)
             )
             for ii in range(len(pos))
         ]

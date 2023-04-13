@@ -1,3 +1,7 @@
 from .generic_model import GenericModel
+from .set_abstraction import SetAbstraction
+from .set_abstraction_msg import SetAbstractionMultiScaleGrouping
+from .feature_propagation import FeaturePropagation
 from .pointnet_unsupervised import PointNetUnsupervised
 from .pointnet_classification import PointNetClassification
+from .pointnet_plusplus_cls_msg import PointNetPlusPlus
