@@ -13,6 +13,13 @@ import shutil
 from datetime import datetime
 import seaborn as sns
 
+def index_positions(
+    positions,
+    indices
+):
+    return positions[indices]
+
+
 """
 Get the names of the arrays in an .npz file
 """

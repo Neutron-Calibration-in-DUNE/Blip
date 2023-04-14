@@ -1,0 +1,11 @@
+[09:48:16] [INFO] [pointnet]: configuring model.
+[09:48:16] [INFO] [pointnet]: Attempting to build pointnet architecture using cfg: {'input_dimension': 3, 'num_embedding': 2, 'embedding_mlp_layers': [[64, 64], [64, 64]], 'number_of_neighbors': 20, 'aggregation_operators': ['max', 'max'], 'linear_output': 128, 'mlp_output_layers': [128, 256, 32]}
+[09:48:16] [INFO] [pointnet]: Constructed PointNet with dictionaries:
+ModuleDict(
+  (embedding_0): DynamicEdgeConv(nn=MLP(6, 64, 64), k=20)
+  (embedding_1): DynamicEdgeConv(nn=MLP(128, 64, 64), k=20)
+)
+ModuleDict(
+  (linear_layer): Linear(in_features=128, out_features=128, bias=True)
+  (mlp_output): MLP(128, 256, 32)
+)

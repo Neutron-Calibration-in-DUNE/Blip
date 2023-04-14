@@ -13,6 +13,9 @@ from torch_geometric.nn import MLP, DynamicEdgeConv, global_max_pool
 
 from blip.models.common import activations, normalizations
 from blip.models import GenericModel, SetAbstraction, SetAbstractionMultiScaleGrouping
+from blip.utils.sampling import *
+from blip.utils.grouping import *
+from blip.models import PointNet
 
 pointnet_plusplus_cls_msg_config = {
     # input dimension
@@ -22,35 +25,47 @@ pointnet_plusplus_cls_msg_config = {
     # set abstraction layers
     'set_abstraction_msg': {
         'layer1':   {
-            'num_points':   512,
-            'radius_list':  [0.1, 0.2, 0.4],
-            'num_samples':  [16, 32, 128],
-            'in_channels':  3,
-            'mlp_list':     [
-                [32, 32, 64],
-                [64, 64, 128],
-                [64, 96, 128]
-            ],
+            'sampling': {
+                'method':   farthest_point_sampling,
+                'number_of_centroids':  512,
+            },
+            'grouping': {
+                'method':       query_ball_point,
+                'radii_list':           [0.1, 0.2, 0.4],
+                'number_of_samples':    [16, 32, 128],
+            },
+            'pointnet': {
+                'method':   PointNet,
+            },
         },
         'layer2':   {
-            'num_points':   128,
-            'radius_list':  [0.2, 0.4, 0.8],
-            'num_samples':  [32, 64, 128],
-            'in_channels':  320,
-            'mlp_list':     [
-                [64, 64, 128],
-                [128, 128, 256],
-                [128, 128, 256]
-            ],
+            'sampling': {
+                'method':   farthest_point_sampling,
+                'number_of_centroids':  128,
+            },
+            'grouping': {
+                'method':       query_ball_point,
+                'radii_list':           [0.2, 0.4, 0.8],
+                'number_of_samples':    [32, 64, 128],
+            },
+            'pointnet': {
+                'method':   PointNet,
+            },
         },
     },
     'set_abstraction': {
-        'num_points':   None,
-        'radius':       None,
-        'num_samples':  None,
-        'in_channels':  643,
-        'mlp':          [256, 512, 1024],
-        'group_all':    True,
+        'sampling': {
+            'method':   farthest_point_sampling,
+            'number_of_centroids':  None,
+        },
+        'grouping': {
+            'method':       query_ball_point,
+            'radii_list':           None,
+            'number_of_samples':    None,
+        },
+        'pointnet': {
+            'method':   PointNet,
+        },
     },
     'classification':   {
         'mlp':      [1024, 512, 256],
@@ -77,9 +92,6 @@ class PointNetPlusPlusClassificationMSG(GenericModel):
         self.register_forward_hooks()
 
     def construct_model(self):
-        """
-        
-        """
         """
         The current methodology is to create an ordered
         dictionary and fill it with individual modules.
@@ -119,14 +131,25 @@ class PointNetPlusPlusClassificationMSG(GenericModel):
         )
 
     def forward(self,
-        x
+        data
     ):
         """
         Iterate over the model dictionary
         """
-        x = x.to(self.device)
-        B, _, _ = x[0].shape
+        positions = data.to(self.device).pos
+        batch_size, = positions.shape
+        embedding = None
 
-        for ii, layer in enumerate(self.embedding_dict.keys()):
+        for ii, layer in enumerate(self.set_abstraction_dict.keys()):
+            positions, embedding = self.set_abstraction_dict[layer](positions, embedding)
+        output = embedding.view(batch_size, self.cfg['classification']['mlp'][0])
+        for ii, layer in enumerate(self.classification_dict.keys()):
+            output = self.classification_dict[layer](output)
+        
+        return {
+            'output':   output,
+            'embedding':embedding,
+        }
+
 
         

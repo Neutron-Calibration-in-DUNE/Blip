@@ -1,0 +1,12 @@
+[09:48:16] [INFO] [blip]: configuring model.
+[09:48:16] [INFO] [blip]: Attempting to build blip architecture using cfg: {'sampling': {'method': <function farthest_point_sampling at 0x7f5f43ef1510>, 'number_of_centroids': None}, 'grouping': {'method': <function query_ball_point at 0x7f5f43ef16c0>, 'radii': None, 'number_of_samples': None}, 'pointnet': {'method': PointNet(
+  (embedding_dict): ModuleDict(
+    (embedding_0): DynamicEdgeConv(nn=MLP(6, 64, 64), k=20)
+    (embedding_1): DynamicEdgeConv(nn=MLP(128, 64, 64), k=20)
+  )
+  (reduction_dict): ModuleDict(
+    (linear_layer): Linear(in_features=128, out_features=128, bias=True)
+    (mlp_output): MLP(128, 256, 32)
+  )
+)}}
+[09:48:16] [INFO] [blip]: Constructed SetAbstraction
