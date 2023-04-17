@@ -1,8 +1,8 @@
-[09:48:16] [INFO] [wire_plane_test_dataset]: constructing dataset.
-[09:48:16] [INFO] [wire_plane_test_dataset]: setting 'features': None.
-[09:48:16] [INFO] [wire_plane_test_dataset]: setting 'classes': None.
-[09:48:16] [INFO] [wire_plane_test_dataset]: setting 'sample_weights': None.
-[09:48:16] [INFO] [wire_plane_test_dataset]: setting 'class_weights': None.
-[09:48:16] [INFO] [wire_plane_test_dataset]: setting 'use_sample_weights': False.
-[09:48:16] [INFO] [wire_plane_test_dataset]: setting 'use_class_weights': False.
-[09:48:16] [INFO] [wire_plane_test_dataset]: setting 'normalize': True.
+[07:00:25] [INFO] [wire_plane_test_dataset]: constructing dataset.
+[07:00:25] [INFO] [wire_plane_test_dataset]: setting 'features': None.
+[07:00:25] [INFO] [wire_plane_test_dataset]: setting 'classes': None.
+[07:00:25] [INFO] [wire_plane_test_dataset]: setting 'sample_weights': None.
+[07:00:25] [INFO] [wire_plane_test_dataset]: setting 'class_weights': None.
+[07:00:25] [INFO] [wire_plane_test_dataset]: setting 'use_sample_weights': False.
+[07:00:25] [INFO] [wire_plane_test_dataset]: setting 'use_class_weights': False.
+[07:00:25] [INFO] [wire_plane_test_dataset]: setting 'normalize': True.

@@ -9,7 +9,6 @@ from sklearn.manifold import TSNE
 import seaborn as sns
 import pandas as pd
 
-from blip.metrics.savers import *
 from blip.utils.callbacks import GenericCallback
 from blip.utils import utils
 

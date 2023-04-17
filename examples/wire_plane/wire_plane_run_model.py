@@ -32,7 +32,7 @@ if __name__ == "__main__":
     )
     blip_loader = Loader(
         blip_dataset, 
-        batch_size=1,
+        batch_size=5,
         test_split=0.0,
         test_seed=100,
         validation_split=0.0,
@@ -50,16 +50,31 @@ if __name__ == "__main__":
             'number_of_samples':    None,
         },
         'pointnet': {
-            'method':   PointNet(),
-        },
+            'method':   PointNet,
+            'config': {
+                'input_dimension':  3,
+                'num_embedding':    2,
+                'embedding_mlp_layers': [
+                    [64, 64],
+                    [64, 64]
+                ],
+                'number_of_neighbors':  20,
+                'aggregation_operators': [
+                    'max', 'max'
+                ],
+                'linear_output':    128,
+                'mlp_output_layers': [128, 256, 32],
+            },
+        }
     }
 
     blip_model = SetAbstraction("blip", set_abstraction_config)
 
     training_loop = enumerate(blip_loader.train_loader, 0)
+    
     for ii, data in training_loop:
         print(data.pos)
         print(data.batch)
         print(data.category)
-        output = blip_model(data.pos, None)
-        print(output)
+        #output = blip_model(data, None)
+        #print(output)

@@ -29,7 +29,21 @@ set_abstraction_msg_config = {
     },
     'pointnet': {
         'method':   PointNet,
-    },
+        'config': {
+            'input_dimension':  3,
+            'num_embedding':    2,
+            'embedding_mlp_layers': [
+                [64, 64],
+                [64, 64]
+            ],
+            'number_of_neighbors':  20,
+            'aggregation_operators': [
+                'max', 'max'
+            ],
+            'linear_output':    128,
+            'mlp_output_layers': [128, 256, 32],
+        },
+    }
 }
 
 class SetAbstractionMultiScaleGrouping(GenericModel):
@@ -48,7 +62,9 @@ class SetAbstractionMultiScaleGrouping(GenericModel):
 
         self.sampling_method = self.cfg['sampling']['method']
         self.grouping_method = self.cfg['grouping']['method']
-        self.pointnet_method = self.cfg['pointnet']['method']
+        self.pointnet_method = self.cfg['pointnet']['method'](
+            'pointnet', self.cfg['pointnet']['config']
+        )
 
         # construct the model
         self.forward_views      = {}
@@ -71,14 +87,15 @@ class SetAbstractionMultiScaleGrouping(GenericModel):
         )
     
     def forward(self,
-        position, 
+        data, 
         embedding = None,
     ):
         """
         For each 'scale', iterate over the sampling + grouping stage
         Iterate over the model dictionary
         """
-        position = position.to(self.device)
+        position = data.to(self.device).pos
+        batch = data.to(self.device).batch
         if embedding is not None:
             embedding = embedding.to(self.device)
 
@@ -99,6 +116,7 @@ class SetAbstractionMultiScaleGrouping(GenericModel):
                 self.number_of_samples[ii]
             )
             group_positions = index_positions(position, group_indices)
+            group_batch = index_positions(batch, group_indices)
             
             # Shift grouped points relative to centroid
             group_positions -= sampled_positions.view(
@@ -113,7 +131,7 @@ class SetAbstractionMultiScaleGrouping(GenericModel):
                 group_embedding = group_positions
 
             # Pass the local samples through the PointNet layer
-            pointnet_embedding = self.pointnet_method(group_embedding)
+            pointnet_embedding = self.pointnet_method(group_embedding, group_batch)
             sampled_embedding.append(pointnet_embedding['reductions'])
         
         sampled_embedding = torch.cat(sampled_embedding, dim=1)

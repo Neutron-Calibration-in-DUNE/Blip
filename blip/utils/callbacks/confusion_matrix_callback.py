@@ -11,7 +11,6 @@ import pandas as pd
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from sklearn.metrics import auc
 
-from blip.metrics.savers import *
 from blip.utils.callbacks import GenericCallback
 from blip.utils import utils
 

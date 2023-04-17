@@ -1,20 +1,20 @@
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: constructing dataset loader.
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: batch_size:  1.
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: test_split:  0.0.
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: test_seed:   100.
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: validation_split: 0.0.
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: validation_seed: 100.
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: num_workers: 4.
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: use_sample_weights: False.
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: use_class_weights: False.
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: number of total samples: 1.
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: number of all batches: 1.
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: number of total training samples: 1
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: number of test samples: 0
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: number of test batches: 0
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: number of training samples: 1
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: number of training batches per epoch: 1
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: number of validation samples: 0
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: number of validation batches per epoch: 0
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: created train/test split with random seed: 100.
-[09:48:16] [INFO] [wire_plane_test_dataset_loader]: created train/validation split with random seed: 100.
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: constructing dataset loader.
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: batch_size:  5.
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: test_split:  0.0.
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: test_seed:   100.
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: validation_split: 0.0.
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: validation_seed: 100.
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: num_workers: 4.
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: use_sample_weights: False.
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: use_class_weights: False.
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: number of total samples: 1.
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: number of all batches: 1.
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: number of total training samples: 1
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: number of test samples: 0
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: number of test batches: 0
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: number of training samples: 1
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: number of training batches per epoch: 1
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: number of validation samples: 0
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: number of validation batches per epoch: 0
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: created train/test split with random seed: 100.
+[07:00:26] [INFO] [wire_plane_test_dataset_loader]: created train/validation split with random seed: 100.

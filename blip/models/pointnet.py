@@ -96,14 +96,14 @@ class PointNet(GenericModel):
 
     
     def forward(self,
-        x
+        positions,
+        batch
     ):
         """
         Iterate over the model dictionary
         """
-        x = x.to(self.device)
 
-        pos, batch = x.pos, x.batch
+        pos = positions
         for ii, layer in enumerate(self.embedding_dict.keys()):
             pos = self.embedding_dict[layer](pos, batch)
             if ii == 0:

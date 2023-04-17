@@ -11,6 +11,6 @@ if __name__ == "__main__":
     if prepare_data:
         wire_plane_dataset = WirePlanePointCloud(
             "wire_plane_test",
-            "../../../ArrakisEventDisplay/data/arrakis_output_3.root"
+            "../../data/arrakis_output_10.root"
         )
         wire_plane_dataset.generate_training_data()
