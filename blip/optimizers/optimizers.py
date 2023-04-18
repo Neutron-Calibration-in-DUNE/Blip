@@ -13,24 +13,36 @@ class Optimizer:
         model,
         optimizer:      str='Adam',
         learning_rate:  float=0.001,
-        momentum:       float=0.9
+        betas:          list=[0.9, 0.999],
+        epsilon:        float=1e-8,
+        momentum:       float=0.9,
+        weight_decay:   float=0.001
     ):
         self.name = model.name + "_optimizer"
         self.logger = Logger(self.name, file_mode='w')
         # set learning rate and momentum
         self.learning_rate = learning_rate
+        self.betas = betas
+        self.epsilon = epsilon
         self.momentum = momentum
+        self.weight_decay = weight_decay
 
         self.logger.info(f"learning rate set to {self.learning_rate}")
+        self.logger.info(f"betas set to {self.betas}")
+        self.logger.info(f"epsilon set to {self.epsilon}")
         self.logger.info(f"momentum value set to {self.momentum}")
+        self.logger.info(f"weight decay set to {self.weight_decay}")
 
         # set the optimizer
         if optimizer == 'Adam':
             self.optimizer = optim.Adam(
                 model.parameters(),
                 lr=self.learning_rate,
+                betas=self.betas,
+                eps=self.epsilon,
+                weight_decay=self.weight_decay
             )
-            self.logger.info(f"using the Adam optimizer")
+            self.logger.info(f"using the Adam optimizer.")
         
     def zero_grad(self):
         return self.optimizer.zero_grad()

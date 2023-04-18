@@ -37,11 +37,14 @@ blip/models/pointnet_plusplus_cls_msg.py
 blip/models/pointnet_unsupervised.py
 blip/models/set_abstraction.py
 blip/models/set_abstraction_msg.py
+blip/module/__init__.py
+blip/module/module.py
 blip/optimizers/__init__.py
 blip/optimizers/optimizers.py
 blip/trainer/__init__.py
 blip/trainer/trainer.py
 blip/utils/__init__.py
+blip/utils/config.py
 blip/utils/display.py
 blip/utils/grouping.py
 blip/utils/loader.py

@@ -98,7 +98,6 @@ class SetAbstraction(GenericModel):
         batch = data.to(self.device).batch
         if embedding is not None:
             embedding = embedding.to(self.device)
-
         position_dimension = position.shape
 
         # Grab centroids using farthest point sampling.
@@ -115,13 +114,11 @@ class SetAbstraction(GenericModel):
         )
         group_positions = index_positions(position, group_indices)
         group_batch = index_positions(batch, group_indices)
-
         # Shift grouped points relative to centroid
         if self.number_of_centroids is not None:
             group_positions -= sampled_positions.view(
                 self.number_of_centroids, 1, position_dimension
             )
-        
         # Grab local embedding points if embedding is not empty
         if embedding is not None:
             group_embedding = index_positions(embedding, group_indices)

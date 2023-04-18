@@ -1,0 +1,8 @@
+[07:58:23] [INFO] [blip_wire_plane_dataset]: constructing dataset.
+[07:58:23] [INFO] [blip_wire_plane_dataset]: setting 'features': None.
+[07:58:23] [INFO] [blip_wire_plane_dataset]: setting 'classes': None.
+[07:58:23] [INFO] [blip_wire_plane_dataset]: setting 'sample_weights': None.
+[07:58:23] [INFO] [blip_wire_plane_dataset]: setting 'class_weights': None.
+[07:58:23] [INFO] [blip_wire_plane_dataset]: setting 'use_sample_weights': False.
+[07:58:23] [INFO] [blip_wire_plane_dataset]: setting 'use_class_weights': False.
+[07:58:23] [INFO] [blip_wire_plane_dataset]: setting 'normalize': True.

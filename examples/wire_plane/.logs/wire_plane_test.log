@@ -1,2 +1,2 @@
-[07:00:14] [INFO] [wire_plane_test]: constructing wire_plane dataset.
-[07:00:14] [INFO] [wire_plane_test]: generating training data from file: ../../data/arrakis_output_10.root
+[12:44:09] [INFO] [wire_plane_test]: constructing wire_plane dataset.
+[12:44:10] [INFO] [wire_plane_test]: generating training data from file: ../../data/arrakis_output_1.root

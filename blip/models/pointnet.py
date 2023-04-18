@@ -103,17 +103,21 @@ class PointNet(GenericModel):
         Iterate over the model dictionary
         """
 
-        pos = positions
+        pos = positions.to(self.device)
+        batch = batch.to(self.device)
+        print(self.device)
         for ii, layer in enumerate(self.embedding_dict.keys()):
             pos = self.embedding_dict[layer](pos, batch)
             if ii == 0:
                 linear_input = pos
             else:
                 linear_input = torch.cat([linear_input, pos], dim=1)
-
         embeddings = self.reduction_dict['linear_layer'](linear_input)
+        print(embeddings.shape)
         pools = global_max_pool(embeddings, batch)
+        print(pools.shape)
         reductions = self.reduction_dict['mlp_output'](pools)
+        print(reductions.shape)
 
         return {
             'embeddings': embeddings,

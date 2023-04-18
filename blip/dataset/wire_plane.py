@@ -75,28 +75,31 @@ class WirePlanePointCloud:
                     shape_label_view.append(shape_label[event][view_mask])
                     particle_label_view.append(particle_label[event][view_mask])
 
-            channel_view = np.array(channel_view)
-            tdc_view = np.array(tdc_view)
-            adc_view = np.array(adc_view)
-            energy_view = np.array(energy_view)
-            source_label_view = np.array(source_label_view)
-            shape_label_view = np.array(shape_label_view)
-            particle_label_view = np.array(particle_label_view)
+            channel_view = np.array(channel_view, dtype=object)
+            tdc_view = np.array(tdc_view, dtype=object)
+            adc_view = np.array(adc_view, dtype=object)
+            energy_view = np.array(energy_view, dtype=object)
+            source_label_view = np.array(source_label_view, dtype=object)
+            shape_label_view = np.array(shape_label_view, dtype=object)
+            particle_label_view = np.array(particle_label_view, dtype=object)
 
             adc_view_sum = np.array([sum(a) for a in adc_view])
             adc_view_normalized = adc_view / adc_view_sum
 
-            unique_source_labels = np.unique(source_label_view)
-            unique_shape_labels = np.unique(shape_label_view)
-            unique_particle_labels = np.unique(particle_label_view)
+
+            unique_source_labels = np.unique(np.concatenate(source_label_view))
+            unique_shape_labels = np.unique(np.concatenate(shape_label_view))
+            unique_particle_labels = np.unique(np.concatenate(particle_label_view))
             
             point_cloud = np.array([
                 np.vstack((channel_view[ii], tdc_view[ii], adc_view_normalized[ii])).T
-                for ii in range(len(channel_view))]
+                for ii in range(len(channel_view))],
+                dtype=object
             )
             labels = np.array([
                 np.vstack((source_label_view[ii], shape_label_view[ii], particle_label_view[ii])).T
-                for ii in range(len(channel_view))]
+                for ii in range(len(channel_view))],
+                dtype=object
             )          
 
             meta = {
@@ -134,10 +137,12 @@ class WirePlanePointCloud:
                 meta=meta
             )
 
-            source_label_hist, _ = np.histogram(labels, bins=len(unique_source_labels))
+            source_label_hist, _ = np.histogram(np.concatenate(labels), bins=len(unique_source_labels))
             source_label_hist = np.divide(source_label_hist, np.sum(source_label_hist, dtype=float), dtype=float)
 
             if plot_group_statistics:
+                adc_view = np.concatenate(adc_view)
+                source_label_view = np.concatenate(source_label_view)
                 fig, axs = plt.subplots(figsize=(10,6))
                 for label in unique_source_labels:
                     source_adc = adc_view[(source_label_view == label)]

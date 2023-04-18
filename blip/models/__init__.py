@@ -3,6 +3,7 @@ from .pointnet import PointNet
 from .set_abstraction import SetAbstraction
 from .set_abstraction_msg import SetAbstractionMultiScaleGrouping
 from .feature_propagation import FeaturePropagation
+from .pointnet_plus_plus import PointNetPlusPlus
 from .pointnet_unsupervised import PointNetUnsupervised
 from .pointnet_classification import PointNetClassification
 from .pointnet_plusplus_cls_msg import PointNetPlusPlusClassificationMSG

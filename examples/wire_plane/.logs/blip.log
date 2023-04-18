@@ -1,3 +1,6 @@
-[07:00:26] [INFO] [blip]: configuring model.
-[07:00:26] [INFO] [blip]: Attempting to build blip architecture using cfg: {'sampling': {'method': <function farthest_point_sampling at 0x7f824e760b80>, 'number_of_centroids': None}, 'grouping': {'method': <function query_ball_point at 0x7f824e760d30>, 'radii': None, 'number_of_samples': None}, 'pointnet': {'method': <class 'blip.models.pointnet.PointNet'>, 'config': {'input_dimension': 3, 'num_embedding': 2, 'embedding_mlp_layers': [[64, 64], [64, 64]], 'number_of_neighbors': 20, 'aggregation_operators': ['max', 'max'], 'linear_output': 128, 'mlp_output_layers': [128, 256, 32]}}}
-[07:00:26] [INFO] [blip]: Constructed SetAbstraction
+[07:58:19] [INFO] [blip]: configuring module.
+[07:58:19] [INFO] [blip]: parsing config file: config/test.yaml.
+[07:58:19] [INFO] [blip]: configuring dataset.
+[07:58:19] [INFO] [blip]: processing simulation file: data/arrakis_output_1.root.
+[07:58:23] [INFO] [blip]: configuring loader.
+[07:58:23] [INFO] [blip]: configuring optimizer.

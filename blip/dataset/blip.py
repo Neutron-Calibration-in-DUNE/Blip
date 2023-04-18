@@ -10,6 +10,7 @@ import torch
 
 from torch_geometric.data import (
     Data,
+    Dataset,
     InMemoryDataset,
     download_url,
     extract_zip,
@@ -18,22 +19,22 @@ from torch_geometric.io import read_txt_array
 
 from blip.utils.logger import Logger
 
-class BlipDataset(InMemoryDataset):
+class BlipDataset(Dataset):
     def __init__(self, 
         name:   str,
-        input_file: str,
-        features:   list=None,
-        classes:    list=None,
+        input_files:    list=None,
+        features:       list=None,
+        classes:        list=None,
         sample_weights: str=None,
         class_weights:  str=None,
-        normalized:  bool=True,
+        normalized:     bool=True,
         root:   str=".", 
         transform=None, 
         pre_transform=None, 
         pre_filter=None
     ):
         self.name = name
-        self.input_file = input_file 
+        self.input_files = input_files
         self.logger = Logger(self.name, file_mode='w')
         self.logger.info(f"constructing dataset.")
         self.features = features
@@ -50,10 +51,10 @@ class BlipDataset(InMemoryDataset):
             self.use_class_weights = False
         self.normalized = normalized
 
-        data = np.load(self.input_file, allow_pickle=True)
-        self.meta = data['meta'].item()
-        #self.number_classes = self.meta['num_group_classes']
-        self.labels = self.meta['classes']
+        self.meta = []
+        for input_file in self.input_files:
+            data = np.load(input_file, allow_pickle=True)
+            self.meta.append(data['meta'].item())
 
         self.logger.info(f"setting 'features': {self.features}.")
         self.logger.info(f"setting 'classes': {self.classes}.")
@@ -64,40 +65,47 @@ class BlipDataset(InMemoryDataset):
         self.logger.info(f"setting 'normalize': {self.normalized}.")
 
         super().__init__(root, transform, pre_transform, pre_filter)
-        self.data, self.slices = torch.load(self.processed_paths[0])
 
     @property
     def raw_file_names(self):
-        return [self.input_file]
+        return [input_file for input_file in self.input_files]
 
     @property
     def processed_file_names(self):
-        return ['data.pt']
+        return [f'data_{ii}.pt' for ii in range(len(self.input_files))]
         ...
+
+    def len(self):
+        return len(self.processed_file_names)
+    
+    def get(self, idx):
+        data = torch.load(osp.join(self.processed_dir, f'data_{idx}.pt'))
+        return data
 
     def process(self):
         # Read data into huge `Data` list.
-        data = np.load(self.input_file, allow_pickle=True)
-        pos = data['point_cloud']
-        adc = data['adc']
-        y = data['labels']
+        for ii, raw_path in enumerate(self.input_files):
+            data = np.load(raw_path, allow_pickle=True)
+            pos = data['point_cloud']
+            adc = data['adc']
+            y = data['labels']
 
-        data_list = [
-            Data(
-                pos=torch.tensor(pos[ii]).type(torch.float),
-                x=torch.zeros(pos[ii].shape).type(torch.float),
-                #y=torch.full((len(pos[ii]),1),y[ii]).type(torch.long), 
-                category=torch.tensor([y[ii]]).type(torch.long),
-                summed_adc=torch.tensor(adc[ii]).type(torch.float)
-            )
-            for ii in range(len(pos))
-        ]
+            data_list = [
+                Data(
+                    pos=torch.tensor(pos[ii]).type(torch.float),
+                    x=torch.zeros(pos[ii].shape).type(torch.float),
+                    #y=torch.full((len(pos[ii]),1),y[ii]).type(torch.long), 
+                    category=torch.tensor(y[ii]).type(torch.long),
+                    summed_adc=torch.tensor(adc[ii]).type(torch.float)
+                )
+                for ii in range(len(pos))
+            ]
 
-        if self.pre_filter is not None:
-            data_list = [data for data in data_list if self.pre_filter(data)]
+            if self.pre_filter is not None:
+                data_list = [data for data in data_list if self.pre_filter(data)]
 
-        if self.pre_transform is not None:
-            data_list = [self.pre_transform(data) for data in data_list]
+            if self.pre_transform is not None:
+                data_list = [self.pre_transform(data) for data in data_list]
 
-        data, slices = self.collate(data_list)
-        torch.save((data, slices), self.processed_paths[0])
+            # data, slices = self.collate(data_list)
+            torch.save(data_list, osp.join(self.processed_dir, f'data_{ii}.pt'))

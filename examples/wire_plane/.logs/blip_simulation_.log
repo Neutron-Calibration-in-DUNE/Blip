@@ -1,0 +1,3 @@
+[07:02:58] [INFO] [blip_simulation_]: constructing wire_plane dataset.
+[07:02:59] [INFO] [blip_simulation_]: creating wire_plane plots directory 'plots/blip_simulation_/'
+[07:02:59] [INFO] [blip_simulation_]: generating training data from file: data/arrakis_output_1.root

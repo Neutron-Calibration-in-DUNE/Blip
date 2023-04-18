@@ -74,6 +74,20 @@ class Logger:
 
         # set format
         self.dateformat = '%H:%M:%S'
+        self.console_format = '[%(levelname)s] [%(name)s]: %(message)s'
+        grey = "\x1b[38;20m"
+        yellow = "\x1b[33;20m"
+        red = "\x1b[31;20m"
+        bold_red = "\x1b[31;1m"
+        reset = "\x1b[0m"
+        self.FORMATS = {
+            logging.DEBUG: grey + self.console_format + reset,
+            logging.INFO: grey + self.console_format + reset,
+            logging.WARNING: yellow + self.console_format + reset,
+            logging.ERROR: red + self.console_format + reset,
+            logging.CRITICAL: bold_red + self.console_format + reset
+        }
+
         self.console_formatter = logging.Formatter('[%(levelname)s] [%(name)s]: %(message)s')
         self.file_formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s',self.dateformat)
 
