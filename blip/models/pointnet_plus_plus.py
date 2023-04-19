@@ -21,6 +21,7 @@ pointnet_plusplus_cfg = {
     "model_type":   "PointNet++",
     "set_abstraction_layers": {
         "sampling_methods": ["farthest_point", "farthest_point", "farthest_point"],
+        "sampling_num_samples": [1024, 512, 256],
         "grouping_methods": ["query_ball_point", "query_ball_point", "query_ball_point"],
         "grouping_type":    ["multi-scale", "multi-scale", "all"],
         "grouping_radii":   [[0.1, 0.2, 0.4], [0.2, 0.4, 0.8], []],
@@ -30,8 +31,8 @@ pointnet_plusplus_cfg = {
         "pointnet_number_of_neighbors": [20, 20, 20],
         "pointnet_aggregation": [["max", "max"], ["max", "max"], ["max", "max"]],
     },
-    "segmentation":   True,
-    "classification": False,
+    "segmentation_layers":      {},
+    "classification_layers":    {},
 }
 
 class PointNetPlusPlus(GenericModel):
@@ -58,34 +59,41 @@ class PointNetPlusPlus(GenericModel):
         dictionary and fill it with individual modules.
         """
         self.logger.info(f"Attempting to build {self.name} architecture using cfg: {self.cfg}")
-        self.number_of_classes = self.cfg['number_of_classes']
 
         _set_abstraction_dict = OrderedDict()
         _classification_dict = OrderedDict()
-        for ii, layer in enumerate(self.cfg['set_abstraction_layers'].keys()):
-            _set_abstraction_dict[f'set_abstraction_layers_{layer}'] = SetAbstractionMultiScaleGrouping(
-                self.cfg['set_abstraction_layers'][layer]
+        for ii, layer in enumerate(self.cfg['set_abstraction_layers']["sampling_methods"]):
+            _set_abstraction_dict[f'set_abstraction_layers_{ii}'] = SetAbstraction(
+                self.name + f"_set_abstraction_layer_{ii}",
+                {
+                    "sampling_method":  self.cfg['set_abstraction_layers']['sampling_methods'][ii],
+                    "sampling_num_samples":  self.cfg['set_abstraction_layers']['sampling_num_samples'][ii],
+                    "grouping_method":  self.cfg['set_abstraction_layers']['grouping_methods'][ii],
+                    "grouping_type":  self.cfg['set_abstraction_layers']['grouping_type'][ii],
+                    "grouping_radii":  self.cfg['set_abstraction_layers']['grouping_radii'][ii],
+                    "grouping_samples":  self.cfg['set_abstraction_layers']['grouping_samples'][ii],
+                }
             )
-        for ii in range(len(self.cfg['classification']['mlp'])-1):
-            _classification_dict[f'mlp_{ii}'] = nn.Linear(
-                self.cfg['classification']['mlp'][ii],
-                self.cfg['classification']['mlp'][ii+1]
-            )
-            _classification_dict[f'batch_norm_{ii}'] = nn.BatchNorm1d(self.cfg['classification']['mlp'][ii+1])
-            _classification_dict[f'relu_{ii}'] = F.relu
-            _classification_dict[f'dropout_{ii}'] = nn.Dropout(self.cfg['classification']['dropout'][ii])
-        _classification_dict['output'] = nn.Linear(self.cfg['classification']['mlp'][-1], self.number_of_classes)
-        _classification_dict['softmax'] = F.log_softmax
+        # for ii in range(len(self.cfg['classification']['mlp'])-1):
+        #     _classification_dict[f'mlp_{ii}'] = nn.Linear(
+        #         self.cfg['classification']['mlp'][ii],
+        #         self.cfg['classification']['mlp'][ii+1]
+        #     )
+        #     _classification_dict[f'batch_norm_{ii}'] = nn.BatchNorm1d(self.cfg['classification']['mlp'][ii+1])
+        #     _classification_dict[f'relu_{ii}'] = F.relu
+        #     _classification_dict[f'dropout_{ii}'] = nn.Dropout(self.cfg['classification']['dropout'][ii])
+        # _classification_dict['output'] = nn.Linear(self.cfg['classification']['mlp'][-1], self.number_of_classes)
+        # _classification_dict['softmax'] = F.log_softmax
         
         
         # create the dictionaries
         self.set_abstraction_dict = nn.ModuleDict(_set_abstraction_dict)
-        self.classification_dict = nn.ModuleDict(_classification_dict)
+        # self.classification_dict = nn.ModuleDict(_classification_dict)
 
         # record the info
         self.logger.info(
             f"Constructed PointNetClassification with dictionaries:"
-            + f"\n{self.set_abstraction_dict}\n{self.classification_dict}."
+            # + f"\n{self.set_abstraction_dict}\n{self.classification_dict}."
         )
 
     def forward(self,
@@ -101,8 +109,8 @@ class PointNetPlusPlus(GenericModel):
         for ii, layer in enumerate(self.set_abstraction_dict.keys()):
             positions, embedding = self.set_abstraction_dict[layer](positions, embedding)
         output = embedding.view(batch_size, self.cfg['classification']['mlp'][0])
-        for ii, layer in enumerate(self.classification_dict.keys()):
-            output = self.classification_dict[layer](output)
+        # for ii, layer in enumerate(self.classification_dict.keys()):
+        #     output = self.classification_dict[layer](output)
         
         return {
             'output':   output,

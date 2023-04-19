@@ -1,0 +1,3 @@
+[09:17:37] [INFO] [blip_model_set_abstraction_layer_0]: configuring model.
+[09:17:37] [INFO] [blip_model_set_abstraction_layer_0]: Attempting to build blip_model_set_abstraction_layer_0 architecture using cfg: {'sampling_method': 'farthest_point', 'sampling_num_samples': 512, 'grouping_method': 'query_ball_point', 'grouping_type': 'multi-scale', 'grouping_radii': [0.1, 0.2, 0.4], 'grouping_samples': [16, 32, 128]}
+[09:17:37] [INFO] [blip_model_set_abstraction_layer_0]: Constructed SetAbstraction

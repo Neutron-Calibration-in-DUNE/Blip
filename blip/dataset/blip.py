@@ -19,7 +19,7 @@ from torch_geometric.io import read_txt_array
 
 from blip.utils.logger import Logger
 
-class BlipDataset(Dataset):
+class BlipDataset(InMemoryDataset):
     def __init__(self, 
         name:   str,
         input_files:    list=None,
@@ -107,5 +107,5 @@ class BlipDataset(Dataset):
             if self.pre_transform is not None:
                 data_list = [self.pre_transform(data) for data in data_list]
 
-            # data, slices = self.collate(data_list)
-            torch.save(data_list, osp.join(self.processed_dir, f'data_{ii}.pt'))
+            data, slices = self.collate(data_list)
+            torch.save((data, slices), osp.join(self.processed_dir, f'data_{ii}.pt'))

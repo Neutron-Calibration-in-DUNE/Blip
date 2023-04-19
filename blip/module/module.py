@@ -15,6 +15,7 @@ from blip.utils.config import ConfigParser
 from blip.dataset.wire_plane import WirePlanePointCloud
 from blip.dataset.blip import BlipDataset
 from blip.utils.loader import Loader
+from blip.models import ModelHandler
 from blip.losses import LossHandler
 from blip.optimizers import Optimizer
 from blip.metrics import MetricHandler
@@ -65,8 +66,16 @@ class Module:
         """
         self.parse_dataset()
         self.parse_loader()
+        self.parse_model()
+        #self.parse_optimizer()
 
-        self.parse_optimizer()
+        training_loop = enumerate(self.loader.train_loader, 0)
+        for ii, data in training_loop:
+            print(ii)
+            print(data)
+            output = self.model(data)
+            print(output)
+
 
 
     def parse_dataset(self):
@@ -113,6 +122,18 @@ class Module:
             loader_config["num_workers"]
         )
     
+    def parse_model(self):
+        """
+        """
+        if "model" not in self.config.keys():
+            self.logger.error("no model in config file!")
+            return
+        self.logger.info("configuring model.")
+        model_config = self.config["model"]
+        self.model = ModelHandler(
+            "blip_model",
+            model_config
+        )
 
     def parse_optimizer(self):
         """
@@ -123,12 +144,12 @@ class Module:
         self.logger.info("configuring optimizer.")
         optimizer_config = self.config['optimizer']
         self.optimizer = Optimizer(
-            self.model,
+            self.model.model,
             optimizer=optimizer_config["optimizer_type"],
-            learning_rate=optimizer_config["learning_rate"],
+            learning_rate=float(optimizer_config["learning_rate"]),
             betas=optimizer_config["betas"],
-            epsilon=optimizer_config["epsilon"],
-            momentum=optimizer_config["momentum"],
-            weight_decay=optimizer_config["weight_decay"]
+            epsilon=float(optimizer_config["epsilon"]),
+            momentum=float(optimizer_config["momentum"]),
+            weight_decay=float(optimizer_config["weight_decay"])
         )
         

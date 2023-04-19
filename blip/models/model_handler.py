@@ -37,23 +37,19 @@ class ModelHandler:
         }
         # check config
         if self.cfg["model_type"] not in self.available_models.keys():
-            self.logger.error(f"specified callback '{self.cfg['model_type']}' is not an available type! Available types:\n{self.available_models}")
-        argdict = get_method_arguments(self.available_models[self.cfg["model_type"]])
-        for value in self.cfg[self.cfg["model_type"]].keys():
-            if value not in argdict.keys():
-                self.logger.error(f"specified callback value '{self.cfg['model_type']}:{value}' not a constructor parameter for '{self.cfg['model_type']}'! Constructor parameters:\n{argdict}")
-        for value in argdict.keys():
-            if argdict[value] == None:
-                if value not in self.cfg[self.cfg["model_type"]].keys():
-                    self.logger.error(f"required input parameters '{self.cfg['model_type']}:{value}' not specified! Constructor parameters:\n{argdict}")
-        self.models = {}
-        for item in self.cfg.keys():
-            self.models[item] = self.available_models[item](**self.cfg[item])
+            self.logger.error(
+                f"specified callback '{self.cfg['model_type']}'" +
+                f"is not an available type! Available types:\n{self.available_models}"
+            )
+        self.model = self.available_models[self.cfg['model_type']](
+            "blip_model", self.cfg
+        )
+        print(self.model)
 
     def set_device(self,
         device
     ):  
-        for name, model in self.modeles.items():
+        for name, model in self.models.items():
             model.set_device(device)
             model.reset_batch()
         self.device = device

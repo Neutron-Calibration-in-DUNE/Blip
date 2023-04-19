@@ -27,7 +27,7 @@ class Loader:
         num_workers:        int=0,
     ):
         self.name = dataset.name + "_loader"
-        self.logger = Logger(self.name, file_mode='w')
+        self.logger = Logger(self.name, output="both", file_mode='w')
         self.logger.info(f"constructing dataset loader.")
         # check that dataset is either a torch Dataset or
         # # inherited from GenericDataset

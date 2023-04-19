@@ -31,10 +31,13 @@ blip/models/__init__.py
 blip/models/common.py
 blip/models/feature_propagation.py
 blip/models/generic_model.py
+blip/models/model_handler.py
 blip/models/pointnet.py
 blip/models/pointnet_classification.py
+blip/models/pointnet_plus_plus.py
 blip/models/pointnet_plusplus_cls_msg.py
 blip/models/pointnet_unsupervised.py
+blip/models/sampling_grouping.py
 blip/models/set_abstraction.py
 blip/models/set_abstraction_msg.py
 blip/module/__init__.py

@@ -19,18 +19,16 @@ pointnet_config = {
     'input_dimension':  3,
     # number of dynamic edge convs
     'num_embedding':    2,
+    'embedding_type':   'dynamic_edge_conv',
     # edge conv layer values
     'embedding_mlp_layers': [
         [64, 64],
         [64, 64]
     ],
     'number_of_neighbors':  20,
-    'aggregation_operators': [
+    'aggregation': [
         'max', 'max'
     ],
-    # linear layer
-    'linear_output':    128,
-    'mlp_output_layers': [128, 256, 32],
 }
 
 class PointNet(GenericModel):
@@ -66,27 +64,17 @@ class PointNet(GenericModel):
         # Feature extraction
         # an example would be
         for ii in range(self.cfg['num_embedding']):
-            _embedding_dict[f'embedding_{ii}'] = DynamicEdgeConv(
-                MLP([2 * _input_dimension] + self.cfg['embedding_mlp_layers'][ii]), 
-                self.cfg['number_of_neighbors'],
-                self.cfg['aggregation_operators'][ii]
-            )
+            if self.cfg['embedding_type'][ii] == 'dynamic_edge_conv':
+                _embedding_dict[f'embedding_{ii}'] = DynamicEdgeConv(
+                    MLP([2 * _input_dimension] + self.cfg['embedding_mlp_layers'][ii]), 
+                    self.cfg['number_of_neighbors'],
+                    self.cfg['aggregation_operators'][ii]
+                )
             _input_dimension = self.cfg['embedding_mlp_layers'][ii][-1]
             _num_embedding_outputs += _input_dimension
         
-        # add linear layer Encoder head
-        _reduction_dict[f'linear_layer'] = Linear(
-            _num_embedding_outputs, 
-            self.cfg['linear_output']
-        )
-        # add output mlp Projection head (See explanation in SimCLRv2)
-        _reduction_dict[f'mlp_output'] = MLP(
-            self.cfg['mlp_output_layers']
-        )
-        
         # create the dictionaries
         self.embedding_dict = nn.ModuleDict(_embedding_dict)
-        self.reduction_dict = nn.ModuleDict(_reduction_dict)
 
         # record the info
         self.logger.info(
@@ -96,31 +84,18 @@ class PointNet(GenericModel):
 
     
     def forward(self,
-        positions,
-        batch
+        data
     ):
         """
         Iterate over the model dictionary
         """
 
-        pos = positions.to(self.device)
-        batch = batch.to(self.device)
-        print(self.device)
+        positions = data['positions'].pos.to(self.device)
+        batch = data['input'].batch.to(self.device)
         for ii, layer in enumerate(self.embedding_dict.keys()):
-            pos = self.embedding_dict[layer](pos, batch)
-            if ii == 0:
-                linear_input = pos
-            else:
-                linear_input = torch.cat([linear_input, pos], dim=1)
-        embeddings = self.reduction_dict['linear_layer'](linear_input)
-        print(embeddings.shape)
-        pools = global_max_pool(embeddings, batch)
-        print(pools.shape)
-        reductions = self.reduction_dict['mlp_output'](pools)
-        print(reductions.shape)
+            positions = self.embedding_dict[layer](positions, batch)
 
         return {
-            'embeddings': embeddings,
-            'pools': pools, 
-            'reductions': reductions, 
+            'data':         data,
+            'embedding':    positions, 
         }
