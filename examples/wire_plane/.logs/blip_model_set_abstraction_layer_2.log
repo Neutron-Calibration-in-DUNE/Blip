@@ -1,3 +1,3 @@
-[09:17:37] [INFO] [blip_model_set_abstraction_layer_2]: configuring model.
-[09:17:37] [INFO] [blip_model_set_abstraction_layer_2]: Attempting to build blip_model_set_abstraction_layer_2 architecture using cfg: {'sampling_method': 'farthest_point', 'sampling_num_samples': 512, 'grouping_method': 'query_ball_point', 'grouping_type': 'all', 'grouping_radii': [], 'grouping_samples': []}
-[09:17:37] [INFO] [blip_model_set_abstraction_layer_2]: Constructed SetAbstraction
+[14:12:14] [INFO] [blip_model_set_abstraction_layer_2]: configuring model.
+[14:12:14] [INFO] [blip_model_set_abstraction_layer_2]: Attempting to build blip_model_set_abstraction_layer_2 architecture using cfg: {'sampling_method': 'farthest_point', 'sampling_num_samples': 512, 'grouping_method': 'query_ball_point', 'grouping_type': 'all', 'grouping_radii': [], 'grouping_samples': []}
+[14:12:14] [INFO] [blip_model_set_abstraction_layer_2]: Constructed SetAbstraction

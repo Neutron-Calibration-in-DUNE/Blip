@@ -41,6 +41,7 @@ class BlipDataset(InMemoryDataset):
         self.classes = classes
         self.sample_weights = sample_weights
         self.class_weights = class_weights
+        self.number_of_events = 0
         if sample_weights != None:
             self.use_sample_weights = True
         else:
@@ -72,7 +73,7 @@ class BlipDataset(InMemoryDataset):
 
     @property
     def processed_file_names(self):
-        return [f'data_{ii}.pt' for ii in range(len(self.input_files))]
+        return [f'data_{ii}.pt' for ii in range(self.number_of_events)]
         ...
 
     def len(self):
@@ -84,28 +85,29 @@ class BlipDataset(InMemoryDataset):
 
     def process(self):
         # Read data into huge `Data` list.
-        for ii, raw_path in enumerate(self.input_files):
+        index = 0
+        for jj, raw_path in enumerate(self.input_files):
             data = np.load(raw_path, allow_pickle=True)
             pos = data['point_cloud']
             adc = data['adc']
             y = data['labels']
 
-            data_list = [
-                Data(
+            for ii in range(len(pos)):
+                
+                event = Data(
                     pos=torch.tensor(pos[ii]).type(torch.float),
                     x=torch.zeros(pos[ii].shape).type(torch.float),
                     #y=torch.full((len(pos[ii]),1),y[ii]).type(torch.long), 
                     category=torch.tensor(y[ii]).type(torch.long),
                     summed_adc=torch.tensor(adc[ii]).type(torch.float)
                 )
-                for ii in range(len(pos))
-            ]
+                
+                if self.pre_filter is not None:
+                    event = self.pre_filter(event)
 
-            if self.pre_filter is not None:
-                data_list = [data for data in data_list if self.pre_filter(data)]
+                if self.pre_transform is not None:
+                    event = self.pre_transform(event)
 
-            if self.pre_transform is not None:
-                data_list = [self.pre_transform(data) for data in data_list]
-
-            data, slices = self.collate(data_list)
-            torch.save((data, slices), osp.join(self.processed_dir, f'data_{ii}.pt'))
+                torch.save(event, osp.join(self.processed_dir, f'data_{index}.pt'))
+                index += 1
+        self.number_of_events = index

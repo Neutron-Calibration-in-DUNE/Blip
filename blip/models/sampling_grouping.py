@@ -9,6 +9,7 @@ import torch_geometric.transforms as T
 from torch.nn import Linear
 import torch.nn.functional as F
 from torch_geometric.nn import MLP, DynamicEdgeConv, global_max_pool
+import torch_cluster
 
 
 from blip.models.common import activations, normalizations
@@ -52,6 +53,9 @@ class SamplingAndGrouping(GenericModel):
         if self.cfg["grouping_method"] == "query_ball_point":
             self.grouping_method = self.query_ball_point
 
+        # pairwise distance calculator
+        self.pairwise_distance = nn.PairwiseDistance(p=2, keepdim=True)
+
         # record the info
         self.logger.info(
             f"Constructed sampling_grouping with methods:"
@@ -60,29 +64,31 @@ class SamplingAndGrouping(GenericModel):
     def furthest_point_sampling(self,
         positions,
     ):
-        sampled_indices = torch.zeros(self.cfg['sampling_num_samples'], dtype=torch.long)
-        sampled_positions = torch.zeros(positions.shape, self.cfg['sampling_num_samples'])
-        distances = torch.ones(len(positions)) * 1e10
-        farthest = torch.randint(0, len(positions), dtype=torch.long)
-        for ii in range(self.cfg['sampling_num_samples']):
-            sampled_indices[:, ii] = farthest
-            sampled_positions[:, ii] = positions[farthest]
-            distance = torch.sum((positions - positions[farthest])**2)
-            distance_mask = distance < distances
-            distances[distance_mask] = distance[distance_mask]
-            farthest = torch.max(distances)
+        ratio = float(self.cfg['sampling_num_samples'])/len(positions)
+        # only sampling according to the (tdc,channel) dimensions, not adc.
+        sampled_indices = torch_cluster.fps(positions[:,:2], None, ratio)
+        sampled_positions = positions[sampled_indices]
         return sampled_positions, sampled_indices
 
     def query_ball_point(self,
         positions,
         centroids,
     ):
-        # Shift grouped points relative to centroid
-        if self.cfg['sampling_num_samples'] is not None:
-            grouped_positions -= centroids.view(
-                self.cfg['sampling_num_samples'], 1, positions.shape
-            )
-        #return grouped_positions, grouped_indices
+        grouped_positions = []
+        grouped_indices = []
+        pairwise_distances = torch.cdist(centroids, positions, p=2)
+        for ii, radii in enumerate(self.cfg['grouping_radii']):
+            if self.cfg['grouping_type'] == 'multi-scale':
+                # Shift grouped points relative to centroid
+                for jj, distances in enumerate(pairwise_distances):
+                    grouped_index = (distances <= (radii * radii)).nonzero(as_tuple=True)
+                    grouped_position = positions[grouped_index]
+                    grouped_position -= centroids[jj]
+                    grouped_positions.append(grouped_position)
+                    grouped_indices.append(grouped_index)
+            else:
+                pass
+        return grouped_positions, grouped_indices
     
     def forward(self,
         positions,
@@ -98,7 +104,6 @@ class SamplingAndGrouping(GenericModel):
         sampled_positions, sampled_indices = self.sampling_method(
             positions
         )
-        print(sampled_positions, sampled_indices)
 
         # Iterate over each grouping radius
         grouped_positions, grouped_indices = self.grouping_method(

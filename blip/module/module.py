@@ -70,10 +70,9 @@ class Module:
         #self.parse_optimizer()
 
         training_loop = enumerate(self.loader.train_loader, 0)
+
         for ii, data in training_loop:
-            print(ii)
-            print(data)
-            output = self.model(data)
+            output = self.model.model(data)
             print(output)
 
 

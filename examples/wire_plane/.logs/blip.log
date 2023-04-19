@@ -1,6 +1,6 @@
-[09:17:33] [INFO] [blip]: configuring module.
-[09:17:33] [INFO] [blip]: parsing config file: config/test.yaml.
-[09:17:33] [INFO] [blip]: configuring dataset.
-[09:17:33] [INFO] [blip]: processing simulation file: data/arrakis_output_1.root.
-[09:17:37] [INFO] [blip]: configuring loader.
-[09:17:37] [INFO] [blip]: configuring model.
+[14:12:10] [INFO] [blip]: configuring module.
+[14:12:10] [INFO] [blip]: parsing config file: config/test.yaml.
+[14:12:10] [INFO] [blip]: configuring dataset.
+[14:12:10] [INFO] [blip]: processing simulation file: data/arrakis_output_1.root.
+[14:12:14] [INFO] [blip]: configuring loader.
+[14:12:14] [INFO] [blip]: configuring model.

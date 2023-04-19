@@ -61,7 +61,7 @@ class PointNetPlusPlus(GenericModel):
         self.logger.info(f"Attempting to build {self.name} architecture using cfg: {self.cfg}")
 
         _set_abstraction_dict = OrderedDict()
-        _classification_dict = OrderedDict()
+        #_classification_dict = OrderedDict()
         for ii, layer in enumerate(self.cfg['set_abstraction_layers']["sampling_methods"]):
             _set_abstraction_dict[f'set_abstraction_layers_{ii}'] = SetAbstraction(
                 self.name + f"_set_abstraction_layer_{ii}",
@@ -103,12 +103,15 @@ class PointNetPlusPlus(GenericModel):
         Iterate over the model dictionary
         """
         positions = data.to(self.device).pos
-        batch_size, = positions.shape
+        batch_size = data.to(self.device).batch
         embedding = None
 
         for ii, layer in enumerate(self.set_abstraction_dict.keys()):
-            positions, embedding = self.set_abstraction_dict[layer](positions, embedding)
-        output = embedding.view(batch_size, self.cfg['classification']['mlp'][0])
+            output = self.set_abstraction_dict[layer](positions)
+            positions = output['sampling_and_grouping']['sampled_positions']
+            print(positions)
+        
+        #output = embedding.view(batch_size, self.cfg['classification']['mlp'][0])
         # for ii, layer in enumerate(self.classification_dict.keys()):
         #     output = self.classification_dict[layer](output)
         

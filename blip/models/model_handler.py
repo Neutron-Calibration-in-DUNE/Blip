@@ -44,7 +44,6 @@ class ModelHandler:
         self.model = self.available_models[self.cfg['model_type']](
             "blip_model", self.cfg
         )
-        print(self.model)
 
     def set_device(self,
         device

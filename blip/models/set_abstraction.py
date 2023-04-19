@@ -72,7 +72,6 @@ class SetAbstraction(GenericModel):
         and then PointNet.
         """
         positions = positions.to(self.device)
-        batch = batch.to(self.device)
         
         sampling_and_grouping = self.sampling_and_grouping(positions)
         #pointnet_embedding = self.pointnet(sampling_and_grouping)
