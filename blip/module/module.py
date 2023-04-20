@@ -73,7 +73,7 @@ class Module:
 
         for ii, data in training_loop:
             output = self.model.model(data)
-            print(output)
+            #print(output)
 
 
 
@@ -133,6 +133,7 @@ class Module:
             "blip_model",
             model_config
         )
+        self.model.model.set_device('cuda')
 
     def parse_optimizer(self):
         """

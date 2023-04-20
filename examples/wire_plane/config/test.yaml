@@ -19,16 +19,17 @@ model:
   model_type:   "PointNet++"
   set_abstraction_layers:
     sampling_methods:       ["farthest_point", "farthest_point", "farthest_point"]
-    sampling_num_samples:   [512, 512, 512]
+    sampling_num_samples:   [32, 16, 8]
     grouping_methods:       ["query_ball_point", "query_ball_point", "query_ball_point"]
     grouping_type:          ["multi-scale", "multi-scale", "all"]
-    grouping_radii:         [[0.1, 0.2, 0.4], [0.2, 0.4, 0.8], []]
+    grouping_radii:         [[10, 20, 40], [20, 40, 80], []]
     grouping_samples:       [[16, 32, 128], [32, 64, 128], []]
     pointnet_num_embeddings:        [2, 2, 2]
     pointnet_embedding_type:        ["dynamic_edge_conv", "dynamic_edge_conv", "dynamic_edge_conv"]
     pointnet_embedding_mlp_layers:  [[[64,64],[64,64]],[[64,64],[64,64]],[[64,64],[64,64]]]
     pointnet_number_of_neighbors:   [20, 20, 20]
     pointnet_aggregation:           [["max", "max"], ["max", "max"], ["max", "max"]]
+    pointnet_input_dimension:       [3, 5, 7]
   segmentation_layers:
   classification_layers:
 

@@ -24,11 +24,12 @@ set_abstraction_config = {
     "grouping_type":    "multi-scale", 
     "grouping_radii":   [0.1, 0.2, 0.4],
     "grouping_samples": [16, 32, 128],
-    "pointnet_num_embeddings":      2,
-    "pointnet_embedding_type":        "dynamic_edge_conv",
-    "pointnet_embedding_mlp_layers":  [[64,64],[64,64]],
-    "pointnet_number_of_neighbors":   20,
-    "pointnet_aggregation":           ["max", "max"],
+    "pointnet_num_embeddings":  2,
+    "pointnet_embedding_mlp_layers":  [2, 2],
+    "pointnet_embedding_type":    "dynamic_edge_conv",
+    "pointnet_number_of_neighbors": 20,
+    "pointnet_aggregation": ["max", "max"],
+    "pointnet_input_dimension": 3,
 }
 
 class SetAbstraction(GenericModel):
@@ -36,10 +37,10 @@ class SetAbstraction(GenericModel):
     """
     def __init__(self,
         name:   str='set_abstraction',
-        cfg:    dict=set_abstraction_config
+        config: dict=set_abstraction_config
     ):
-        super(SetAbstraction, self).__init__(name, cfg)
-        self.cfg = cfg
+        super(SetAbstraction, self).__init__(name, config)
+        self.config = config
 
         # construct the model
         self.forward_views      = {}
@@ -54,10 +55,14 @@ class SetAbstraction(GenericModel):
         The current methodology is to create an ordered
         dictionary and fill it with individual modules.
         """
-        self.logger.info(f"Attempting to build {self.name} architecture using cfg: {self.cfg}")
+        self.logger.info(f"Attempting to build {self.name} architecture using config: {self.config}")
         self.sampling_and_grouping = SamplingAndGrouping(
             self.name + "_sampling_and_grouping",
-            self.cfg
+            self.config
+        )
+        self.pointnet = PointNet(
+            self.name + "_pointnet",
+            self.config
         )
         # record the info
         self.logger.info(
@@ -65,16 +70,18 @@ class SetAbstraction(GenericModel):
         )
     
     def forward(self,
-        positions
+        positions,
+        batches
     ):
         """
         Iterate over the sampling + grouping stage
         and then PointNet.
         """
         positions = positions.to(self.device)
-        
-        sampling_and_grouping = self.sampling_and_grouping(positions)
-        #pointnet_embedding = self.pointnet(sampling_and_grouping)
+        batches = batches.to(self.device)
+
+        sampling_and_grouping = self.sampling_and_grouping(positions, batches)
+        pointnet_embedding = self.pointnet(positions, batches, sampling_and_grouping)
         
         return {
             'sampling_and_grouping': sampling_and_grouping,
