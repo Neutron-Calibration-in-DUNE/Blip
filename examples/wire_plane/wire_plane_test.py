@@ -8,4 +8,4 @@ from blip.dataset.wire_plane import WirePlanePointCloud
 
 if __name__ == "__main__":
 
-    blip_module = Module("blip", "config/test.yaml")
+    blip_module = Module("blip", "config/test2.yaml")

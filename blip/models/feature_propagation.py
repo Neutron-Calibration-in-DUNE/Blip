@@ -48,16 +48,14 @@ class FeaturePropagation(GenericModel):
         self.logger.info(f"Attempting to build {self.name} architecture using cfg: {self.cfg}")
         _convolution_dict = OrderedDict()
         
-        self.input_dimension = self.cfg['in_channels']
-        last_channel = self.cfg['in_channels']
-        for ii in range(len(self.cfg['mlp'])):
-            _convolution_dict[f'conv_{ii}'] = nn.Conv2d(
-                last_channel, self.cfg['mlp'][ii], 1
-            )
-            _convolution_dict[f'batch_norm_{ii}'] = nn.BatchNorm2d(
-                self.cfg['mlp'][ii]
-            )
-            last_channel = self.cfg['mlp'][ii]
+        # for ii in range(len(self.cfg['mlp'])):
+        #     _convolution_dict[f'conv_{ii}'] = nn.Conv2d(
+        #         last_channel, self.cfg['mlp'][ii], 1
+        #     )
+        #     _convolution_dict[f'batch_norm_{ii}'] = nn.BatchNorm2d(
+        #         self.cfg['mlp'][ii]
+        #     )
+        #     last_channel = self.cfg['mlp'][ii]
 
         self.convolution_dict = nn.ModuleDict(_convolution_dict)
 
@@ -68,10 +66,34 @@ class FeaturePropagation(GenericModel):
         )
     
     def forward(self,
-        x
+        positions,
+        embedding,
+        prev_positions,
+        prev_embedding
     ):
+        print(positions.shape)
+        print(embedding.shape)
+        print(prev_positions.shape)
+        
         """
         Iterate over the model dictionary
         """
-        x = x.to(self.device)
+        if len(positions) == 1:
+            interpolated_points = embedding.repeat(len(positions), 1)
+        else:
+            pairwise_distances = torch.cdist(prev_positions, positions, p=2)
+            pairwise_distances = 1.0 / (pairwise_distances + 1e-8)
+            print(pairwise_distances.shape)
+            weights = torch.sum(pairwise_distances, dim=1, keepdim=True)
+            weights = pairwise_distances / weights
+            print(weights.shape)
+            print(embedding.shape)
+            interpolated_points = torch.sum(embedding * weights.view(len(prev_positions), 1), dim=1)
+
+        if prev_embedding is not None:
+            new_points = torch.cat([prev_embedding, interpolated_points])
+        else:
+            new_points = interpolated_points
+        
+        return new_points
         

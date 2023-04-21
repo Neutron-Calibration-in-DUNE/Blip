@@ -9,10 +9,12 @@ import torch_geometric.transforms as T
 from torch.nn import Linear
 import torch.nn.functional as F
 from torch_geometric.nn import MLP, DynamicEdgeConv, global_max_pool
+import torch_cluster
 
 
 from blip.models.common import activations, normalizations
 from blip.models import GenericModel, SetAbstraction, SetAbstractionMultiScaleGrouping
+from blip.models import FeaturePropagation
 from blip.utils.sampling import *
 from blip.utils.grouping import *
 from blip.models import PointNet
@@ -41,7 +43,7 @@ class PointNetPlusPlus(GenericModel):
     """
     """
     def __init__(self,
-        name:   str='pointnet_plusplus',
+        name:       str='pointnet_plusplus',
         config:    dict=pointnet_plusplus_config
     ):
         super(PointNetPlusPlus, self).__init__(name, config)
@@ -63,6 +65,7 @@ class PointNetPlusPlus(GenericModel):
         self.logger.info(f"Attempting to build {self.name} architecture using config: {self.config}")
 
         _set_abstraction_dict = OrderedDict()
+        _feature_propagation_dict = OrderedDict()
         #_classification_dict = OrderedDict()
         for ii, layer in enumerate(self.config['set_abstraction_layers']["sampling_methods"]):
             _set_abstraction_dict[f'set_abstraction_layers_{ii}'] = SetAbstraction(
@@ -74,12 +77,17 @@ class PointNetPlusPlus(GenericModel):
                     "grouping_type":        self.config['set_abstraction_layers']['grouping_type'][ii],
                     "grouping_radii":       self.config['set_abstraction_layers']['grouping_radii'][ii],
                     "grouping_samples":     self.config['set_abstraction_layers']['grouping_samples'][ii],
-                    "pointnet_num_embeddings":      self.config['set_abstraction_layers']['pointnet_num_embeddings'][ii],
                     "pointnet_embedding_mlp_layers":self.config['set_abstraction_layers']['pointnet_embedding_mlp_layers'][ii],
                     "pointnet_embedding_type":      self.config['set_abstraction_layers']['pointnet_embedding_type'][ii],
                     "pointnet_number_of_neighbors": self.config['set_abstraction_layers']['pointnet_number_of_neighbors'][ii],
                     "pointnet_aggregation":         self.config['set_abstraction_layers']['pointnet_aggregation'][ii],
                     "pointnet_input_dimension":     self.config['set_abstraction_layers']['pointnet_input_dimension'][ii]
+                }
+            )
+        for ii, layer in enumerate(self.config['set_abstraction_layers']["sampling_methods"]):
+            _feature_propagation_dict[f'feature_propagaion_layers_{ii}'] = FeaturePropagation(
+                self.name + f"_feature_propagation_layer_{ii}",
+                {
                 }
             )
         # for ii in range(len(self.config['classification']['mlp'])-1):
@@ -96,6 +104,7 @@ class PointNetPlusPlus(GenericModel):
         
         # create the dictionaries
         self.set_abstraction_dict = nn.ModuleDict(_set_abstraction_dict)
+        self.feature_propagation_dict = nn.ModuleDict(_feature_propagation_dict)
         # self.classification_dict = nn.ModuleDict(_classification_dict)
 
         # record the info
@@ -112,25 +121,25 @@ class PointNetPlusPlus(GenericModel):
         """
         positions = data.to(self.device).pos
         batches = data.to(self.device).batch
-        embedding = None
         sampling_and_grouping = {}
-        
+
+        samples = positions
+        embedding = None
+        samples_list = [positions]
+        embedding_list = [None]
+
         for ii, layer in enumerate(self.set_abstraction_dict.keys()):
-            output = self.set_abstraction_dict[layer](positions, batches)
-            sampling_and_grouping[layer] = output['sampling_and_grouping']
-            positions = output['sampling_and_grouping']['sampled_positions']
-            batches = output['sampling_and_grouping']['sampled_batches']
-        #print(positions)
-        #print(sampling_and_grouping.keys())
+            samples, batches, embedding = self.set_abstraction_dict[layer](samples, batches, embedding)
+            samples_list.append(samples)
+            embedding_list.append(embedding)
+
+        for ii, layer in enumerate(self.feature_propagation_dict.keys()):
+            embedding_list[-(ii+2)] = self.feature_propagation_dict[layer](
+                samples_list[-(ii+1)], embedding_list[-(ii+1)],
+                samples_list[-(ii+2)], embedding_list[-(ii+2)]
+            ) 
         
-        #output = embedding.view(batch_size, self.config['classification']['mlp'][0])
-        # for ii, layer in enumerate(self.classification_dict.keys()):
-        #     output = self.classification_dict[layer](output)
-        
-        return {
-            'output':   output,
-            'embedding':embedding,
-        }
+        return embedding_list[0]
 
 
         

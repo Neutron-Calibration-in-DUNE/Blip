@@ -72,6 +72,8 @@ class Module:
         training_loop = enumerate(self.loader.train_loader, 0)
 
         for ii, data in training_loop:
+            for param in self.model.model.parameters():
+                param.grad = None
             output = self.model.model(data)
             #print(output)
 

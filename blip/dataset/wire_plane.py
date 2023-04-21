@@ -29,6 +29,16 @@ class WirePlanePointCloud:
             os.makedirs(self.wire_plane_dir)
         if not os.path.isdir(f"data/{self.name}"):
             os.makedirs(f"data/{self.name}")
+        
+        self.protodune_tpc_channels = {
+            "tpc0": [[0,799],[800,1599],[1600,2079]],
+            "tpc1": [[0,799],[800,1599],[2080,2559]],
+            # [],
+            # [],
+            # [],
+            # [],
+            # []
+        }
 
     def generate_training_data(self,
         plot_group_statistics:  bool=True
@@ -50,116 +60,119 @@ class WirePlanePointCloud:
         shape_label = self.point_cloud_data['shape_label']
         particle_label = self.point_cloud_data['particle_label']
 
-        for v in np.unique(np.concatenate(view)):
-            """
-            For each point cloud, we want to normalize adc against
-            all point clouds in the data set, so that it is independent 
-            of the specific detector readout.
-            """
-            channel_view = []
-            tdc_view = []
-            adc_view = []
-            energy_view = []
-            source_label_view = []
-            shape_label_view = []
-            particle_label_view = []
+        #for v in np.unique(np.concatenate(view)):
+        for tpc, tpc_ranges in self.protodune_tpc_channels.items():
+            for v, tpc_view in enumerate(tpc_ranges):
+                """
+                For each point cloud, we want to normalize adc against
+                all point clouds in the data set, so that it is independent 
+                of the specific detector readout.
+                """
+                channel_view = []
+                tdc_view = []
+                adc_view = []
+                energy_view = []
+                source_label_view = []
+                shape_label_view = []
+                particle_label_view = []
 
-            for event in range(len(channel)):
-                view_mask = (view[event] == v)
-                if np.sum(view_mask) > 0:
-                    channel_view.append(channel[event][view_mask])
-                    tdc_view.append(tdc[event][view_mask])
-                    adc_view.append(adc[event][view_mask])
-                    energy_view.append(energy[event][view_mask])
-                    source_label_view.append(source_label[event][view_mask])
-                    shape_label_view.append(shape_label[event][view_mask])
-                    particle_label_view.append(particle_label[event][view_mask])
+                for event in range(len(channel)):
+                    #view_mask = (view[event] == v) & (channel[event] >= channel_range[0]) & (channel[event] < channel_range[1])
+                    view_mask = (channel[event] >= tpc_view[0]) & (channel[event] < tpc_view[1])
+                    if np.sum(view_mask) > 0:
+                        channel_view.append(channel[event][view_mask])
+                        tdc_view.append(tdc[event][view_mask])
+                        adc_view.append(adc[event][view_mask])
+                        energy_view.append(energy[event][view_mask])
+                        source_label_view.append(source_label[event][view_mask])
+                        shape_label_view.append(shape_label[event][view_mask])
+                        particle_label_view.append(particle_label[event][view_mask])
 
-            channel_view = np.array(channel_view, dtype=object)
-            tdc_view = np.array(tdc_view, dtype=object)
-            adc_view = np.array(adc_view, dtype=object)
-            energy_view = np.array(energy_view, dtype=object)
-            source_label_view = np.array(source_label_view, dtype=object)
-            shape_label_view = np.array(shape_label_view, dtype=object)
-            particle_label_view = np.array(particle_label_view, dtype=object)
+                channel_view = np.array(channel_view, dtype=object)
+                tdc_view = np.array(tdc_view, dtype=object)
+                adc_view = np.array(adc_view, dtype=object)
+                energy_view = np.array(energy_view, dtype=object)
+                source_label_view = np.array(source_label_view, dtype=object)
+                shape_label_view = np.array(shape_label_view, dtype=object)
+                particle_label_view = np.array(particle_label_view, dtype=object)
 
-            adc_view_sum = np.array([sum(a) for a in adc_view])
-            adc_view_normalized = adc_view / adc_view_sum
+                adc_view_sum = np.array([sum(a) for a in adc_view])
+                adc_view_normalized = adc_view / adc_view_sum
 
+                unique_source_labels = np.unique(np.concatenate(source_label_view))
+                unique_shape_labels = np.unique(np.concatenate(shape_label_view))
+                unique_particle_labels = np.unique(np.concatenate(particle_label_view))
+                
+                point_cloud = np.array([
+                    np.vstack((channel_view[ii], tdc_view[ii], adc_view_normalized[ii])).T
+                    for ii in range(len(channel_view))],
+                    dtype=object
+                )
+                labels = np.array([
+                    np.vstack((source_label_view[ii], shape_label_view[ii], particle_label_view[ii])).T
+                    for ii in range(len(channel_view))],
+                    dtype=object
+                )          
 
-            unique_source_labels = np.unique(np.concatenate(source_label_view))
-            unique_shape_labels = np.unique(np.concatenate(shape_label_view))
-            unique_particle_labels = np.unique(np.concatenate(particle_label_view))
-            
-            point_cloud = np.array([
-                np.vstack((channel_view[ii], tdc_view[ii], adc_view_normalized[ii])).T
-                for ii in range(len(channel_view))],
-                dtype=object
-            )
-            labels = np.array([
-                np.vstack((source_label_view[ii], shape_label_view[ii], particle_label_view[ii])).T
-                for ii in range(len(channel_view))],
-                dtype=object
-            )          
+                meta = {
+                    "who_created":      "me",
+                    "when_created":     datetime.now().strftime("%m-%d-%Y-%H:%M:%S"),
+                    "where_created":    socket.gethostname(),
+                    "num_events":       len(point_cloud),
+                    "view":             v,
+                    "features": {
+                        "channel": 0, "tdc": 1, "adc": 2
+                    },
+                    "classes": {
+                        "source": 0, "shape": 1, "particle": 2
+                    },
+                    "source_label_classes": {
+                        key: value
+                        for key, value in source_label_map.items()
+                    },
+                    "shape_label_classes": {
+                        key: value
+                        for key, value in shape_label_map.items()
+                    },
+                    "particle_label_classes": {
+                        key: value
+                        for key, value in particle_label_map.items()
+                    },          
+                }
 
-            meta = {
-                "who_created":      "me",
-                "when_created":     datetime.now().strftime("%m-%d-%Y-%H:%M:%S"),
-                "where_created":    socket.gethostname(),
-                "num_events":       len(point_cloud),
-                "view":             v,
-                "features": {
-                    "channel": 0, "tdc": 1, "adc": 2
-                },
-                "classes": {
-                    "source": 0, "shape": 1, "particle": 2
-                },
-                "source_label_classes": {
-                    key: value
-                    for key, value in source_label_map.items()
-                },
-                "shape_label_classes": {
-                    key: value
-                    for key, value in shape_label_map.items()
-                },
-                "particle_label_classes": {
-                    key: value
-                    for key, value in particle_label_map.items()
-                },          
-            }
+                    
+                np.savez(
+                    f"data/{self.name}/point_cloud_view{v}_tpc{v}.npz",
+                    point_cloud=point_cloud,
+                    energy=energy,
+                    adc=adc_view,
+                    labels=labels,
+                    meta=meta
+                )
 
-            np.savez(
-                f"data/{self.name}/point_cloud_view{v}.npz",
-                point_cloud=point_cloud,
-                energy=energy,
-                adc=adc_view,
-                labels=labels,
-                meta=meta
-            )
+            # source_label_hist, _ = np.histogram(np.concatenate(labels), bins=len(unique_source_labels))
+            # source_label_hist = np.divide(source_label_hist, np.sum(source_label_hist, dtype=float), dtype=float)
 
-            source_label_hist, _ = np.histogram(np.concatenate(labels), bins=len(unique_source_labels))
-            source_label_hist = np.divide(source_label_hist, np.sum(source_label_hist, dtype=float), dtype=float)
-
-            if plot_group_statistics:
-                adc_view = np.concatenate(adc_view)
-                source_label_view = np.concatenate(source_label_view)
-                fig, axs = plt.subplots(figsize=(10,6))
-                for label in unique_source_labels:
-                    source_adc = adc_view[(source_label_view == label)]
-                    axs.hist(
-                        source_adc, 
-                        bins=100, 
-                        range=[np.min(source_adc),np.max(source_adc)], 
-                        histtype='step',
-                        stacked=True,
-                        density=True,
-                        label=f"{source_label_map[label]}",
-                        log=True
-                    )
-                axs.set_xlabel("Summed ADC [counts]")
-                axs.set_ylabel("Point Clouds")
-                axs.set_title(f"Summed ADC Distribution for View {v}")
-                axs.ticklabel_format(axis='x', style='sci')
-                plt.legend()
-                plt.tight_layout()
-                plt.savefig(self.wire_plane_dir + f"source_adc_view{v}.png")
+            # if plot_group_statistics:
+            #     adc_view = np.concatenate(adc_view)
+            #     source_label_view = np.concatenate(source_label_view)
+            #     fig, axs = plt.subplots(figsize=(10,6))
+            #     for label in unique_source_labels:
+            #         source_adc = adc_view[(source_label_view == label)]
+            #         axs.hist(
+            #             source_adc, 
+            #             bins=100, 
+            #             range=[np.min(source_adc),np.max(source_adc)], 
+            #             histtype='step',
+            #             stacked=True,
+            #             density=True,
+            #             label=f"{source_label_map[label]}",
+            #             log=True
+            #         )
+            #     axs.set_xlabel("Summed ADC [counts]")
+            #     axs.set_ylabel("Point Clouds")
+            #     axs.set_title(f"Summed ADC Distribution for View {v}")
+            #     axs.ticklabel_format(axis='x', style='sci')
+            #     plt.legend()
+            #     plt.tight_layout()
+            #     plt.savefig(self.wire_plane_dir + f"source_adc_view{v}.png")
