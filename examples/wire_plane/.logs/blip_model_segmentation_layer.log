@@ -1,0 +1,3 @@
+[08:30:29] [INFO] [blip_model_segmentation_layer]: configuring model.
+[08:30:29] [INFO] [blip_model_segmentation_layer]: Attempting to build blip_model_segmentation_layer architecture using config: {'num_inputs': 15, 'mlp_layers': [32, 64, 128], 'classifications': 3}
+[08:30:29] [INFO] [blip_model_segmentation_layer]: Constructed Segmentation layer with dictionaries:

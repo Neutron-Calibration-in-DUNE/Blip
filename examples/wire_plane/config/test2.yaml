@@ -18,18 +18,24 @@ loader:
 model:
   model_type:   "PointNet++"
   set_abstraction_layers:
-    sampling_methods:       ["farthest_point"]
-    sampling_num_samples:   [256]
-    grouping_methods:       ["query_ball_point"]
-    grouping_type:          ["multi-scale"]
-    grouping_radii:         [[2, 4, 8]]
-    grouping_samples:       [[16, 32, 128]]
-    pointnet_embedding_type:        ["dynamic_edge_conv", "dynamic_edge_conv", "dynamic_edge_conv"]
-    pointnet_embedding_mlp_layers:  [[2,2],[2,2],[2,2]]
-    pointnet_number_of_neighbors:   [20, 20, 20]
-    pointnet_aggregation:           ["max", "max", "max"]
-    pointnet_input_dimension:       [3]
-  segmentation_layers:
+    sampling_methods:       ["farthest_point", "farthest_point"]
+    sampling_num_samples:   [32, 16]
+    grouping_methods:       ["query_ball_point", "query_ball_point"]
+    grouping_type:          ["multi-scale", "multi-scale"]
+    grouping_radii:         [[2, 4, 8], [2, 4, 8]]
+    grouping_samples:       [[16, 32, 128], [16, 32, 128]]
+    pointnet_embedding_type:        ["dynamic_edge_conv", "dynamic_edge_conv"]
+    pointnet_embedding_mlp_layers:  [[2,2],[2,2]]
+    pointnet_number_of_neighbors:   [20, 20]
+    pointnet_aggregation:           ["max", "max"]
+    pointnet_input_dimension:       [3, 9]
+  feature_propagation_layers:
+
+  segmentation_layer:
+    # number of inputs is original coordinates + embeddings
+    num_inputs:   15
+    mlp_layers:   [32, 64, 128]
+    classifications:  3
   classification_layers:
 
 optimizer:

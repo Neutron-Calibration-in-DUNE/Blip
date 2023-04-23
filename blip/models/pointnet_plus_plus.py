@@ -15,6 +15,7 @@ import torch_cluster
 from blip.models.common import activations, normalizations
 from blip.models import GenericModel, SetAbstraction, SetAbstractionMultiScaleGrouping
 from blip.models import FeaturePropagation
+from blip.models import Segmentation
 from blip.utils.sampling import *
 from blip.utils.grouping import *
 from blip.models import PointNet
@@ -35,7 +36,9 @@ pointnet_plusplus_config = {
         "pointnet_aggregation":         [["max", "max"], ["max", "max"], ["max", "max"]],
         "pointnet_input_dimension":     [3, 5, 7]
     },
-    "segmentation_layers":      {},
+    "segmentation_layers": {
+        "num_inputs":   15
+    },
     "classification_layers":    {},
 }
 
@@ -66,7 +69,9 @@ class PointNetPlusPlus(GenericModel):
 
         _set_abstraction_dict = OrderedDict()
         _feature_propagation_dict = OrderedDict()
-        #_classification_dict = OrderedDict()
+        _segmentation_dict = OrderedDict()
+        _classification_dict = OrderedDict()
+        
         for ii, layer in enumerate(self.config['set_abstraction_layers']["sampling_methods"]):
             _set_abstraction_dict[f'set_abstraction_layers_{ii}'] = SetAbstraction(
                 self.name + f"_set_abstraction_layer_{ii}",
@@ -90,6 +95,10 @@ class PointNetPlusPlus(GenericModel):
                 {
                 }
             )
+        _segmentation_dict['segmentation_layer'] = Segmentation(
+            self.name + f"_segmentation_layer",
+            self.config['segmentation_layer']
+        )
         # for ii in range(len(self.config['classification']['mlp'])-1):
         #     _classification_dict[f'mlp_{ii}'] = nn.Linear(
         #         self.config['classification']['mlp'][ii],
@@ -105,6 +114,7 @@ class PointNetPlusPlus(GenericModel):
         # create the dictionaries
         self.set_abstraction_dict = nn.ModuleDict(_set_abstraction_dict)
         self.feature_propagation_dict = nn.ModuleDict(_feature_propagation_dict)
+        self.segmentation_dict = nn.ModuleDict(_segmentation_dict)
         # self.classification_dict = nn.ModuleDict(_classification_dict)
 
         # record the info
@@ -137,9 +147,14 @@ class PointNetPlusPlus(GenericModel):
             embedding_list[-(ii+2)] = self.feature_propagation_dict[layer](
                 samples_list[-(ii+1)], embedding_list[-(ii+1)],
                 samples_list[-(ii+2)], embedding_list[-(ii+2)]
-            ) 
+            )
         
-        return embedding_list[0]
+        segmentation = self.segmentation_dict["segmentation_layer"](
+            positions, embedding_list[0]
+        )
+        classification = None
+
+        return segmentation, classification
 
 
         

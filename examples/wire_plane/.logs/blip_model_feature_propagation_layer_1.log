@@ -1,0 +1,4 @@
+[08:30:29] [INFO] [blip_model_feature_propagation_layer_1]: configuring model.
+[08:30:29] [INFO] [blip_model_feature_propagation_layer_1]: Attempting to build blip_model_feature_propagation_layer_1 architecture using cfg: {}
+[08:30:29] [INFO] [blip_model_feature_propagation_layer_1]: Constructed FeaturePropagation with dictionary:
+ModuleDict()

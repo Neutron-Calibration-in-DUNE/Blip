@@ -6,6 +6,7 @@ import os
 import csv
 import getpass
 from torch import nn
+import torch.nn.functional as F
 from time import time
 from datetime import datetime
 
@@ -67,15 +68,18 @@ class Module:
         self.parse_dataset()
         self.parse_loader()
         self.parse_model()
-        #self.parse_optimizer()
+        self.parse_optimizer()
 
         training_loop = enumerate(self.loader.train_loader, 0)
+        criterion = F.nll_loss
 
         for ii, data in training_loop:
             for param in self.model.model.parameters():
                 param.grad = None
             output = self.model.model(data)
-            #print(output)
+            loss = criterion(output[0], data.category)
+            print(output)
+            print(loss)
 
 
 

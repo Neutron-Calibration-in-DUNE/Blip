@@ -70,11 +70,7 @@ class FeaturePropagation(GenericModel):
         embedding,
         prev_positions,
         prev_embedding
-    ):
-        print(positions.shape)
-        print(embedding.shape)
-        print(prev_positions.shape)
-        
+    ):     
         """
         Iterate over the model dictionary
         """
@@ -82,18 +78,16 @@ class FeaturePropagation(GenericModel):
             interpolated_points = embedding.repeat(len(positions), 1)
         else:
             pairwise_distances = torch.cdist(prev_positions, positions, p=2)
+            pairwise_distances, indices = pairwise_distances.sort(dim=-1)
+
             pairwise_distances = 1.0 / (pairwise_distances + 1e-8)
-            print(pairwise_distances.shape)
             weights = torch.sum(pairwise_distances, dim=1, keepdim=True)
             weights = pairwise_distances / weights
-            print(weights.shape)
-            print(embedding.shape)
-            interpolated_points = torch.sum(embedding * weights.view(len(prev_positions), 1), dim=1)
+            
+            interpolated_points = torch.matmul(weights, embedding)
 
         if prev_embedding is not None:
-            new_points = torch.cat([prev_embedding, interpolated_points])
-        else:
-            new_points = interpolated_points
+            interpolated_points = torch.cat([prev_embedding, interpolated_points], dim=1)
         
-        return new_points
+        return interpolated_points
         

@@ -4,6 +4,7 @@ from .sampling_grouping import SamplingAndGrouping
 from .set_abstraction import SetAbstraction
 from .set_abstraction_msg import SetAbstractionMultiScaleGrouping
 from .feature_propagation import FeaturePropagation
+from .segmentation import Segmentation
 from .pointnet_plus_plus import PointNetPlusPlus
 from .pointnet_unsupervised import PointNetUnsupervised
 from .pointnet_classification import PointNetClassification
