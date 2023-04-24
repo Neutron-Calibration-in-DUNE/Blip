@@ -34,7 +34,7 @@ particle_label_map = {
     7:  "K+",
     8:  "K-",
     9:  "proton",
-    10:  "delta",
+    10: "delta",
     11: "michel",
     12: "e-shower",
     13: "e+shower",

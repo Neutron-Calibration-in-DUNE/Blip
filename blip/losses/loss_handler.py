@@ -5,6 +5,8 @@ from blip.utils.logger import Logger
 from blip.losses import GenericLoss
 from blip.losses import L1Loss, L2Loss, NTXEntropyLoss
 from blip.losses import SparseCrossEntropyLoss
+from blip.losses import NegativeLogLikelihoodLoss
+from blip.losses import MultiClassNegativeLogLikelihoodLoss
 from blip.utils.utils import get_method_arguments
 
 class LossHandler:
@@ -18,7 +20,7 @@ class LossHandler:
     ):
         self.name = name
         self.use_sample_weights = use_sample_weights
-        self.logger = Logger(self.name, file_mode="w")
+        self.logger = Logger(self.name, output="both", file_mode="w")
         if bool(cfg) and len(losses) != 0:
             self.logger.error(f"handler received both a config and a list of losses! The user should only provide one or the other!")
         else:
@@ -35,10 +37,12 @@ class LossHandler:
         # list of available criterions
         # TODO: Make this automatic
         self.available_criterions = {
-            'L1Loss':           L1Loss,
-            'L2Loss':           L2Loss,
-            'NTXEntropyLoss':   NTXEntropyLoss,
-            'SparseCrossEntropyLoss':SparseCrossEntropyLoss
+            'l1_loss':                  L1Loss,
+            'l2_loss':                  L2Loss,
+            'ntx_entropy_loss':         NTXEntropyLoss,
+            'sparse_cross_entropy_loss':SparseCrossEntropyLoss,
+            'nll_loss':                 NegativeLogLikelihoodLoss,
+            'multiclass_nll_loss':      MultiClassNegativeLogLikelihoodLoss,
         }
         # check config
         for item in self.cfg.keys():

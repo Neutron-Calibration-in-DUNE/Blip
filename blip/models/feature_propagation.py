@@ -47,15 +47,6 @@ class FeaturePropagation(GenericModel):
         """
         self.logger.info(f"Attempting to build {self.name} architecture using cfg: {self.cfg}")
         _convolution_dict = OrderedDict()
-        
-        # for ii in range(len(self.cfg['mlp'])):
-        #     _convolution_dict[f'conv_{ii}'] = nn.Conv2d(
-        #         last_channel, self.cfg['mlp'][ii], 1
-        #     )
-        #     _convolution_dict[f'batch_norm_{ii}'] = nn.BatchNorm2d(
-        #         self.cfg['mlp'][ii]
-        #     )
-        #     last_channel = self.cfg['mlp'][ii]
 
         self.convolution_dict = nn.ModuleDict(_convolution_dict)
 

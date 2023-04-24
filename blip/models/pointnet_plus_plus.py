@@ -13,7 +13,7 @@ import torch_cluster
 
 
 from blip.models.common import activations, normalizations
-from blip.models import GenericModel, SetAbstraction, SetAbstractionMultiScaleGrouping
+from blip.models import GenericModel, SetAbstraction
 from blip.models import FeaturePropagation
 from blip.models import Segmentation
 from blip.utils.sampling import *
@@ -39,7 +39,7 @@ pointnet_plusplus_config = {
     "segmentation_layers": {
         "num_inputs":   15
     },
-    "classification_layers":    {},
+    "classification_layers": {},
 }
 
 class PointNetPlusPlus(GenericModel):
@@ -152,9 +152,6 @@ class PointNetPlusPlus(GenericModel):
         segmentation = self.segmentation_dict["segmentation_layer"](
             positions, embedding_list[0]
         )
-        classification = None
+        #classification = {}
 
-        return segmentation, classification
-
-
-        
+        return  segmentation

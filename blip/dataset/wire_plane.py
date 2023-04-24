@@ -126,15 +126,15 @@ class WirePlanePointCloud:
                     "classes": {
                         "source": 0, "shape": 1, "particle": 2
                     },
-                    "source_label_classes": {
+                    "source_labels": {
                         key: value
                         for key, value in source_label_map.items()
                     },
-                    "shape_label_classes": {
+                    "shape_labels": {
                         key: value
                         for key, value in shape_label_map.items()
                     },
-                    "particle_label_classes": {
+                    "particle_labels": {
                         key: value
                         for key, value in particle_label_map.items()
                     },          
@@ -142,7 +142,7 @@ class WirePlanePointCloud:
 
                     
                 np.savez(
-                    f"data/{self.name}/point_cloud_view{v}_tpc{v}.npz",
+                    f"data/{self.name}/point_cloud_view{v}_{tpc}.npz",
                     point_cloud=point_cloud,
                     energy=energy,
                     adc=adc_view,

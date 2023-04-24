@@ -68,20 +68,21 @@ class Module:
         self.parse_dataset()
         self.parse_loader()
         self.parse_model()
+        self.parse_loss()
         self.parse_optimizer()
+        self.parse_metrics()
+        self.parse_callbacks()
+        self.parse_training()
 
-        training_loop = enumerate(self.loader.train_loader, 0)
-        criterion = F.nll_loss
-
-        for ii, data in training_loop:
-            for param in self.model.model.parameters():
-                param.grad = None
-            output = self.model.model(data)
-            loss = criterion(output[0], data.category)
-            print(output)
-            print(loss)
-
-
+        self.trainer.train(
+            self.loader,
+            epochs=self.config['training']['epochs'],
+            checkpoint=self.config['training']['checkpoint'],
+            progress_bar=self.config['training']['progress_bar'],
+            rewrite_bar=self.config['training']['rewrite_bar'],
+            save_predictions=self.config['training']['save_predictions'],
+            no_timing=self.config['training']['no_timing']
+        )
 
     def parse_dataset(self):
         """
@@ -106,7 +107,8 @@ class Module:
             self.dataset = BlipDataset(
                 name = f"{self.name}_wire_plane_dataset",
                 input_files=dataset_config["dataset_files"],
-                root="."
+                root=".",
+                classes=dataset_config["classes"]
             )
     
     def parse_loader(self):
@@ -141,6 +143,19 @@ class Module:
         )
         self.model.model.set_device('cuda')
 
+    def parse_loss(self):
+        """
+        """
+        if "criterion" not in self.config.keys():
+            self.logger.warn("no criterion in config file.")
+            return
+        self.logger.info("configuring criterion.")
+        criterion_config = self.config['criterion']
+        self.criterion = LossHandler(
+            "blip_criterion",
+            criterion_config
+        )
+
     def parse_optimizer(self):
         """
         """
@@ -158,4 +173,46 @@ class Module:
             momentum=float(optimizer_config["momentum"]),
             weight_decay=float(optimizer_config["weight_decay"])
         )
-        
+    
+    def parse_metrics(self):
+        """
+        """
+        if "metrics" not in self.config.keys():
+            self.logger.warn("no metrics in config file.")
+            return
+        self.logger.info("configuring metrics.")
+        metrics_config = self.config['metrics']
+    
+    def parse_callbacks(self):
+        """
+        """
+        if "callbacks" not in self.config.keys():
+            self.logger.warn("no callbacks in config file.")
+            return
+        self.logger.info("configuring callbacks.")
+        callbacks_config = self.config['callbacks']
+        if "loss" in callbacks_config.keys():
+            callbacks_config["loss"] = {"criterion_list": self.criterion}
+        self.callbacks = CallbackHandler(
+            "blip_callbacks",
+            callbacks_config
+        )
+    
+    def parse_training(self):
+        """
+        """
+        if "training" not in self.config.keys():
+            self.logger.warn("no training in config file.")
+            return
+        self.logger.info("configuring training.")
+        training_config = self.config['training']
+        self.trainer = Trainer(
+            self.model.model,
+            self.criterion,
+            self.optimizer,
+            self.metrics,
+            self.callbacks,
+            gpu=training_config['gpu'],
+            gpu_device=training_config['gpu_device'],
+            seed=training_config['seed']
+        )

@@ -175,7 +175,7 @@ class Loader:
         )
         self.all_loader = DataLoader(
             self.dataset, 
-            batch_size=self.batch_size, 
+            batch_size=1, 
             pin_memory=True,
             num_workers=self.num_workers
         )

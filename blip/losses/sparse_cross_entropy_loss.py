@@ -11,7 +11,7 @@ class SparseCrossEntropyLoss(GenericLoss):
     """
     def __init__(self,
         alpha: float=1.0,
-        name:   str='l2_loss',
+        name:   str='sparse_cross_entropy_loss',
         reduction:  str='mean'
     ):
         super(SparseCrossEntropyLoss, self).__init__(name)

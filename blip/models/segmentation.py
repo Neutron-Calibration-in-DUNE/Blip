@@ -45,13 +45,22 @@ class Segmentation(GenericModel):
         """
         """
         _segmentation_dict = OrderedDict()
+        _classification_dict = OrderedDict()
+
         input_dimension = self.config['num_inputs']
+
         _segmentation_dict[f"mlp_layer"] = MLP(
-            [input_dimension] + self.config["mlp_layers"] + [self.config["classifications"]]
+            [input_dimension] + self.config["mlp_layers"]
         )
+        for ii, classifications in enumerate(self.config["classifications"]):
+            _classification_dict[f"{classifications}"] = MLP(
+                [self.config["mlp_layers"][-1]] + [self.config["number_of_classes"][ii]],
+                act="log_softmax", act_kwargs={"dim": 0}, plain_last=False
+            )
 
         self.segmentation_dict = nn.ModuleDict(_segmentation_dict)
-        
+        self.classification_dict = nn.ModuleDict(_classification_dict)
+
         # create the dictionaries
         # record the info
         self.logger.info(
@@ -68,5 +77,9 @@ class Segmentation(GenericModel):
         Iterate over the model dictionary
         """
         inputs = torch.cat([positions, embedding], dim=1)
-        return self.segmentation_dict["mlp_layer"](inputs)
+        segmentation = self.segmentation_dict["mlp_layer"](inputs)
+        return {
+            classifications: self.classification_dict[classifications](segmentation)
+            for classifications in self.classification_dict.keys()
+        }
         

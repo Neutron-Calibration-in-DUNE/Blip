@@ -2,10 +2,12 @@
 Class for a generic model trainer.
 """
 import torch
+import numpy as np
 import os
 from tqdm import tqdm
 from blip.dataset.blip import BlipDataset
 from blip.utils.logger import Logger
+from blip.models import ModelChecker
 from blip.metrics import GenericMetric
 from blip.metrics import MetricHandler
 from blip.utils.timing import Timers
@@ -13,15 +15,6 @@ from blip.utils.memory import MemoryTrackers
 from blip.utils.callbacks import CallbackHandler
 from blip.utils.callbacks import TimingCallback, MemoryTrackerCallback
 import blip.utils.utils as utils
-
-"""
-Allowed types one can use for a metric
-"""
-allowed_metric_types = [
-    'train',
-    'test',
-    'both'
-]
 
 class Trainer:
     """
@@ -41,7 +34,6 @@ class Trainer:
         optimizer,
         metrics:        GenericMetric=None,
         callbacks:      CallbackHandler=None,
-        metric_type:    str='test',
         gpu:            bool=True,
         gpu_device:     int=0,
         seed:           int=0,
@@ -50,12 +42,6 @@ class Trainer:
         self.logger = Logger(self.name, output='both', file_mode='w')
         self.logger.info(f"constructing model trainer.")
         # Check for compatability with parameters
-
-        # setup metrics
-        if metric_type not in allowed_metric_types:
-            self.logger.warning(f"metric type {metric_type} not in {allowed_metric_types}. Setting metric_type to 'test'.")
-            metric_type = 'test'
-        self.metric_type = metric_type
 
         # define directories
         self.predictions_dir = f'predictions/{model.name}/'
@@ -124,6 +110,7 @@ class Trainer:
             )
         else:
             self.callbacks = callbacks
+        self.model_checker = ModelChecker("model_checker")
 
         # send other objects to the device
         self.model.set_device(self.device)
@@ -150,129 +137,7 @@ class Trainer:
     def __run_consistency_check(self,
         dataset_loader
     ):
-        """
-        This function performs various checks on the dataset, dataset_loader,
-        model, criterion, metrics and callbacks to make sure that things are
-        configured correctly and that the shapes of various tensors are also
-        set correctly.
-        The information we need to grab:
-            dataset:    feature_shape, class_shape
-            model:      input_shape, output_shape
-            dataset_loader: num_***_batches, 
-        """
-        # check dataset from dataset_loader
-        try:
-            data = next(iter(dataset_loader.inference_loader))
-        except Exception as e:
-            self.logger.error(f"problem indexing elements of dataset {dataset_loader.dataset}: {e}")
-        num_data_elements = len(data)
-        input = data.pos
-        target = data.category
-        # if issubclass(type(dataset_loader.dataset), CHUNCDataset):
-        #     # check consistency in definition of __getitem__
-        #     feature_shape = dataset_loader.dataset.feature_shape
-        #     class_shape   = dataset_loader.dataset.class_shape
-        #     event_sample_weights_shape = dataset_loader.dataset.event_sample_weights_shape
-        #     event_class_weights_shape = dataset_loader.dataset.event_class_weights_shape
-        #     if feature_shape != input[0].shape:
-        #         self.logger.warning(f"parameter '{dataset_loader.dataset}:feature_shape={feature_shape}' not equal to what is generated from first element of '{dataset_loader.dataset}:__getitem__={input.shape}'! Perhaps an inconsistency in the definition of the __getitem__ function!")
-        #     if class_shape != target[0].shape:
-        #         self.logger.warning(f"parameter '{dataset_loader.dataset}:class_shape={class_shape}' not equal to what is generated from second element of '{dataset_loader.dataset}:__getitem__={target.shape}'! Perhaps an inconsistency in the definition of the __getitem__ function!")
-        #     # check that correct number of elements produced and shapes match weights
-        #     if dataset_loader.dataset.use_sample_weights and not dataset_loader.dataset.use_class_weights:
-        #         if num_data_elements != 3:
-        #             self.logger.error(f"dataset has ('{dataset_loader.dataset}:use_sample_weights=={dataset_loader.dataset.use_sample_weights}' and '{dataset_loader.dataset}:use_class_weights=={dataset_loader.dataset.use_class_weights}'), however 'len({dataset_loader.dataset}:__getitem__)=={num_data_elements}'! Perhaps an inconsistency in the definition of __getitem__!")
-        #         if event_sample_weights_shape != data[2].shape:
-        #             self.logger.warning(f"parameter '{dataset_loader.dataset}:event_sample_weights_shape={event_sample_weights_shape}' not equal to what is generated from third element of '{dataset_loader.dataset}:__getitem__={data[2].shape}'! Perhaps an inconsistency in the definition of the __getitem__ function!")
-        #     elif dataset_loader.dataset.use_class_weights and not dataset_loader.dataset.use_sample_weights:
-        #         if num_data_elements != 3:
-        #             self.logger.error(f"dataset has ('{dataset_loader.dataset}:use_sample_weights=={dataset_loader.dataset.use_sample_weights}' and '{dataset_loader.dataset}:use_class_weights=={dataset_loader.dataset.use_class_weights}'), however 'len({dataset_loader.dataset}:__getitem__)=={num_data_elements}'! Perhaps an inconsistency in the definition of __getitem__!")
-        #         if event_class_weights_shape != data[2].shape:
-        #             self.logger.warning(f"parameter '{dataset_loader.dataset}:event_class_weights_shape={event_class_weights_shape}' not equal to what is generated from third element of '{dataset_loader.dataset}:__getitem__={data[2].shape}'! Perhaps an inconsistency in the definition of the __getitem__ function!")
-        #     elif dataset_loader.dataset.use_sample_weights and dataset_loader.dataset.use_class_weights:
-        #         if num_data_elements != 4:
-        #             self.logger.error(f"dataset has ('{dataset_loader.dataset}:use_sample_weights=={dataset_loader.dataset.use_sample_weights}' and '{dataset_loader.dataset}:use_class_weights=={dataset_loader.dataset.use_class_weights}'), however 'len({dataset_loader.dataset}:__getitem__)=={num_data_elements}'! Perhaps an inconsistency in the definition of __getitem__!")
-        #         if event_sample_weights_shape != data[2].shape:
-        #             self.logger.warning(f"parameter '{dataset_loader.dataset}:event_sample_weights_shape={event_sample_weights_shape}' not equal to what is generated from third element of '{dataset_loader.dataset}:__getitem__={data[2].shape}'! Perhaps an inconsistency in the definition of the __getitem__ function!")
-        #         if event_sample_weights_shape != data[3].shape:
-        #             self.logger.warning(f"parameter '{dataset_loader.dataset}:event_class_weights_shape={event_class_weights_shape}' not equal to what is generated from fourth element of '{dataset_loader.dataset}:__getitem__={data[3].shape}'! Perhaps an inconsistency in the definition of the __getitem__ function!")
-        #     else:
-        #         if num_data_elements != 2:
-        #             self.logger.error(f"dataset has ('{dataset_loader.dataset}:use_sample_weights=={dataset_loader.dataset.use_sample_weights}' and '{dataset_loader.dataset}:use_class_weights=={dataset_loader.dataset.use_class_weights}'), however 'len({dataset_loader.dataset}:__getitem__)=={num_data_elements}'! Perhaps an inconsistency in the definition of __getitem__!")
-        # check model
-        self.model.eval()
-        try:
-            output = self.model(data)
-        except Exception as e:
-            self.logger.error(
-                f"model '{self.model}' forward function incompatible with data from dataset_loader!"
-                + f"  Perhaps you forgot 'x = x.to(self.device)'?: {e}"
-            )
-        # make a shape list
-        self.num_output_elements = len(output.keys())
-        if self.num_output_elements == 1:
-            self.input_shape = {'output':output.squeeze(0).shape}
-        else:
-            self.input_shape = {
-                key:tensor.squeeze(0).shape 
-                for key, tensor in output.items()
-            }
-        self.input_shape["position"] = input.shape
-        self.input_shape["category"] = target.shape
-        self.input_shape["augmented_category"] = target.shape
-
-        # confirm shapes and behavior with criterion
-        for name, loss in self.criterion.losses.items():
-            try:
-                loss_value = loss.loss(output, data)
-            except Exception as e:
-                self.logger.error(
-                    f"loss function '{loss}' evaluation failed with inputs:"
-                    +f"\noutput={output}\ndata={data}\n{e}"
-                )
-        
-        # confirm shapes and behavior with metrics
-        """
-        There are two classes of metrics, 
-            generic:    saves a single output tensor and a single target tensor
-            tuple:      saves a tuple of output tensors and all dataloader tensors
-        If each type is present in our metrics list, then we should check that 
-        tensor operations defined within the metrics are compatible with the 
-        dataloader and the model.
-        """
-        # create empty tensors
-        if self.metrics != None:
-            # first generic shapes are tested
-            if self.num_output_elements == 1:
-                try:
-                    test_output = torch.empty(
-                        size=(0,*self.input_shape), 
-                        dtype=torch.float, device=self.device
-                    )
-                except Exception as e:
-                    self.logger.error(f"problem creating tensor with output shape '{output.shape}'.")
-            else:
-                for key, value in self.input_shape.items():
-                    try:
-                        test_output = torch.empty(
-                            size=(0,*value), 
-                            dtype=torch.float, device=self.device
-                        )
-                    except Exception as e:
-                        self.logger.error(f"problem creating tensor with output shape '{value}'.")
-            try:
-                test_target = torch.empty(
-                    size=(0,*target[0].shape), 
-                    dtype=torch.float, device=self.device
-                )
-            except Exception as e:
-                self.logger.error(f"problem creating tensor with target shape '{target.shape}'.")
-            if isinstance(self.metrics, MetricHandler):
-                self.metrics.set_shapes(self.input_shape)
-            self.metrics.reset()
-        # confirm shapes and behavior with callbacks
-        self.criterion.reset_batch()
-        self.logger.info("passed consistency check.")
+        pass
 
     def train(self,
         dataset_loader,             # dataset_loader to pass in
@@ -292,8 +157,12 @@ class Trainer:
             self.logger.error(f"device: '{self.device}' and model device: '{self.criterion.device}' are different!")
         # TODO: run consistency check
         self.logger.info(f"running consistency check...")
-        self.__run_consistency_check(dataset_loader)
-        self.num_classes = dataset_loader.dataset.number_classes
+        self.shapes = self.model_checker.run_consistency_check(
+            dataset_loader=dataset_loader,
+            model=self.model,
+            criterion=self.criterion,
+            metrics=self.metrics
+        )
 
         self.model.save_model(flag='init')
         # setting values in callbacks
@@ -782,14 +651,14 @@ class Trainer:
             inference_loader = dataset_loader.all_loader
             num_batches = dataset_loader.num_all_batches
             inference_indices = dataset_loader.all_indices
-        
+
         """
         Set up progress bar.
         """
         if (progress_bar == True):
             inference_loop = tqdm(
                 enumerate(inference_loader, 0), 
-                total=len(inference_loader), 
+                total=len(list(inference_indices)), 
                 leave=rewrite_bar,
                 colour='magenta'
             )
@@ -797,34 +666,23 @@ class Trainer:
             inference_loop = enumerate(inference_loader, 0)
         
         # set up array for predictions
-        if self.num_output_elements == 1:
-            predictions = torch.empty(size=(self.input_shape), dtype=torch.float).to(self.device)
-        else:
-            predictions = {}
-            for key in self.input_shape.keys():
-                if (key == "position" or key == "embeddings" or key == "pools" or "category" in key):
-                    continue
-                predictions[key] = torch.empty(size=(0, *self.input_shape[key]), dtype=torch.float).to(self.device)
-        
+        predictions = {
+            classes: []
+            for classes in self.shapes["output"].keys()
+        }
+
         self.logger.info(f"running inference on dataset '{dataset_loader.dataset.name}'.")
         # make sure to set model to eval() during validation!
         self.model.eval()
         with torch.no_grad():
-            self.metrics.reset()
+            if self.metrics != None:
+                self.metrics.reset()
             for ii, data in inference_loop:
                 # get the network output
                 outputs = self.model(data)
-
-                # add predictions
-                if self.num_output_elements == 1:
-                    predictions = torch.cat((predictions, outputs["outputs"]),dim=0)
-                else:
-                    for jj, key in enumerate(outputs.keys()):
-                        if key in predictions.keys():
-                            predictions[key] = torch.cat(
-                                (predictions[key], outputs[key]),
-                                dim=0
-                            )
+                for jj, key in enumerate(outputs.keys()):
+                    if key in predictions.keys():
+                        predictions[key].append([outputs[key].cpu().numpy()])
                 # compute loss
                 loss = self.criterion.loss(outputs, data)
 
@@ -837,21 +695,14 @@ class Trainer:
                     inference_loop.set_description(f"Inference: Batch [{ii+1}/{num_batches}]")
                     inference_loop.set_postfix_str(f"loss={loss.item():.2e}")
         for key in predictions.keys():
-            predictions[key] = predictions[key].cpu().numpy()
+            predictions[key] = np.vstack(np.array(predictions[key], dtype=object))
         # save predictions if wanted
         if save_predictions:
-            predictions_name = self.model.name + "_predictions"
-            predictions_dict = {
-                predictions_name: predictions,
-                predictions_name+'_indices': inference_indices
-            }
-            utils.append_npz(
-                dataset_loader.dataset.input_file,
-                predictions_dict,
-                override=True,
+            dataset_loader.dataset.append_input_files(
+                self.model.name + "_predictions",
+                predictions,
+                inference_indices
             )
-            self.logger.info(f"saved predictions array '{predictions_name}' to dataset file '{dataset_loader.dataset.input_file}'.")
-        # evaluate callbacks
         self.callbacks.evaluate_inference()
         self.logger.info(f"returning predictions.")
         return predictions

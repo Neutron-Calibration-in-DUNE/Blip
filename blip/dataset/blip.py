@@ -35,7 +35,7 @@ class BlipDataset(InMemoryDataset):
     ):
         self.name = name
         self.input_files = input_files
-        self.logger = Logger(self.name, file_mode='w')
+        self.logger = Logger(self.name, output="both", file_mode='w')
         self.logger.info(f"constructing dataset.")
         self.features = features
         self.classes = classes
@@ -56,6 +56,19 @@ class BlipDataset(InMemoryDataset):
         for input_file in self.input_files:
             data = np.load(input_file, allow_pickle=True)
             self.meta.append(data['meta'].item())
+        
+        self.class_labels = {
+            label: self.meta[0][f"{label}_labels"]
+            for label in self.classes
+        }
+        self.class_indices = {
+            label: self.meta[0]["classes"][label]
+            for label in self.classes
+        }
+        self.number_classes = {
+            label: len(self.class_labels[label])
+            for label in self.classes
+        }
 
         self.logger.info(f"setting 'features': {self.features}.")
         self.logger.info(f"setting 'classes': {self.classes}.")
@@ -86,6 +99,10 @@ class BlipDataset(InMemoryDataset):
     def process(self):
         # Read data into huge `Data` list.
         index = 0
+        self.input_events = {
+            raw_path: []
+            for raw_path in self.input_files
+        }
         for jj, raw_path in enumerate(self.input_files):
             data = np.load(raw_path, allow_pickle=True)
             pos = data['point_cloud']
@@ -109,5 +126,30 @@ class BlipDataset(InMemoryDataset):
                     event = self.pre_transform(event)
 
                 torch.save(event, osp.join(self.processed_dir, f'data_{index}.pt'))
+                self.input_events[raw_path].append(index)
                 index += 1
         self.number_of_events = index
+    
+    def append_input_files(self,
+        dict_name,
+        input_dict,
+        indices
+    ):
+        for jj, raw_path in enumerate(self.input_files):
+            loaded_file = np.load(raw_path, allow_pickle=True)
+            loaded_arrays = {
+                key: loaded_file[key] 
+                for key in loaded_file.files
+            }
+            events = [ii for ii in list(indices) if ii in self.input_events[raw_path]]
+            output = {
+                classes: input_dict[classes][events]
+                for classes in input_dict.keys()
+            }
+            # otherwise add the array and save
+            loaded_arrays.update(output)
+            np.savez(
+                raw_path,
+                **loaded_arrays
+            )
+            
