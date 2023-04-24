@@ -2,11 +2,23 @@
 dataset:
   # If this is the first time processing the simulation output
   process_simulation: True
-  simulation_files:   ["data/arrakis_output_1.root"]
+  simulation_files:   [
+    "data/protodune_mc_0.root",
+    "data/protodune_mc_1.root",
+    "data/protodune_mc_2.root",
+    "data/protodune_mc_3.root",
+    "data/protodune_mc_4.root"
+  ]
 
   # Otherwise, we want to just load the resulting data
   dataset_type:   "wire_plane"
-  dataset_files:  ["data/blip_simulation_0/point_cloud_view0_tpc0.npz"]
+  dataset_files:  [
+    "data/blip_simulation_0/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_1/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_2/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_3/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_4/point_cloud_view0_tpc0.npz"
+  ]
   classes:        ["source", "shape", "particle"]
 
 loader:
@@ -57,10 +69,14 @@ criterion:
     alpha:  1.0
     
 metrics:
+  confusion_matrix:
+    inputs: ["source", "shape", "particle"]
+    number_of_classes: [8, 7, 32]
 
 callbacks:
   loss:
-
+  confusion_matrix:
+    sig_acceptance: [0.1, 0.5, 0.9]
 
 optimizer:
   optimizer_type: "Adam"

@@ -1,2 +1,2 @@
-[10:44:45] [INFO] [blip_simulation_0]: constructing wire_plane dataset.
-[10:44:46] [INFO] [blip_simulation_0]: generating training data from file: data/arrakis_output_1.root
+[12:08:57] [INFO] [blip_simulation_0]: constructing wire_plane dataset.
+[12:08:58] [INFO] [blip_simulation_0]: generating training data from file: data/protodune_mc_0.root

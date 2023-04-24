@@ -182,6 +182,10 @@ class Module:
             return
         self.logger.info("configuring metrics.")
         metrics_config = self.config['metrics']
+        self.metrics = MetricHandler(
+            "blip_metrics",
+            metrics_config
+        )
     
     def parse_callbacks(self):
         """

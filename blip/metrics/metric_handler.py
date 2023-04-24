@@ -71,7 +71,7 @@ class MetricHandler:
         device
     ):  
         for name, metric in self.metrics.items():
-            metric.metric.to(device)
+            metric.set_device(device)
             metric.reset()
         self.device = device
     

@@ -80,26 +80,27 @@ class ConfusionMatrixCallback(GenericCallback):
         self.metric.reset_probabilities()
 
     def evaluate_training(self):
-        # plot the training confusion matrix
-        training_display = ConfusionMatrixDisplay(
-            self.training_confusion.cpu().numpy(),
-            display_labels = self.metrics_list.labels
-        ) 
-        training_display.plot()       
-        plt.suptitle("Training Confusion Matrix")
-        plt.tight_layout()
-        plt.savefig(f"plots/confusion_matrix/training_confusion_matrix.png")
-        plt.close()
+        for ii, input in enumerate(self.metric.inputs):
+            # plot the training confusion matrix
+            training_display = ConfusionMatrixDisplay(
+                self.training_confusion[input].cpu().numpy(),
+                display_labels = self.metrics_list.labels
+            ) 
+            training_display.plot()       
+            plt.suptitle("Training Confusion Matrix")
+            plt.tight_layout()
+            plt.savefig(f"plots/confusion_matrix/training_confusion_matrix.png")
+            plt.close()
 
-        validation_display = ConfusionMatrixDisplay(
-            self.validation_confusion.cpu().numpy(),
-            display_labels = self.metrics_list.labels
-        ) 
-        validation_display.plot()       
-        plt.suptitle("Validation Confusion Matrix")
-        plt.tight_layout()
-        plt.savefig(f"plots/confusion_matrix/validation_confusion_matrix.png")
-        plt.close()
+            validation_display = ConfusionMatrixDisplay(
+                self.validation_confusion[input].cpu().numpy(),
+                display_labels = self.metrics_list.labels
+            ) 
+            validation_display.plot()       
+            plt.suptitle("Validation Confusion Matrix")
+            plt.tight_layout()
+            plt.savefig(f"plots/confusion_matrix/validation_confusion_matrix.png")
+            plt.close()
 
         # plot statistics on categorical probabilities
         for outer_label, ii in self.metrics_list.labels.items():

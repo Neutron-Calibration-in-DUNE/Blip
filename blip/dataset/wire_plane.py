@@ -84,9 +84,9 @@ class WirePlanePointCloud:
                         tdc_view.append(tdc[event][view_mask])
                         adc_view.append(adc[event][view_mask])
                         energy_view.append(energy[event][view_mask])
-                        source_label_view.append(source_label[event][view_mask])
-                        shape_label_view.append(shape_label[event][view_mask])
-                        particle_label_view.append(particle_label[event][view_mask])
+                        source_label_view.append(source_label[event][view_mask]+1)
+                        shape_label_view.append(shape_label[event][view_mask]+1)
+                        particle_label_view.append(particle_label[event][view_mask]+1)
 
                 channel_view = np.array(channel_view, dtype=object)
                 tdc_view = np.array(tdc_view, dtype=object)
