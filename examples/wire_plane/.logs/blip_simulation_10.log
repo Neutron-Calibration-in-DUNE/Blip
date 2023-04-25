@@ -1,0 +1,3 @@
+[07:40:32] [INFO] [blip_simulation_10]: constructing wire_plane dataset.
+[07:40:33] [INFO] [blip_simulation_10]: creating wire_plane plots directory 'plots/blip_simulation_10/'
+[07:40:33] [INFO] [blip_simulation_10]: generating training data from file: data/protodune_mc_10.root

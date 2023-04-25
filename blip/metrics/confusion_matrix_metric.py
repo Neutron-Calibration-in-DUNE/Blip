@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 from torchmetrics.classification import ConfusionMatrix
 from torchmetrics.classification import MulticlassConfusionMatrix
+
+from blip.dataset.common import *
 from blip.metrics import GenericMetric
 
 class ConfusionMatrixMetric(GenericMetric):
@@ -29,6 +31,7 @@ class ConfusionMatrixMetric(GenericMetric):
         self.metrics = {}
         self.batch_probabilities = {}
         self.batch_summed_adc = {}
+        self.labels = {}
 
         for ii, input in enumerate(self.inputs):
             if self.number_of_classes[ii] == 2:
@@ -37,6 +40,7 @@ class ConfusionMatrixMetric(GenericMetric):
                 self.metrics[input] = MulticlassConfusionMatrix(
                     num_classes=self.number_of_classes[ii]
                 )
+            self.labels[input] = classification_labels[input].values()
             self.batch_probabilities[input] = torch.empty(
                 size=(0, self.number_of_classes[ii] + 1),
                 dtype=torch.float, device=self.device
@@ -98,5 +102,7 @@ class ConfusionMatrixMetric(GenericMetric):
             self.metrics[input].update(outputs[input], data.category[:,ii])
 
     def compute(self):
+        outputs = {}
         for ii, input in enumerate(self.inputs):
-            self.metrics[input].compute()
+            outputs[input] = self.metrics[input].compute()
+        return outputs

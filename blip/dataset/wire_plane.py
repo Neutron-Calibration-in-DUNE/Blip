@@ -128,15 +128,15 @@ class WirePlanePointCloud:
                     },
                     "source_labels": {
                         key: value
-                        for key, value in source_label_map.items()
+                        for key, value in classification_labels["source"].items()
                     },
                     "shape_labels": {
                         key: value
-                        for key, value in shape_label_map.items()
+                        for key, value in classification_labels["shape"].items()
                     },
                     "particle_labels": {
                         key: value
-                        for key, value in particle_label_map.items()
+                        for key, value in classification_labels["particle"].items()
                     },          
                 }
 

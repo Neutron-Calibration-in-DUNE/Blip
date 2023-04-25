@@ -197,6 +197,8 @@ class Module:
         callbacks_config = self.config['callbacks']
         if "loss" in callbacks_config.keys():
             callbacks_config["loss"] = {"criterion_list": self.criterion}
+        if "confusion_matrix" in callbacks_config.keys():
+            callbacks_config["confusion_matrix"]["metrics_list"] = self.metrics
         self.callbacks = CallbackHandler(
             "blip_callbacks",
             callbacks_config

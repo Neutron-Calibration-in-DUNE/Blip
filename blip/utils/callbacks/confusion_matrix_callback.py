@@ -84,23 +84,33 @@ class ConfusionMatrixCallback(GenericCallback):
             # plot the training confusion matrix
             training_display = ConfusionMatrixDisplay(
                 self.training_confusion[input].cpu().numpy(),
-                display_labels = self.metrics_list.labels
+                display_labels = self.metric.labels[input]
             ) 
-            training_display.plot()       
-            plt.suptitle("Training Confusion Matrix")
+            training_display.plot(
+                xticks_rotation="vertical"
+            )      
+            training_display.figure_.set_figwidth(len(self.metric.labels[input]))
+            training_display.figure_.set_figheight(len(self.metric.labels[input]))
+            plt.suptitle(f"Training Confusion Matrix\nClass {input}")
             plt.tight_layout()
-            plt.savefig(f"plots/confusion_matrix/training_confusion_matrix.png")
+            plt.savefig(f"plots/confusion_matrix/training_confusion_matrix_{input}.png")
             plt.close()
 
             validation_display = ConfusionMatrixDisplay(
                 self.validation_confusion[input].cpu().numpy(),
-                display_labels = self.metrics_list.labels
+                display_labels = self.metric.labels[input]
             ) 
-            validation_display.plot()       
-            plt.suptitle("Validation Confusion Matrix")
+            validation_display.plot(
+                xticks_rotation="vertical"
+            )
+            validation_display.figure_.set_figwidth(len(self.metric.labels[input]))
+            validation_display.figure_.set_figheight(len(self.metric.labels[input]))       
+            plt.suptitle(f"Validation Confusion Matrix\nClass {input}")
             plt.tight_layout()
-            plt.savefig(f"plots/confusion_matrix/validation_confusion_matrix.png")
+            plt.savefig(f"plots/confusion_matrix/validation_confusion_matrix_{input}.png")
             plt.close()
+
+        return
 
         # plot statistics on categorical probabilities
         for outer_label, ii in self.metrics_list.labels.items():
@@ -320,17 +330,24 @@ class ConfusionMatrixCallback(GenericCallback):
 
             
     def evaluate_testing(self):  
-        # plot the training confusion matrix
-        test_display = ConfusionMatrixDisplay(
-            self.test_confusion.cpu().numpy(),
-            display_labels = self.metrics_list.labels
-        ) 
-        test_display.plot()       
-        plt.suptitle("Test Confusion Matrix")
-        plt.tight_layout()
-        plt.savefig(f"plots/confusion_matrix/test_confusion_matrix.png")
-        plt.close()
+        for ii, input in enumerate(self.metric.inputs):
+            # plot the training confusion matrix
+            test_display = ConfusionMatrixDisplay(
+                self.test_confusion[input].cpu().numpy(),
+                display_labels = self.metric.labels[input]
+            ) 
+            test_display.plot(
+                xticks_rotation="vertical"
+            )      
+            test_display.figure_.set_figwidth(len(self.metric.labels[input]))
+            test_display.figure_.set_figheight(len(self.metric.labels[input]))
+            plt.suptitle(f"Test Confusion Matrix\nClass {input}")
+            plt.tight_layout()
+            plt.savefig(f"plots/confusion_matrix/test_confusion_matrix_{input}.png")
+            plt.close()
 
+        return
+    
         # plot statistics on categorical probabilities
         for outer_label, ii in self.metrics_list.labels.items():
             fig, axs = plt.subplots(figsize=(10,6))
@@ -440,6 +457,7 @@ class ConfusionMatrixCallback(GenericCallback):
             plt.close()
 
     def evaluate_inference(self):
+        return
         confusion = self.metric.compute()
         probabilities = self.metric.batch_probabilities
         summed_adc = self.metric.batch_summed_adc

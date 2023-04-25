@@ -7,7 +7,13 @@ dataset:
     "data/protodune_mc_1.root",
     "data/protodune_mc_2.root",
     "data/protodune_mc_3.root",
-    "data/protodune_mc_4.root"
+    "data/protodune_mc_4.root",
+    "data/protodune_mc_5.root",
+    "data/protodune_mc_6.root",
+    "data/protodune_mc_7.root",
+    "data/protodune_mc_8.root",
+    "data/protodune_mc_9.root",
+    "data/protodune_mc_10.root",
   ]
 
   # Otherwise, we want to just load the resulting data
@@ -17,7 +23,13 @@ dataset:
     "data/blip_simulation_1/point_cloud_view0_tpc0.npz",
     "data/blip_simulation_2/point_cloud_view0_tpc0.npz",
     "data/blip_simulation_3/point_cloud_view0_tpc0.npz",
-    "data/blip_simulation_4/point_cloud_view0_tpc0.npz"
+    "data/blip_simulation_4/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_5/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_6/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_7/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_8/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_9/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_10/point_cloud_view0_tpc0.npz",
   ]
   classes:        ["source", "shape", "particle"]
 
@@ -30,7 +42,7 @@ loader:
   num_workers:      4
 
 training:
-  epochs:       2
+  epochs:       25
   checkpoint:   10
   progress_bar: 'all'   # train, validation, test, all
   rewrite_bar:  False   # wether to leave bars after each epoch

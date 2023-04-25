@@ -1,15 +1,21 @@
-[12:08:57] [INFO] [blip]: configuring module.
-[12:08:57] [INFO] [blip]: parsing config file: config/test2.yaml.
-[12:08:57] [INFO] [blip]: configuring dataset.
-[12:08:57] [INFO] [blip]: processing simulation file: data/protodune_mc_0.root.
-[12:08:59] [INFO] [blip]: processing simulation file: data/protodune_mc_1.root.
-[12:09:01] [INFO] [blip]: processing simulation file: data/protodune_mc_2.root.
-[12:09:03] [INFO] [blip]: processing simulation file: data/protodune_mc_3.root.
-[12:09:05] [INFO] [blip]: processing simulation file: data/protodune_mc_4.root.
-[12:09:07] [INFO] [blip]: configuring loader.
-[12:09:07] [INFO] [blip]: configuring model.
-[12:09:08] [INFO] [blip]: configuring criterion.
-[12:09:08] [INFO] [blip]: configuring optimizer.
-[12:09:08] [INFO] [blip]: configuring metrics.
-[12:09:08] [INFO] [blip]: configuring callbacks.
-[12:09:08] [INFO] [blip]: configuring training.
+[07:40:13] [INFO] [blip]: configuring module.
+[07:40:13] [INFO] [blip]: parsing config file: config/test2.yaml.
+[07:40:13] [INFO] [blip]: configuring dataset.
+[07:40:13] [INFO] [blip]: processing simulation file: data/protodune_mc_0.root.
+[07:40:15] [INFO] [blip]: processing simulation file: data/protodune_mc_1.root.
+[07:40:17] [INFO] [blip]: processing simulation file: data/protodune_mc_2.root.
+[07:40:19] [INFO] [blip]: processing simulation file: data/protodune_mc_3.root.
+[07:40:21] [INFO] [blip]: processing simulation file: data/protodune_mc_4.root.
+[07:40:23] [INFO] [blip]: processing simulation file: data/protodune_mc_5.root.
+[07:40:25] [INFO] [blip]: processing simulation file: data/protodune_mc_6.root.
+[07:40:27] [INFO] [blip]: processing simulation file: data/protodune_mc_7.root.
+[07:40:28] [INFO] [blip]: processing simulation file: data/protodune_mc_8.root.
+[07:40:30] [INFO] [blip]: processing simulation file: data/protodune_mc_9.root.
+[07:40:32] [INFO] [blip]: processing simulation file: data/protodune_mc_10.root.
+[07:40:35] [INFO] [blip]: configuring loader.
+[07:40:35] [INFO] [blip]: configuring model.
+[07:40:35] [INFO] [blip]: configuring criterion.
+[07:40:35] [INFO] [blip]: configuring optimizer.
+[07:40:35] [INFO] [blip]: configuring metrics.
+[07:40:35] [INFO] [blip]: configuring callbacks.
+[07:40:35] [INFO] [blip]: configuring training.
