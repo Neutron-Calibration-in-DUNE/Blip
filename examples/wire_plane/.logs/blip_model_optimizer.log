@@ -1,6 +1,6 @@
-[07:40:35] [INFO] [blip_model_optimizer]: learning rate set to 0.01
-[07:40:35] [INFO] [blip_model_optimizer]: betas set to [0.9, 0.999]
-[07:40:35] [INFO] [blip_model_optimizer]: epsilon set to 1e-08
-[07:40:35] [INFO] [blip_model_optimizer]: momentum value set to 0.9
-[07:40:35] [INFO] [blip_model_optimizer]: weight decay set to 0.001
-[07:40:35] [INFO] [blip_model_optimizer]: using the Adam optimizer.
+[12:02:11] [INFO] [blip_model_optimizer]: learning rate set to 0.01
+[12:02:11] [INFO] [blip_model_optimizer]: betas set to [0.9, 0.999]
+[12:02:11] [INFO] [blip_model_optimizer]: epsilon set to 1e-08
+[12:02:11] [INFO] [blip_model_optimizer]: momentum value set to 0.9
+[12:02:11] [INFO] [blip_model_optimizer]: weight decay set to 0.001
+[12:02:11] [INFO] [blip_model_optimizer]: using the Adam optimizer.

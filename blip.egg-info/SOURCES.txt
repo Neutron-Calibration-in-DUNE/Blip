@@ -65,3 +65,6 @@ blip/utils/callbacks/loss_callback.py
 blip/utils/callbacks/memory_callback.py
 blip/utils/callbacks/metric_callback.py
 blip/utils/callbacks/timing_callback.py
+blip/utils/event_display/__init__.py
+blip/utils/event_display/blip_display.py
+blip/utils/event_display/neutrino.png

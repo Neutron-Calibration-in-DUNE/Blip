@@ -1,3 +1,2 @@
-[07:40:27] [INFO] [blip_simulation_7]: constructing wire_plane dataset.
-[07:40:28] [INFO] [blip_simulation_7]: creating wire_plane plots directory 'plots/blip_simulation_7/'
-[07:40:28] [INFO] [blip_simulation_7]: generating training data from file: data/protodune_mc_7.root
+[12:02:02] [INFO] [blip_simulation_7]: constructing wire_plane dataset.
+[12:02:04] [INFO] [blip_simulation_7]: generating training data from file: data/protodune_mc_7.root
