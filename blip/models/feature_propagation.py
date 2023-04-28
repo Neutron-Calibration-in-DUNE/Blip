@@ -58,17 +58,21 @@ class FeaturePropagation(GenericModel):
     
     def forward(self,
         positions,
+        batches,
+        indices,
         embedding,
-        prev_positions,
+        prev_indices,
         prev_embedding
     ):     
         """
         Iterate over the model dictionary
         """
-        if len(positions) == 1:
-            interpolated_points = embedding.repeat(len(positions), 1)
+        current_positions = positions[indices]
+        prev_positions = positions[prev_indices]
+        if len(current_positions) == 1:
+            interpolated_points = embedding.repeat(len(current_positions), 1)
         else:
-            pairwise_distances = torch.cdist(prev_positions, positions, p=2)
+            pairwise_distances = torch.cdist(prev_positions, current_positions, p=2)
             pairwise_distances, indices = pairwise_distances.sort(dim=-1)
 
             pairwise_distances = 1.0 / (pairwise_distances + 1e-8)

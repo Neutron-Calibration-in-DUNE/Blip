@@ -40,6 +40,8 @@ blip/models/pointnet_plus_plus.py
 blip/models/sampling_grouping.py
 blip/models/segmentation.py
 blip/models/set_abstraction.py
+blip/models/set_abstraction_dbscan.py
+blip/models/vietoris_rips_net.py
 blip/module/__init__.py
 blip/module/module.py
 blip/optimizers/__init__.py

@@ -1,0 +1,10 @@
+[11:02:23] [INFO] [blip]: configuring module.
+[11:02:23] [INFO] [blip]: parsing config file: config/vr_test.yaml.
+[11:02:23] [INFO] [blip]: configuring dataset.
+[11:02:23] [INFO] [blip]: configuring loader.
+[11:02:23] [INFO] [blip]: configuring model.
+[11:02:23] [INFO] [blip]: configuring criterion.
+[11:02:23] [INFO] [blip]: configuring optimizer.
+[11:02:23] [INFO] [blip]: configuring metrics.
+[11:02:23] [INFO] [blip]: configuring callbacks.
+[11:02:23] [INFO] [blip]: configuring training.

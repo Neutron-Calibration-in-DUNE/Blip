@@ -126,7 +126,7 @@ class SetAbstraction(GenericModel):
         batches = batches.to(self.device)
 
         ratio = len(torch.unique(batches))*float(self.config['sampling_num_samples'])/len(positions)
-        # only sampling according to the (tdc,channel) dimensions, not adc.
+        
         sampled_indices = torch_cluster.fps(positions, batches, ratio)
         sampled_positions = positions[sampled_indices]
         sampled_batches = batches[sampled_indices]

@@ -3,7 +3,9 @@ from .model_checker import ModelChecker
 from .pointnet import PointNet
 from .sampling_grouping import SamplingAndGrouping
 from .set_abstraction import SetAbstraction
+from .set_abstraction_dbscan import SetAbstractionDBSCAN
 from .feature_propagation import FeaturePropagation
 from .segmentation import Segmentation
 from .pointnet_plus_plus import PointNetPlusPlus
+from .vietoris_rips_net import VietorisRipsNet
 from .model_handler import ModelHandler

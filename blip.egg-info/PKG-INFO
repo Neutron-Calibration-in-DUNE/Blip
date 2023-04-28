@@ -30,6 +30,25 @@ pip install .
 ```
 which should install the API for you.
 
+#### Wilson Cluster
+-------------------
+To install BLIP on the Wilson cluter at FNAL, we first need to set up our conda environment.  Due to the limited size of the home directory, we want to tell anaconda to download packages and install blip in a different directory.  Once logged in to the Wilson cluster, do the following to activate condaforge
+```bash
+module load condaforge/py39
+```
+Then, tell anaconda to use a different directory for downloading packages:
+```bash
+conda config --add pkgs_dirs <package_directory>
+```
+I've used */wclustre/dune/<username>* as the package directory.  Then, install blip using the YAML file:
+```bash
+conda env create --prefix <blip_install_directory> -f environment_blip.yml
+```
+I've also used */wclustre/dune/<username>/blip* as the install directory.  Once installed, blip can be activated with
+```bash
+conda activate <blip_install_directory>
+```
+
 ### Basic Usage
 ---------------
 
