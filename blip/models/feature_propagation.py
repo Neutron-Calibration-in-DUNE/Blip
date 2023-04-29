@@ -9,6 +9,7 @@ import torch_geometric.transforms as T
 from torch.nn import Linear
 import torch.nn.functional as F
 from torch_geometric.nn import MLP, DynamicEdgeConv, global_max_pool
+from sklearn.cluster import DBSCAN
 
 
 from blip.models.common import activations, normalizations
@@ -24,10 +25,10 @@ class FeaturePropagation(GenericModel):
     """
     def __init__(self,
         name:   str='feature_propagation',
-        cfg:    dict=feature_propagation_config
+        config:    dict=feature_propagation_config
     ):
-        super(FeaturePropagation, self).__init__(name, cfg)
-        self.cfg = cfg
+        super(FeaturePropagation, self).__init__(name, config)
+        self.config = config
 
         # construct the model
         self.forward_views      = {}
@@ -45,11 +46,14 @@ class FeaturePropagation(GenericModel):
         The current methodology is to create an ordered
         dictionary and fill it with individual modules.
         """
-        self.logger.info(f"Attempting to build {self.name} architecture using cfg: {self.cfg}")
+        self.logger.info(f"Attempting to build {self.name} architecture using config: {self.config}")
         _convolution_dict = OrderedDict()
-
+        _mlp_dict = OrderedDict()
+        _mlp_dict['mlp'] = MLP(
+            self.config['embedding_mlp_layers']
+        )
         self.convolution_dict = nn.ModuleDict(_convolution_dict)
-
+        self.mlp_dict = nn.ModuleDict(_mlp_dict)
         # record the info
         self.logger.info(
             f"Constructed FeaturePropagation with dictionary:"
@@ -67,22 +71,36 @@ class FeaturePropagation(GenericModel):
         """
         Iterate over the model dictionary
         """
-        current_positions = positions[indices]
-        prev_positions = positions[prev_indices]
-        if len(current_positions) == 1:
-            interpolated_points = embedding.repeat(len(current_positions), 1)
-        else:
-            pairwise_distances = torch.cdist(prev_positions, current_positions, p=2)
-            pairwise_distances, indices = pairwise_distances.sort(dim=-1)
-
-            pairwise_distances = 1.0 / (pairwise_distances + 1e-8)
-            weights = torch.sum(pairwise_distances, dim=1, keepdim=True)
-            weights = pairwise_distances / weights
-            
-            interpolated_points = torch.matmul(weights, embedding)
-
-        if prev_embedding is not None:
-            interpolated_points = torch.cat([prev_embedding, interpolated_points], dim=1)
         
-        return interpolated_points
+        embeddings = [[] for ii in range(len(prev_indices))]
+        for batch in torch.unique(batches):
+            current_positions = positions[(batches == batch)][indices]
+            if embedding is not None:
+                current_positions = torch.cat((current_positions, embedding), dim=1)
+            prev_positions = positions[(batches == batch)][prev_indices]
+            if prev_embedding is not None:
+                prev_positions = torch.cat((prev_positions, prev_embedding), dim=1)
+            clustering = DBSCAN(eps=self.config["coarse_graining_eps"], min_samples=2).fit(prev_positions.detach().cpu())
+            labels = torch.tensor(clustering.labels_)
+            unique_labels = torch.unique(labels)
+            for label in unique_labels:   
+                new_indices = torch.argwhere(labels == label)
+                if label == -1:
+                    for jj, index in enumerate(new_indices):
+                        old_index = torch.argwhere(prev_indices[index] == indices).squeeze(0)
+                        embeddings[index].append(self.mlp_dict['mlp'](
+                            torch.cat((prev_positions[index], current_positions[old_index]), dim=1)
+                        ))
+                else:
+                    old_index = torch.argwhere(
+                        (indices.view(1, -1) == prev_indices[new_indices].view(-1, 1)).any(dim=0)
+                    ).squeeze(0)
+                    for jj, index in enumerate(new_indices):
+                        embeddings[index].append(self.mlp_dict[f'mlp'](
+                            torch.cat((prev_positions[index], current_positions[old_index]), dim=1)
+                        ))
+        for ii in range(len(prev_indices)):
+            embeddings[ii] = torch.cat(embeddings[ii]).squeeze(0)
+        embeddings = torch.stack(embeddings)
+        return embeddings
         

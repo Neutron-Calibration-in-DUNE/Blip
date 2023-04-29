@@ -72,16 +72,12 @@ class VietorisRipsNet(GenericModel):
         _segmentation_dict = OrderedDict()
         _classification_dict = OrderedDict()
         
-        for ii, layer in enumerate(self.config['set_abstraction_layers']["sampling_methods"]):
+        for ii, layer in enumerate(self.config['set_abstraction_layers']["coarse_graining_eps"]):
             _set_abstraction_dict[f'set_abstraction_layers_{ii}'] = SetAbstractionDBSCAN(
                 self.name + f"_set_abstraction_layer_{ii}",
                 {
-                    "sampling_method":      self.config['set_abstraction_layers']['sampling_methods'][ii],
-                    "sampling_num_samples": self.config['set_abstraction_layers']['sampling_num_samples'][ii],
-                    "grouping_method":      self.config['set_abstraction_layers']['grouping_methods'][ii],
-                    "grouping_type":        self.config['set_abstraction_layers']['grouping_type'][ii],
                     "coarse_graining_eps":  self.config['set_abstraction_layers']['coarse_graining_eps'][ii],
-                    "eps_vals":       self.config['set_abstraction_layers']['eps_vals'][ii],
+                    "eps_embedding_vals":       self.config['set_abstraction_layers']['eps_embedding_vals'][ii],
                     "pointnet_embedding_mlp_layers":self.config['set_abstraction_layers']['pointnet_embedding_mlp_layers'][ii],
                     "pointnet_embedding_type":      self.config['set_abstraction_layers']['pointnet_embedding_type'][ii],
                     "pointnet_number_of_neighbors": self.config['set_abstraction_layers']['pointnet_number_of_neighbors'][ii],
@@ -89,10 +85,12 @@ class VietorisRipsNet(GenericModel):
                     "pointnet_input_dimension":     self.config['set_abstraction_layers']['pointnet_input_dimension'][ii]
                 }
             )
-        for ii, layer in enumerate(self.config['set_abstraction_layers']["sampling_methods"]):
+        for ii, layer in enumerate(self.config['set_abstraction_layers']["coarse_graining_eps"]):
             _feature_propagation_dict[f'feature_propagaion_layers_{ii}'] = FeaturePropagation(
                 self.name + f"_feature_propagation_layer_{ii}",
                 {
+                    "coarse_graining_eps":  self.config['feature_propagation_layers']['coarse_graining_eps'][ii],
+                    "embedding_mlp_layers": self.config['feature_propagation_layers']['embedding_mlp_layers'][ii]
                 }
             )
         _segmentation_dict['segmentation_layer'] = Segmentation(
@@ -138,7 +136,7 @@ class VietorisRipsNet(GenericModel):
         embedding_list = [None]
 
         for ii, layer in enumerate(self.set_abstraction_dict.keys()):
-            indices, embedding = self.set_abstraction_dict[layer](positions, batches, indices, embedding)
+            indices, embedding = self.set_abstraction_dict[layer](positions, batches, index_list[ii], embedding)
             index_list.append(index_list[ii][indices])
             embedding_list.append(embedding)
 

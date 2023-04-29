@@ -61,7 +61,7 @@ class SetAbstractionDBSCAN(GenericModel):
         self.logger.info(f"Attempting to build {self.name} architecture using config: {self.config}")
 
         _embedding_dict = OrderedDict()
-        for jj, eps in enumerate(self.config['eps_vals']): 
+        for jj, eps in enumerate(self.config['eps_embedding_vals']): 
             _input_dimension = self.config['pointnet_input_dimension']
             if self.config['pointnet_embedding_type'] == 'dynamic_edge_conv':
                 _embedding_dict[f'embedding_{jj}'] = DynamicEdgeConv(
@@ -164,7 +164,7 @@ class SetAbstractionDBSCAN(GenericModel):
         # coarse grained indices.
         embeddings = [[] for ii in range(len(coarse_grained_indices))]
 
-        for ii, eps in enumerate(self.config["eps_vals"]):
+        for ii, eps in enumerate(self.config["eps_embedding_vals"]):
             for batch in torch.unique(batches):
                 pos = positions[(batches == batch)]
                 point_net = self.embedding_dict[f'embedding_{ii}'](pos)

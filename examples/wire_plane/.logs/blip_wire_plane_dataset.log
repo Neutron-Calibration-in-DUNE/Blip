@@ -1,8 +1,8 @@
-[11:02:23] [INFO] [blip_wire_plane_dataset]: constructing dataset.
-[11:02:23] [INFO] [blip_wire_plane_dataset]: setting 'features': None.
-[11:02:23] [INFO] [blip_wire_plane_dataset]: setting 'classes': ['source', 'shape', 'particle'].
-[11:02:23] [INFO] [blip_wire_plane_dataset]: setting 'sample_weights': None.
-[11:02:23] [INFO] [blip_wire_plane_dataset]: setting 'class_weights': None.
-[11:02:23] [INFO] [blip_wire_plane_dataset]: setting 'use_sample_weights': False.
-[11:02:23] [INFO] [blip_wire_plane_dataset]: setting 'use_class_weights': False.
-[11:02:23] [INFO] [blip_wire_plane_dataset]: setting 'normalize': True.
+[09:31:37] [INFO] [blip_wire_plane_dataset]: constructing dataset.
+[09:31:37] [INFO] [blip_wire_plane_dataset]: setting 'features': None.
+[09:31:37] [INFO] [blip_wire_plane_dataset]: setting 'classes': ['source', 'shape', 'particle'].
+[09:31:37] [INFO] [blip_wire_plane_dataset]: setting 'sample_weights': None.
+[09:31:37] [INFO] [blip_wire_plane_dataset]: setting 'class_weights': None.
+[09:31:37] [INFO] [blip_wire_plane_dataset]: setting 'use_sample_weights': False.
+[09:31:37] [INFO] [blip_wire_plane_dataset]: setting 'use_class_weights': False.
+[09:31:37] [INFO] [blip_wire_plane_dataset]: setting 'normalize': True.

@@ -1,5 +1,5 @@
 Meta information for model blip_model
-date:	04/25/2023 12:02:14
+date:	04/29/2023 09:32:03
 user:	ncarrara
 user_id:	1000
 System information:
@@ -15,10 +15,10 @@ ram	31 GB
 
 Model configuration:
 
-model_type	PointNet++
-set_abstraction_layers	{'sampling_methods': ['farthest_point', 'farthest_point', 'farthest_point'], 'sampling_num_samples': [512, 256, 128], 'grouping_methods': ['query_ball_point', 'query_ball_point', 'query_ball_point'], 'grouping_type': ['multi-scale', 'multi-scale', 'multi-scale'], 'grouping_radii': [[1, 2, 4], [4, 8, 16], [16, 32, 64]], 'grouping_samples': [[16, 32, 128], [16, 32, 128], [16, 32, 128]], 'pointnet_embedding_type': ['dynamic_edge_conv', 'dynamic_edge_conv', 'dynamic_edge_conv'], 'pointnet_embedding_mlp_layers': [[16, 16], [16, 16], [16, 16]], 'pointnet_number_of_neighbors': [20, 20, 20], 'pointnet_aggregation': ['max', 'max', 'max'], 'pointnet_input_dimension': [3, 51, 51]}
-feature_propagation_layers	
-segmentation_layer	{'num_inputs': 147, 'mlp_layers': [256, 512, 128], 'classifications': ['source', 'shape', 'particle'], 'number_of_classes': [8, 7, 32]}
+model_type	VietorisRipsNet
+set_abstraction_layers	{'coarse_graining_eps': [5, 10], 'eps_embedding_vals': [[5, 6, 7], [10, 11, 12]], 'pointnet_embedding_type': ['dynamic_edge_conv', 'dynamic_edge_conv'], 'pointnet_embedding_mlp_layers': [[16, 16], [16, 16]], 'pointnet_number_of_neighbors': [20, 20], 'pointnet_aggregation': ['max', 'max'], 'pointnet_input_dimension': [3, 51]}
+feature_propagation_layers	{'coarse_graining_eps': [10, 5], 'embedding_mlp_layers': [[102, 256], [262, 512]]}
+segmentation_layer	{'num_inputs': 515, 'mlp_layers': [1024, 512, 128], 'classifications': ['source', 'shape', 'particle'], 'number_of_classes': [8, 7, 32]}
 classification_layers	
 
 Model dictionary:
@@ -76,43 +76,20 @@ set_abstraction_dict.set_abstraction_layers_1.embedding_dict.embedding_2.nn.norm
 set_abstraction_dict.set_abstraction_layers_1.embedding_dict.embedding_2.nn.norms.0.module.running_mean	torch.Size([16])
 set_abstraction_dict.set_abstraction_layers_1.embedding_dict.embedding_2.nn.norms.0.module.running_var	torch.Size([16])
 set_abstraction_dict.set_abstraction_layers_1.embedding_dict.embedding_2.nn.norms.0.module.num_batches_tracked	torch.Size([])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_0.nn.lins.0.weight	torch.Size([16, 102])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_0.nn.lins.0.bias	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_0.nn.lins.1.weight	torch.Size([16, 16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_0.nn.lins.1.bias	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_0.nn.norms.0.module.weight	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_0.nn.norms.0.module.bias	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_0.nn.norms.0.module.running_mean	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_0.nn.norms.0.module.running_var	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_0.nn.norms.0.module.num_batches_tracked	torch.Size([])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_1.nn.lins.0.weight	torch.Size([16, 102])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_1.nn.lins.0.bias	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_1.nn.lins.1.weight	torch.Size([16, 16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_1.nn.lins.1.bias	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_1.nn.norms.0.module.weight	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_1.nn.norms.0.module.bias	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_1.nn.norms.0.module.running_mean	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_1.nn.norms.0.module.running_var	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_1.nn.norms.0.module.num_batches_tracked	torch.Size([])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_2.nn.lins.0.weight	torch.Size([16, 102])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_2.nn.lins.0.bias	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_2.nn.lins.1.weight	torch.Size([16, 16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_2.nn.lins.1.bias	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_2.nn.norms.0.module.weight	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_2.nn.norms.0.module.bias	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_2.nn.norms.0.module.running_mean	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_2.nn.norms.0.module.running_var	torch.Size([16])
-set_abstraction_dict.set_abstraction_layers_2.embedding_dict.embedding_2.nn.norms.0.module.num_batches_tracked	torch.Size([])
-segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.lins.0.weight	torch.Size([256, 147])
-segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.lins.0.bias	torch.Size([256])
-segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.lins.1.weight	torch.Size([512, 256])
+feature_propagation_dict.feature_propagaion_layers_0.mlp_dict.mlp.lins.0.weight	torch.Size([256, 102])
+feature_propagation_dict.feature_propagaion_layers_0.mlp_dict.mlp.lins.0.bias	torch.Size([256])
+feature_propagation_dict.feature_propagaion_layers_1.mlp_dict.mlp.lins.0.weight	torch.Size([512, 262])
+feature_propagation_dict.feature_propagaion_layers_1.mlp_dict.mlp.lins.0.bias	torch.Size([512])
+segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.lins.0.weight	torch.Size([1024, 515])
+segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.lins.0.bias	torch.Size([1024])
+segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.lins.1.weight	torch.Size([512, 1024])
 segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.lins.1.bias	torch.Size([512])
 segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.lins.2.weight	torch.Size([128, 512])
 segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.lins.2.bias	torch.Size([128])
-segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.norms.0.module.weight	torch.Size([256])
-segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.norms.0.module.bias	torch.Size([256])
-segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.norms.0.module.running_mean	torch.Size([256])
-segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.norms.0.module.running_var	torch.Size([256])
+segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.norms.0.module.weight	torch.Size([1024])
+segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.norms.0.module.bias	torch.Size([1024])
+segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.norms.0.module.running_mean	torch.Size([1024])
+segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.norms.0.module.running_var	torch.Size([1024])
 segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.norms.0.module.num_batches_tracked	torch.Size([])
 segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.norms.1.module.weight	torch.Size([512])
 segmentation_dict.segmentation_layer.segmentation_dict.mlp_layer.norms.1.module.bias	torch.Size([512])
