@@ -4,6 +4,7 @@ Container for models
 from blip.utils.logger import Logger
 from blip.models import GenericModel, PointNetPlusPlus
 from blip.models import VietorisRipsNet
+from blip.models import SparseUNet
 from blip.utils.utils import get_method_arguments
 
 class ModelHandler:
@@ -11,18 +12,18 @@ class ModelHandler:
     """
     def __init__(self,
         name:   str,
-        cfg:    dict={},
+        config:    dict={},
         models:  list=[],
         use_sample_weights: bool=False,
     ):
         self.name = name
         self.use_sample_weights = use_sample_weights
         self.logger = Logger(self.name, file_mode="w")
-        if bool(cfg) and len(models) != 0:
+        if bool(config) and len(models) != 0:
             self.logger.error(f"handler received both a config and a list of models! The user should only provide one or the other!")
         else:
-            if bool(cfg):
-                self.cfg = cfg
+            if bool(config):
+                self.config = config
                 self.process_config()
             else:
                 self.models = {model.name: model for model in models}
@@ -34,17 +35,18 @@ class ModelHandler:
         # list of available models
         # TODO: Make this automatic
         self.available_models = {
-            'PointNet++': PointNetPlusPlus,
+            'PointNet++':       PointNetPlusPlus,
             'VietorisRipsNet':  VietorisRipsNet,
+            'SparseUNet':       SparseUNet
         }
         # check config
-        if self.cfg["model_type"] not in self.available_models.keys():
+        if self.config["model_type"] not in self.available_models.keys():
             self.logger.error(
-                f"specified callback '{self.cfg['model_type']}'" +
+                f"specified callback '{self.config['model_type']}'" +
                 f"is not an available type! Available types:\n{self.available_models}"
             )
-        self.model = self.available_models[self.cfg['model_type']](
-            "blip_model", self.cfg
+        self.model = self.available_models[self.config['model_type']](
+            "blip_model", self.config
         )
 
     def set_device(self,

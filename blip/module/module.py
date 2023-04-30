@@ -15,7 +15,9 @@ from blip.utils.config import ConfigParser
 
 from blip.dataset.wire_plane import WirePlanePointCloud
 from blip.dataset.blip import BlipDataset
+from blip.dataset.blip_unet import BlipUNetDataset
 from blip.utils.loader import Loader
+from blip.utils.sparse_loader import SparseLoader
 from blip.models import ModelHandler
 from blip.losses import LossHandler
 from blip.optimizers import Optimizer
@@ -110,6 +112,13 @@ class Module:
                 root=".",
                 classes=dataset_config["classes"]
             )
+        elif dataset_config["dataset_type"] == "blip_unet":
+            self.dataset = BlipUNetDataset(
+                name = f"{self.name}_wire_plane_dataset",
+                input_files=dataset_config["dataset_files"],
+                root=".",
+                classes=dataset_config["classes"]
+            )
     
     def parse_loader(self):
         """
@@ -119,16 +128,27 @@ class Module:
             return
         self.logger.info("configuring loader.")
         loader_config = self.config['loader']
-        self.loader = Loader(
-            self.dataset,
-            loader_config["batch_size"],
-            loader_config["test_split"],
-            loader_config["test_seed"],
-            loader_config["validation_split"],
-            loader_config["validation_seed"],
-            loader_config["num_workers"]
-        )
-    
+        if self.config["dataset"]["dataset_type"] == "blip_unet":
+            self.loader = SparseLoader(
+                self.dataset,
+                loader_config["batch_size"],
+                loader_config["test_split"],
+                loader_config["test_seed"],
+                loader_config["validation_split"],
+                loader_config["validation_seed"],
+                loader_config["num_workers"]
+            )
+        else:
+            self.loader = Loader(
+                self.dataset,
+                loader_config["batch_size"],
+                loader_config["test_split"],
+                loader_config["test_seed"],
+                loader_config["validation_split"],
+                loader_config["validation_seed"],
+                loader_config["num_workers"]
+            )
+        
     def parse_model(self):
         """
         """

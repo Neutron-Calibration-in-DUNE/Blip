@@ -17,6 +17,16 @@ Description-Content-Type: text/markdown
 ### Installation
 ----------------
 First you will need some dependencies.
+
+# SparseConvNet
+
+You may need to switch to a different version of GCC in order to install CUDA.  To do this, switch to the older version with:
+```bash
+sudo apt -y install gcc-11 g++-11
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 11
+sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 11
+```
+
 The best way to proceed is to create a conda environment dedicated to the API using the packages defined in ``environment.yml``:
 ```bash
 conda env create -f environment.yml

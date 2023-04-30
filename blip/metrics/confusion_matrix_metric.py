@@ -85,7 +85,7 @@ class ConfusionMatrixMetric(GenericMetric):
                 dim=1, dtype=torch.float
             )
             predictions = torch.cat(
-                (softmax, data.category[:,ii].unsqueeze(1)),
+                (softmax, data.category[:,ii].unsqueeze(1).to(self.device)),
                 dim=1
             ).to(self.device)
 
@@ -99,7 +99,7 @@ class ConfusionMatrixMetric(GenericMetric):
                 (self.batch_summed_adc[input], data.summed_adc.unsqueeze(1).to(self.device)),
                 dim=0
             )
-            self.metrics[input].update(outputs[input], data.category[:,ii])
+            self.metrics[input].update(outputs[input], data.category[:,ii].to(self.device))
 
     def compute(self):
         outputs = {}

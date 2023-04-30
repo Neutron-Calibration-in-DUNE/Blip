@@ -1,0 +1,20 @@
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: constructing dataset loader.
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: batch_size:  1.
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: test_split:  0.1.
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: test_seed:   100.
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: validation_split: 0.2.
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: validation_seed: 100.
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: num_workers: 4.
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: use_sample_weights: False.
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: use_class_weights: False.
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: number of total samples: 55.
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: number of all batches: 55.
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: number of total training samples: 49
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: number of test samples: 6
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: number of test batches: 6
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: number of training samples: 39
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: number of training batches per epoch: 39
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: number of validation samples: 10
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: number of validation batches per epoch: 10
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: created train/test split with random seed: 100.
+[18:09:32] [INFO] [blip_wire_plane_dataset_sparse_loader]: created train/validation split with random seed: 100.

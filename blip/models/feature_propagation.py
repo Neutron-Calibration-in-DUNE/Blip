@@ -10,6 +10,7 @@ from torch.nn import Linear
 import torch.nn.functional as F
 from torch_geometric.nn import MLP, DynamicEdgeConv, global_max_pool
 from sklearn.cluster import DBSCAN
+import time
 
 
 from blip.models.common import activations, normalizations
@@ -71,18 +72,25 @@ class FeaturePropagation(GenericModel):
         """
         Iterate over the model dictionary
         """
-        
+        start = time.time()
         embeddings = [[] for ii in range(len(prev_indices))]
         for batch in torch.unique(batches):
+            s = time.time()
             current_positions = positions[(batches == batch)][indices]
             if embedding is not None:
                 current_positions = torch.cat((current_positions, embedding), dim=1)
             prev_positions = positions[(batches == batch)][prev_indices]
             if prev_embedding is not None:
                 prev_positions = torch.cat((prev_positions, prev_embedding), dim=1)
+            e = time.time()
+            print(f"positions: {e - s}")
+            s = time.time()
             clustering = DBSCAN(eps=self.config["coarse_graining_eps"], min_samples=2).fit(prev_positions.detach().cpu())
+            e = time.time()
+            print(f"clustering: {e - s}")
             labels = torch.tensor(clustering.labels_)
             unique_labels = torch.unique(labels)
+            s = time.time()
             for label in unique_labels:   
                 new_indices = torch.argwhere(labels == label)
                 if label == -1:
@@ -99,6 +107,8 @@ class FeaturePropagation(GenericModel):
                         embeddings[index].append(self.mlp_dict[f'mlp'](
                             torch.cat((prev_positions[index], current_positions[old_index]), dim=1)
                         ))
+            e = time.time()
+            print(f"mlp: {e - s}")
         for ii in range(len(prev_indices)):
             embeddings[ii] = torch.cat(embeddings[ii]).squeeze(0)
         embeddings = torch.stack(embeddings)

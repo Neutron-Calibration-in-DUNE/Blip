@@ -1,3 +1,113 @@
-[09:31:37] [INFO] [blip_model]: configuring model.
-[09:31:37] [INFO] [blip_model]: Attempting to build blip_model architecture using config: {'model_type': 'VietorisRipsNet', 'set_abstraction_layers': {'coarse_graining_eps': [5, 10], 'eps_embedding_vals': [[5, 6, 7], [10, 11, 12]], 'pointnet_embedding_type': ['dynamic_edge_conv', 'dynamic_edge_conv'], 'pointnet_embedding_mlp_layers': [[16, 16], [16, 16]], 'pointnet_number_of_neighbors': [20, 20], 'pointnet_aggregation': ['max', 'max'], 'pointnet_input_dimension': [3, 51]}, 'feature_propagation_layers': {'coarse_graining_eps': [10, 5], 'embedding_mlp_layers': [[102, 256], [262, 512]]}, 'segmentation_layer': {'num_inputs': 515, 'mlp_layers': [1024, 512, 128], 'classifications': ['source', 'shape', 'particle'], 'number_of_classes': [8, 7, 32]}, 'classification_layers': None}
-[09:31:37] [INFO] [blip_model]: Constructed PointNetClassification with dictionaries:
+[18:09:32] [INFO] [blip_model]: configuring model.
+[18:09:32] [INFO] [blip_model]: checking UNet architecture using config: {'model_type': 'SparseUNet', 'in_channels': 1, 'classifications': ['source', 'shape', 'particle'], 'out_channels': [8, 7, 32], 'filtrations': [16, 32, 64, 128], 'double_conv_kernel': 3, 'double_conv_stride': 1, 'double_conv_dilation': 1, 'double_conv_activation': 'relu', 'double_conv_dimension': 2, 'double_conv_batch_norm': True, 'conv_transpose_kernel': 2, 'conv_transpose_stride': 2, 'conv_transpose_dilation': 1, 'conv_transpose_dimension': 2, 'max_pooling_kernel': 2, 'max_pooling_stride': 2, 'max_pooling_dilation': 1, 'max_pooling_dimension': 2}
+[18:09:32] [INFO] [blip_model]: Attempting to build UNet architecture using config: {'model_type': 'SparseUNet', 'in_channels': 1, 'classifications': ['source', 'shape', 'particle'], 'out_channels': [8, 7, 32], 'filtrations': [16, 32, 64, 128], 'double_conv_kernel': 3, 'double_conv_stride': 1, 'double_conv_dilation': 1, 'double_conv_activation': 'relu', 'double_conv_dimension': 2, 'double_conv_batch_norm': True, 'conv_transpose_kernel': 2, 'conv_transpose_stride': 2, 'conv_transpose_dilation': 1, 'conv_transpose_dimension': 2, 'max_pooling_kernel': 2, 'max_pooling_stride': 2, 'max_pooling_dilation': 1, 'max_pooling_dimension': 2}
+[18:09:32] [INFO] [blip_model]: Constructed UNet with down: ModuleDict(
+  (down_filter_double_conv16): DoubleConv(
+    (activation_fn): MinkowskiReLU()
+    (module_dict): ModuleDict(
+      (down_16_conv1): MinkowskiConvolution(in=1, out=16, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+      (down_16_batch_norm1): MinkowskiBatchNorm(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (down_16_relu1): MinkowskiReLU()
+      (down_16_conv2): MinkowskiConvolution(in=16, out=16, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+      (down_16_batch_norm2): MinkowskiBatchNorm(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (down_16_relu2): MinkowskiReLU()
+    )
+  )
+  (down_filter_double_conv32): DoubleConv(
+    (activation_fn): MinkowskiReLU()
+    (module_dict): ModuleDict(
+      (down_32_conv1): MinkowskiConvolution(in=16, out=32, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+      (down_32_batch_norm1): MinkowskiBatchNorm(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (down_32_relu1): MinkowskiReLU()
+      (down_32_conv2): MinkowskiConvolution(in=32, out=32, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+      (down_32_batch_norm2): MinkowskiBatchNorm(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (down_32_relu2): MinkowskiReLU()
+    )
+  )
+  (down_filter_double_conv64): DoubleConv(
+    (activation_fn): MinkowskiReLU()
+    (module_dict): ModuleDict(
+      (down_64_conv1): MinkowskiConvolution(in=32, out=64, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+      (down_64_batch_norm1): MinkowskiBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (down_64_relu1): MinkowskiReLU()
+      (down_64_conv2): MinkowskiConvolution(in=64, out=64, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+      (down_64_batch_norm2): MinkowskiBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (down_64_relu2): MinkowskiReLU()
+    )
+  )
+  (down_filter_double_conv128): DoubleConv(
+    (activation_fn): MinkowskiReLU()
+    (module_dict): ModuleDict(
+      (down_128_conv1): MinkowskiConvolution(in=64, out=128, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+      (down_128_batch_norm1): MinkowskiBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (down_128_relu1): MinkowskiReLU()
+      (down_128_conv2): MinkowskiConvolution(in=128, out=128, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+      (down_128_batch_norm2): MinkowskiBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (down_128_relu2): MinkowskiReLU()
+    )
+  )
+) and up: ModuleDict(
+  (up_filter_transpose128): MinkowskiConvolutionTranspose(in=256, out=128, kernel_size=[2, 2], stride=[2, 2], dilation=[1, 1])
+  (up_filter_double_conv128): DoubleConv(
+    (activation_fn): MinkowskiReLU()
+    (module_dict): ModuleDict(
+      (up_128_conv1): MinkowskiConvolution(in=256, out=128, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+      (up_128_batch_norm1): MinkowskiBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (up_128_relu1): MinkowskiReLU()
+      (up_128_conv2): MinkowskiConvolution(in=128, out=128, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+      (up_128_batch_norm2): MinkowskiBatchNorm(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (up_128_relu2): MinkowskiReLU()
+    )
+  )
+  (up_filter_transpose64): MinkowskiConvolutionTranspose(in=128, out=64, kernel_size=[2, 2], stride=[2, 2], dilation=[1, 1])
+  (up_filter_double_conv64): DoubleConv(
+    (activation_fn): MinkowskiReLU()
+    (module_dict): ModuleDict(
+      (up_64_conv1): MinkowskiConvolution(in=128, out=64, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+      (up_64_batch_norm1): MinkowskiBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (up_64_relu1): MinkowskiReLU()
+      (up_64_conv2): MinkowskiConvolution(in=64, out=64, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+      (up_64_batch_norm2): MinkowskiBatchNorm(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (up_64_relu2): MinkowskiReLU()
+    )
+  )
+  (up_filter_transpose32): MinkowskiConvolutionTranspose(in=64, out=32, kernel_size=[2, 2], stride=[2, 2], dilation=[1, 1])
+  (up_filter_double_conv32): DoubleConv(
+    (activation_fn): MinkowskiReLU()
+    (module_dict): ModuleDict(
+      (up_32_conv1): MinkowskiConvolution(in=64, out=32, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+      (up_32_batch_norm1): MinkowskiBatchNorm(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (up_32_relu1): MinkowskiReLU()
+      (up_32_conv2): MinkowskiConvolution(in=32, out=32, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+      (up_32_batch_norm2): MinkowskiBatchNorm(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (up_32_relu2): MinkowskiReLU()
+    )
+  )
+  (up_filter_transpose16): MinkowskiConvolutionTranspose(in=32, out=16, kernel_size=[2, 2], stride=[2, 2], dilation=[1, 1])
+  (up_filter_double_conv16): DoubleConv(
+    (activation_fn): MinkowskiReLU()
+    (module_dict): ModuleDict(
+      (up_16_conv1): MinkowskiConvolution(in=32, out=16, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+      (up_16_batch_norm1): MinkowskiBatchNorm(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (up_16_relu1): MinkowskiReLU()
+      (up_16_conv2): MinkowskiConvolution(in=16, out=16, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+      (up_16_batch_norm2): MinkowskiBatchNorm(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (up_16_relu2): MinkowskiReLU()
+    )
+  )
+).
+[18:09:32] [INFO] [blip_model]: Bottleneck layer: DoubleConv(
+  (activation_fn): MinkowskiReLU()
+  (module_dict): ModuleDict(
+    (bottleneck_128_conv1): MinkowskiConvolution(in=128, out=256, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+    (bottleneck_128_batch_norm1): MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (bottleneck_128_relu1): MinkowskiReLU()
+    (bottleneck_128_conv2): MinkowskiConvolution(in=256, out=256, kernel_size=[3, 3], stride=[1, 1], dilation=[1, 1])
+    (bottleneck_128_batch_norm2): MinkowskiBatchNorm(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (bottleneck_128_relu2): MinkowskiReLU()
+  )
+), output layer: ModuleDict(
+  (source): MinkowskiConvolution(in=16, out=8, kernel_size=[1, 1], stride=[1, 1], dilation=[1, 1])
+  (shape): MinkowskiConvolution(in=16, out=7, kernel_size=[1, 1], stride=[1, 1], dilation=[1, 1])
+  (particle): MinkowskiConvolution(in=16, out=32, kernel_size=[1, 1], stride=[1, 1], dilation=[1, 1])
+) and max pooling: MinkowskiMaxPooling(kernel_size=[2, 2], stride=[2, 2], dilation=[1, 1]).
