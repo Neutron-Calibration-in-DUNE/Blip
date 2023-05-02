@@ -128,13 +128,7 @@ class BlipUNetDataset(InMemoryDataset):
             y = data['labels']
 
             for ii in range(len(pos)):
-                # event = {
-                #     "pos": torch.tensor(pos[ii][:,:2]).type(torch.float),
-                #     "x": torch.tensor(pos[ii][:,2]).type(torch.float).unsqueeze(1),
-                #     #y=torch.full((len(pos[ii]),1),y[ii]).type(torch.long), 
-                #     "category": torch.tensor(y[ii]).type(torch.long),
-                #     "summed_adc": torch.tensor(adc[ii]).type(torch.float)
-                # }
+
                 event = Data(
                     pos=torch.tensor(pos[ii][:,:2]).type(torch.float),
                     x=torch.tensor(pos[ii][:,2]).type(torch.float).unsqueeze(1),

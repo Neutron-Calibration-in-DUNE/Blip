@@ -1,4 +1,0 @@
-[10:10:23] [INFO] [blip_model_feature_propagation_layer_1]: configuring model.
-[10:10:23] [INFO] [blip_model_feature_propagation_layer_1]: Attempting to build blip_model_feature_propagation_layer_1 architecture using config: {'coarse_graining_eps': 5, 'embedding_mlp_layers': [262, 512]}
-[10:10:23] [INFO] [blip_model_feature_propagation_layer_1]: Constructed FeaturePropagation with dictionary:
-ModuleDict()

@@ -10,12 +10,12 @@ class GenericMetric:
         name:       str='generic',
         shape:      tuple=(),
         input:      str='reductions',
-        when_compute:   str='all',
+        when_to_compute:   str='all',
     ):
         self.name = name
         self.shape = shape
         self.input = input
-        self.when_compute = when_compute
+        self.when_to_compute = when_to_compute
         # set device to none for now
         self.device = 'cpu'
 

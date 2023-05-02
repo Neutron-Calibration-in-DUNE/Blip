@@ -1,8 +1,0 @@
-[13:41:23] [INFO] [test]: constructing dataset.
-[13:41:23] [INFO] [test]: setting 'features': None.
-[13:41:23] [INFO] [test]: setting 'classes': ['source', 'shape', 'particle'].
-[13:41:23] [INFO] [test]: setting 'sample_weights': None.
-[13:41:23] [INFO] [test]: setting 'class_weights': None.
-[13:41:23] [INFO] [test]: setting 'use_sample_weights': False.
-[13:41:23] [INFO] [test]: setting 'use_class_weights': False.
-[13:41:23] [INFO] [test]: setting 'normalize': True.

@@ -110,13 +110,18 @@ class GenericModel(nn.Module):
             }, 
             output + "_params.ckpt"
         )
-    
+        
+    def load_checkpoint(self,
+        checkpoint_file:    str=''
+    ):
+        pass
     def load_model(self,
         model_file:   str=''
     ):
         self.logger.info(f"Attempting to load model checkpoint from file {model_file}.")
         try:
             checkpoint = torch.load(model_file)
+            print(checkpoint)
             self.cfg = checkpoint['model_config']
             self.construct_model()
             # register hooks

@@ -1,3 +1,0 @@
-[10:10:23] [INFO] [blip_model_set_abstraction_layer_0]: configuring model.
-[10:10:23] [INFO] [blip_model_set_abstraction_layer_0]: Attempting to build blip_model_set_abstraction_layer_0 architecture using config: {'coarse_graining_eps': 5, 'eps_embedding_vals': [5, 6, 7], 'pointnet_embedding_mlp_layers': [16, 16], 'pointnet_embedding_type': 'dynamic_edge_conv', 'pointnet_number_of_neighbors': 20, 'pointnet_aggregation': 'max', 'pointnet_input_dimension': 3}
-[10:10:23] [INFO] [blip_model_set_abstraction_layer_0]: Constructed SetAbstractionDBSCAN

@@ -33,11 +33,16 @@ class WirePlanePointCloud:
         self.protodune_tpc_channels = {
             "tpc0": [[0,799],[800,1599],[1600,2079]],
             "tpc1": [[0,799],[800,1599],[2080,2559]],
-            # [],
-            # [],
-            # [],
-            # [],
-            # []
+            "tpc2": [[2560,3359],[3360,4159],[4160,4639]],
+            "tpc3": [[2560,3359],[3360,4159],[4640,5119]],
+            "tpc4": [[5120,5919],[5920,6719],[6720,7199]],
+            "tpc5": [[5120,5919],[5920,6719],[7200,7679]],
+            "tpc6": [[7680,8479],[8480,9279],[9280,9759]],
+            "tpc7": [[7680,8479],[8480,9279],[9760,10239]],
+            "tpc8": [[10240,11039],[11040,11839],[11840,12319]],
+            "tpc9": [[10240,11039],[11040,11839],[12320,12799]],
+            "tpc10": [[12800,13599],[13600,14399],[14400,14879]],
+            "tpc11": [[12800,13599],[13600,14399],[14880,15359]],
         }
 
     def generate_training_data(self,
@@ -78,15 +83,15 @@ class WirePlanePointCloud:
 
                 for event in range(len(channel)):
                     #view_mask = (view[event] == v) & (channel[event] >= channel_range[0]) & (channel[event] < channel_range[1])
-                    view_mask = (channel[event] >= tpc_view[0]) & (channel[event] < tpc_view[1])
+                    view_mask = (channel[event] >= tpc_view[0]) & (channel[event] < tpc_view[1]) & (source_label[event] >= 0) & (shape_label[event] >= 0) & (particle_label[event] >= 0)
                     if np.sum(view_mask) > 0:
                         channel_view.append(channel[event][view_mask])
                         tdc_view.append(tdc[event][view_mask])
                         adc_view.append(adc[event][view_mask])
                         energy_view.append(energy[event][view_mask])
-                        source_label_view.append(source_label[event][view_mask]+1)
-                        shape_label_view.append(shape_label[event][view_mask]+1)
-                        particle_label_view.append(particle_label[event][view_mask]+1)
+                        source_label_view.append(source_label[event][view_mask])
+                        shape_label_view.append(shape_label[event][view_mask])
+                        particle_label_view.append(particle_label[event][view_mask])
 
                 channel_view = np.array(channel_view, dtype=object)
                 tdc_view = np.array(tdc_view, dtype=object)

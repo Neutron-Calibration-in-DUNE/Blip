@@ -5,3 +5,8 @@
 build/
 dist/
 blip.egg-info/
+*.checkpoints/
+*.logs/
+*data/
+*.csv
+*plots/

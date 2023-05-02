@@ -114,23 +114,26 @@ sparse_unet_params = {
     'in_channels':  1,
     'out_channels': 1,  # this is the number of classes for the SS
     'filtrations':  [64, 128, 256, 512],    # the number of filters in each downsample
-    # standard double_conv parameters
-    'double_conv_kernel':   3,
-    'double_conv_stride':   1,
-    'double_conv_dilation': 1,
-    'double_conv_activation':   'relu',
-    'double_conv_dimension':    3,
-    'double_conv_batch_norm':   True,
-    # conv transpose layers
-    'conv_transpose_kernel':    2,
-    'conv_transpose_stride':    2,
-    'conv_transpose_dilation':  1,
-    'conv_transpose_dimension': 3,
-    # max pooling layer
-    'max_pooling_kernel':   2,
-    'max_pooling_stride':   2,
-    'max_pooling_dilation': 1,
-    'max_pooling_dimension':3,
+    'double_conv_params': {
+        'kernel':       3,
+        'stride':       1,
+        'dilation':     1,
+        'activation':   'relu',
+        'dimension':    3,
+        'batch_norm':   True,
+    },
+    'conv_transpose_params': {
+        'kernel':    2,
+        'stride':    2,
+        'dilation':  1,
+        'dimension': 3,
+    },
+    'max_pooling_params': {
+        'kernel':   2,
+        'stride':   2,
+        'dilation': 1,
+        'dimension':3,
+    }
 }
 
 class SparseUNet(GenericModel):
@@ -202,12 +205,12 @@ class SparseUNet(GenericModel):
                 name=f'down_{filter}',
                 in_channels=in_channels,
                 out_channels=filter,
-                kernel_size=self.config['double_conv_kernel'],
-                stride=self.config['double_conv_stride'],
-                dilation=self.config['double_conv_dilation'],
-                dimension=self.config['double_conv_dimension'],
-                activation=self.config['double_conv_activation'],
-                batch_norm=self.config['double_conv_batch_norm'],
+                kernel_size=self.config['double_conv_params']['kernel_size'],
+                stride=self.config['double_conv_params']['stride'],
+                dilation=self.config['double_conv_params']['dilation'],
+                dimension=self.config['double_conv_params']['dimension'],
+                activation=self.config['double_conv_params']['activation'],
+                batch_norm=self.config['double_conv_params']['batch_norm'],
             )
             # set new in channel to current filter size
             in_channels = filter
@@ -217,21 +220,21 @@ class SparseUNet(GenericModel):
             _up_dict[f'up_filter_transpose{filter}'] = ME.MinkowskiConvolutionTranspose(
                 in_channels=2*filter,   # adding the skip connection, so the input doubles
                 out_channels=filter,
-                kernel_size=self.config['conv_transpose_kernel'],
-                stride=self.config['conv_transpose_stride'],
-                dilation=self.config['conv_transpose_dilation'],
-                dimension=self.config['conv_transpose_dimension']    
+                kernel_size=self.config['conv_transpose_params']['kernel_size'],
+                stride=self.config['conv_transpose_params']['stride'],
+                dilation=self.config['conv_transpose_params']['dilation'],
+                dimension=self.config['conv_transpose_params']['dimension']    
             )
             _up_dict[f'up_filter_double_conv{filter}'] = DoubleConv(
                 name=f'up_{filter}',
                 in_channels=2*filter,
                 out_channels=filter,
-                kernel_size=self.config['double_conv_kernel'],
-                stride=self.config['double_conv_stride'],
-                dilation=self.config['double_conv_dilation'],
-                dimension=self.config['double_conv_dimension'],
-                activation=self.config['double_conv_activation'],
-                batch_norm=self.config['double_conv_batch_norm'],
+                kernel_size=self.config['double_conv_params']['kernel_size'],
+                stride=self.config['double_conv_params']['stride'],
+                dilation=self.config['double_conv_params']['dilation'],
+                dimension=self.config['double_conv_params']['dimension'],
+                activation=self.config['double_conv_params']['activation'],
+                batch_norm=self.config['double_conv_params']['batch_norm'],
             )
 
         # create bottleneck layer
@@ -239,29 +242,29 @@ class SparseUNet(GenericModel):
             name=f"bottleneck_{self.config['filtrations'][-1]}",
             in_channels=self.config['filtrations'][-1],
             out_channels=2*self.config['filtrations'][-1],
-            kernel_size=self.config['double_conv_kernel'],
-            stride=self.config['double_conv_stride'],
-            dilation=self.config['double_conv_dilation'],
-            dimension=self.config['double_conv_dimension'],
-            activation=self.config['double_conv_activation'],
-            batch_norm=self.config['double_conv_batch_norm'],
+            kernel_size=self.config['double_conv_params']['kernel_size'],
+            stride=self.config['double_conv_params']['stride'],
+            dilation=self.config['double_conv_params']['dilation'],
+            dimension=self.config['double_conv_params']['dimension'],
+            activation=self.config['double_conv_params']['activation'],
+            batch_norm=self.config['double_conv_params']['batch_norm'],
         )
 
         # create output layer
         for ii, classification in enumerate(self.config['classifications']):
             _classification_dict[f"{classification}"] = ME.MinkowskiConvolution(
-                in_channels=self.config['filtrations'][0],# to match first filtration
-                out_channels=self.config['out_channels'][ii], # to the number of classes
-                kernel_size=1,                         # a one-one convolution
-                dimension=self.config['double_conv_dimension'],
+                in_channels=self.config['filtrations'][0],      # to match first filtration
+                out_channels=self.config['out_channels'][ii],   # to the number of classes
+                kernel_size=1,                                  # a one-one convolution
+                dimension=self.config['double_conv_params']['dimension'],
             )
 
         # create the max pooling layer
         self.max_pooling = ME.MinkowskiMaxPooling(
-            kernel_size=self.config['max_pooling_kernel'],
-            stride=self.config['max_pooling_stride'],
-            dilation=self.config['max_pooling_dilation'],
-            dimension=self.config['max_pooling_dimension']
+            kernel_size=self.config['max_pooling_params']['kernel_size'],
+            stride=self.config['max_pooling_params']['stride'],
+            dilation=self.config['max_pooling_params']['dilation'],
+            dimension=self.config['max_pooling_params']['dimension']
         )
 
         # create the dictionaries
@@ -282,7 +285,7 @@ class SparseUNet(GenericModel):
         Iterate over the module dictionary.
         """
         x = ME.SparseTensor(
-            features=data.x.float(), coordinates=torch.cat((data.batch.unsqueeze(1), data.pos),dim=1), 
+            features=data.x.float(), coordinates=torch.cat((data.batch.unsqueeze(1), data.pos.int()),dim=1), 
             device=self.device
         )
         # record the skip connections

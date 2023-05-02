@@ -16,17 +16,17 @@ class MetricHandler:
     """
     def __init__(self,
         name:   str,
-        cfg:    dict={},
+        config:    dict={},
         metrics:list=[],
         labels: list=[],
     ):
         self.name = name
         self.logger = Logger(self.name, file_mode="w")
-        if bool(cfg) and len(metrics) != 0:
+        if bool(config) and len(metrics) != 0:
             self.logger.error(f"handler received both a config and a list of metrics! The user should only provide one or the other!")
         else:
-            if bool(cfg):
-                self.cfg = cfg
+            if bool(config):
+                self.config = config
                 self.process_config()
             else:
                 self.metrics = {metric.name: metric for metric in metrics}
@@ -49,23 +49,23 @@ class MetricHandler:
         }
 
         # check config
-        for item in self.cfg.keys():
+        for item in self.config.keys():
             if item not in self.available_metrics.keys():
                 self.logger.error(f"specified metric '{item}' is not an available type! Available types:\n{self.available_metrics}")
             argdict = get_method_arguments(self.available_metrics[item])
-            for value in self.cfg[item].keys():
+            for value in self.config[item].keys():
                 if value == "metric":
                     continue
                 if value not in argdict.keys():
                     self.logger.error(f"specified metric value '{item}:{value}' not a constructor parameter for '{item}'! Constructor parameters:\n{argdict}")
             for value in argdict.keys():
                 if argdict[value] == None:
-                    if value not in self.cfg[item].keys():
+                    if value not in self.config[item].keys():
                         self.logger.error(f"required input parameters '{item}:{value}' not specified! Constructor parameters:\n{argdict}")
         
         self.metrics = {}
-        for item in self.cfg.keys():
-            self.metrics[item] = self.available_metrics[item](**self.cfg[item])
+        for item in self.config.keys():
+            self.metrics[item] = self.available_metrics[item](**self.config[item])
 
     def set_device(self,
         device
@@ -109,7 +109,7 @@ class MetricHandler:
         train_type: str='all',
     ):
         for name, metric in self.metrics.items():
-            if train_type == metric.when_compute or metric.when_compute == 'all':
+            if train_type == metric.when_to_compute or metric.when_to_compute == 'all':
                 metric.update(outputs, data)
     
     def compute(self,

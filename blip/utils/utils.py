@@ -192,6 +192,7 @@ def get_files(
 
 def save_model(
     name:   str='',
+    config: str='',
 ):
     # clean up directories first
     if name == '':
@@ -199,3 +200,12 @@ def save_model(
     else:
         now = name + f"_{datetime.now()}"
     os.makedirs(f"runs/{now}")
+    if os.path.isdir("predictions/"):
+        shutil.move("predictions/", f"runs/{now}/")
+    if os.path.isdir("plots/"):
+        shutil.move("plots/", f"runs/{now}/")
+    if os.path.isdir("models/"):
+        shutil.move("models/", f"runs/{now}/")
+    shutil.move(".logs/", f"runs/{now}")
+    shutil.move(".checkpoints/", f"runs/{now}")
+    shutil.copy(config, f"runs/{now}")

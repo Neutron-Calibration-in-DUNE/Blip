@@ -86,6 +86,12 @@ class Module:
             no_timing=self.config['training']['no_timing']
         )
 
+        # save model/data/config
+        if 'run_name' in self.config['training'].keys():
+            save_model(self.config['training']['run_name'], self.config)
+        else:
+            save_model(self.name, self.config)
+
     def parse_dataset(self):
         """
         """
@@ -128,7 +134,7 @@ class Module:
             return
         self.logger.info("configuring loader.")
         loader_config = self.config['loader']
-        if self.config["dataset"]["dataset_type"] == "blip_unet":
+        if loader_config["loader_type"] == "minkowski":
             self.loader = SparseLoader(
                 self.dataset,
                 loader_config["batch_size"],

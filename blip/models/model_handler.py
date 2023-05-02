@@ -12,7 +12,7 @@ class ModelHandler:
     """
     def __init__(self,
         name:   str,
-        config:    dict={},
+        config:  dict={},
         models:  list=[],
         use_sample_weights: bool=False,
     ):
@@ -48,6 +48,8 @@ class ModelHandler:
         self.model = self.available_models[self.config['model_type']](
             "blip_model", self.config
         )
+        if 'load_model' in self.config.keys():
+            self.model.load_model(self.config['load_model'])
 
     def set_device(self,
         device

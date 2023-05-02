@@ -1,3 +1,0 @@
-[09:31:41] [INFO] [set_abstraction_msg]: configuring model.
-[09:31:41] [INFO] [set_abstraction_msg]: Attempting to build set_abstraction_msg architecture using cfg: {'sampling': {'method': <function farthest_point_sampling at 0x7fb58edb2170>, 'number_of_centroids': 1024}, 'grouping': {'method': <function query_ball_point at 0x7fb58edb2320>, 'radii_list': [0.05, 0.1], 'number_of_samples': [16, 32]}, 'pointnet': {'method': <class 'blip.models.pointnet.PointNet'>}}
-[09:31:41] [INFO] [set_abstraction_msg]: Constructed SetAbstractionMultiScaleGrouping

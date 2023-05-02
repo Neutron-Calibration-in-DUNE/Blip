@@ -16,13 +16,15 @@ class ConfusionMatrixMetric(GenericMetric):
         shape:      tuple=(),
         inputs:             list=[''],
         number_of_classes:  list=[],
+        when_to_compute:    str="all",
     ):
         """
         """
         super(ConfusionMatrixMetric, self).__init__(
             name,
             shape,
-            inputs
+            inputs,
+            when_to_compute
         )
         self.number_of_classes = number_of_classes
         self.inputs = inputs

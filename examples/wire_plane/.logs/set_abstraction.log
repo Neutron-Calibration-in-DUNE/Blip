@@ -1,3 +1,0 @@
-[09:34:58] [INFO] [set_abstraction]: configuring model.
-[09:34:58] [INFO] [set_abstraction]: Attempting to build set_abstraction architecture using cfg: {'sampling': {'method': <function farthest_point_sampling at 0x7f5ae79d5510>, 'number_of_centroids': 1024}, 'grouping': {'method': <function query_ball_point at 0x7f5ae79d56c0>, 'radii': 0.05, 'number_of_samples': 32}, 'pointnet': {'method': <class 'blip.models.pointnet.PointNet'>}}
-[09:34:58] [INFO] [set_abstraction]: Constructed SetAbstraction

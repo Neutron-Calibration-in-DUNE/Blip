@@ -327,7 +327,7 @@ class Trainer:
                         self.timers.timers['training_metrics'].start()
                         self.memory_trackers.memory_trackers['training_metrics'].start()
                         outputs = self.model(data)
-                        self.metrics.update(outputs, data)
+                        self.metrics.update(outputs, data, train_type="train")
                         self.memory_trackers.memory_trackers['training_metrics'].end()
                         self.timers.timers['training_metrics'].end()
                         if (progress_bar == 'all' or progress_bar == 'train'):
@@ -414,7 +414,7 @@ class Trainer:
                         self.timers.timers['validation_metrics'].start()
                         self.memory_trackers.memory_trackers['validation_metrics'].start()
                         outputs = self.model(data)
-                        self.metrics.update(outputs, data)
+                        self.metrics.update(outputs, data, train_type="validation")
                         self.memory_trackers.memory_trackers['validation_metrics'].end()
                         self.timers.timers['validation_metrics'].end()
                         if (progress_bar == 'all' or progress_bar == 'validation'):
@@ -470,7 +470,7 @@ class Trainer:
 
                 # update metrics
                 if self.metrics != None:
-                    self.metrics.update(outputs, data)
+                    self.metrics.update(outputs, data, train_type="test")
 
                 # update progress bar
                 if (progress_bar == 'all' or progress_bar == 'test'):
@@ -538,7 +538,7 @@ class Trainer:
                 self.metrics.reset()
                 for ii, data in metrics_training_loop:
                     outputs = self.model(data)
-                    self.metrics.update(outputs, data)
+                    self.metrics.update(outputs, data, train_type="train")
                     if (progress_bar == 'all' or progress_bar == 'train'):
                         metrics_training_loop.set_description(f"Training Metrics: Epoch [{epoch+1}/{epochs}]")
             self.callbacks.evaluate_epoch(train_type='training')
@@ -572,7 +572,7 @@ class Trainer:
                     self.metrics.reset()
                     for ii, data in metrics_validation_loop:
                         outputs = self.model(data)
-                        self.metrics.update(outputs, data)
+                        self.metrics.update(outputs, data, train_type="validation")
                         if (progress_bar == 'all' or progress_bar == 'validation'):
                             metrics_validation_loop.set_description(f"Validation Metrics: Epoch [{epoch+1}/{epochs}]")
             self.callbacks.evaluate_epoch(train_type='validation')
@@ -601,7 +601,7 @@ class Trainer:
                 loss = self.criterion.loss(outputs, data)
                 if self.metrics != None:
                     self.metrics.reset()
-                    self.metrics.update(outputs, data)
+                    self.metrics.update(outputs, data, train_type="test")
                 if (progress_bar == 'all' or progress_bar == 'test'):
                     test_loop.set_description(f"Testing: Batch [{ii+1}/{dataset_loader.num_test_batches}]")
                     test_loop.set_postfix_str(f"loss={loss.item():.2e}")
@@ -688,7 +688,7 @@ class Trainer:
 
                 # update metrics
                 if self.metrics != None:
-                    self.metrics.update(outputs, data)
+                    self.metrics.update(outputs, data, train_type="inference")
 
                 # update progress bar
                 if (progress_bar == True):
