@@ -1,0 +1,54 @@
+# Test config file for Blip
+dataset:
+  # If this is the first time processing the simulation output
+  process_simulation: False
+  simulation_files:   []
+
+  # Otherwise, we want to just load the resulting data
+  dataset_type:   ""
+  dataset_files:  []
+  classes:        []
+
+loader:
+  loader_type:      ""
+  batch_size:       1
+  test_split:       0.0
+  test_seed:        0
+  validation_split: 0.0
+  validation_seed:  0
+  num_workers:      1
+
+training:
+  epochs:       1
+  checkpoint:   1
+  progress_bar: ""        # train, validation, test, all
+  rewrite_bar:      False # wether to leave bars after each epoch
+  save_predictions: True  # wether to save network outputs in original file
+  no_timing:    False     # wether to keep timing/memory info in callback
+  gpu:          True
+  gpu_device:   0
+  seed:         0
+
+model:
+  # uncomment the line below and specify the model
+  # to load from a checkpoint.
+  # load_model:   ".checkpoints/checkpoint_200.ckpt"
+
+  # multiple options for model_type: 
+  # [ "SparseUNet", "PointNet", "UNet", ... ]
+  # or a Composite.
+  model_type:       ""  
+
+criterion:
+    
+metrics:
+
+callbacks:
+
+optimizer:
+  optimizer_type: "Adam"
+  learning_rate:  0.01
+  betas:          [0.9, 0.999]
+  epsilon:        1e-08
+  weight_decay:   0.001
+  momentum:       0.9

@@ -1,3 +1,0 @@
-[08:04:28] [INFO] [arrakis]: constructing arrakis dataset.
-[08:04:29] [INFO] [arrakis]: creating arrakis plots directory 'plots/arrakis/'
-[08:04:29] [INFO] [arrakis]: generating training data from file: ../../../ArrakisEventDisplay/data/multiple_neutron_arrakis_gamma_test1.root

@@ -35,8 +35,6 @@ setup(
         #where='pointnet',
         exclude=['tests'],
     ),
-    #package_dir={'': 'pointnet'},
-    package_data={'': ['neutrino.png']},
     include_package_data=True,
 
     # classifiers

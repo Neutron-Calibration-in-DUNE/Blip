@@ -1,3 +1,0 @@
-[08:05:00] [INFO] [gain_test1_optimizer]: learning rate set to 0.001
-[08:05:00] [INFO] [gain_test1_optimizer]: momentum value set to 0.9
-[08:05:00] [INFO] [gain_test1_optimizer]: using the Adam optimizer

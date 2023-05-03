@@ -1,0 +1,107 @@
+# Test config file for Blip
+dataset:
+  # If this is the first time processing the simulation output
+  process_simulation: False
+  simulation_files:   [
+    "data/protodune_mc_0.root",
+    "data/protodune_mc_1.root",
+    "data/protodune_mc_2.root",
+    "data/protodune_mc_3.root",
+    "data/protodune_mc_4.root",
+    "data/protodune_mc_5.root",
+    "data/protodune_mc_6.root",
+    "data/protodune_mc_7.root",
+    "data/protodune_mc_8.root",
+    "data/protodune_mc_9.root",
+    "data/protodune_mc_10.root",
+  ]
+
+  # Otherwise, we want to just load the resulting data
+  dataset_type:   "blip_unet"
+  dataset_files:  [
+    "data/blip_simulation_0/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_1/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_2/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_3/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_4/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_5/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_6/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_7/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_8/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_9/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_10/point_cloud_view0_tpc0.npz",
+  ]
+  classes:        ["source", "shape", "particle"]
+
+loader:
+  loader_type:      "minkowski"
+  batch_size:       1
+  test_split:       0.1
+  test_seed:        100
+  validation_split: 0.2
+  validation_seed:  100
+  num_workers:      4
+
+training:
+  epochs:       25
+  checkpoint:   10
+  progress_bar: 'all'   # train, validation, test, all
+  rewrite_bar:  False   # wether to leave bars after each epoch
+  save_predictions: True  # wether to save network outputs in original file
+  no_timing:  False     # wether to keep timing/memory info in callback
+  gpu:        True
+  gpu_device: 0
+  seed:       42
+
+model:
+  # uncomment the line below and specify the model
+  # to load from a checkpoint.
+  # load_model:   ".checkpoints/checkpoint_200.ckpt"
+
+  # multiple options for model_type: 
+  # [ "SparseUNet", "PointNet", "UNet", ... ]
+  # or a Composite.
+  model_type:       "SparseUNet"  
+  in_channels:      1
+  classifications:  ["source", "shape", "particle"]
+  out_channels:     [8, 7, 32]  
+  filtrations:      [64, 128, 256, 512]    # the number of filters in each downsample
+  double_conv_params:
+    kernel_size:  3
+    stride:       1
+    dilation:     1
+    activation:   "relu"
+    dimension:    2
+    batch_norm:   True
+  conv_transpose_params:
+    kernel_size:  2
+    stride:       2
+    dilation:     1
+    dimension:    2
+  max_pooling_params:
+    kernel_size:  2
+    stride:       2
+    dilation:     1
+    dimension:    2
+
+criterion:
+  multiclass_nll_loss:
+    alpha:  1.0
+    
+metrics:
+  confusion_matrix:
+    inputs: ["source", "shape", "particle"]
+    number_of_classes: [8, 7, 32]
+
+callbacks:
+  loss:
+  confusion_matrix:
+    sig_acceptance: [0.1, 0.5, 0.9]
+
+optimizer:
+  optimizer_type: "Adam"
+  learning_rate:  0.01
+  betas:          [0.9, 0.999]
+  epsilon:        1e-08
+  weight_decay:   0.001
+  momentum:       0.9
