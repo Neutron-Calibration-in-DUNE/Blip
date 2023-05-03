@@ -34,6 +34,7 @@ dataset:
   classes:        ["source", "shape", "particle"]
 
 loader:
+  loader_type:      "minkowski"
   batch_size:       1
   test_split:       0.1
   test_seed:        100
