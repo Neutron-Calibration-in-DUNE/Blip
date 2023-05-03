@@ -12,6 +12,7 @@ from os.path import isfile, join
 import shutil
 from datetime import datetime
 import seaborn as sns
+import yaml
 
 def index_positions(
     positions,
@@ -192,7 +193,7 @@ def get_files(
 
 def save_model(
     name:   str='',
-    config: str='',
+    config_file: str='',
 ):
     # clean up directories first
     if name == '':
@@ -208,5 +209,4 @@ def save_model(
         shutil.move("models/", f"runs/{now}/")
     shutil.move(".logs/", f"runs/{now}")
     shutil.move(".checkpoints/", f"runs/{now}")
-    with open(f"runs/{now}/config.yml", "w") as file:
-        file.write(config)
+    shutil.copy(config_file, f"runs/{now}")

@@ -289,7 +289,7 @@ class SparseUNet(GenericModel):
             coordinates=torch.cat(
                 (data.batch.unsqueeze(1), data.pos),
                 dim=1
-            ), 
+            ).int(), 
             device=self.device
         )
         # record the skip connections

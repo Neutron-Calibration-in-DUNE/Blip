@@ -50,6 +50,8 @@ class Module:
         self.callbacks = None
         self.trainer = None
 
+        self.config_file = config_file
+
         if config_file != "":
             self.logger.info(f"parsing config file: {config_file}.")
             self.config = ConfigParser(config_file).data
@@ -88,9 +90,9 @@ class Module:
 
         # save model/data/config
         if 'run_name' in self.config['training'].keys():
-            save_model(self.config['training']['run_name'], self.config)
+            save_model(self.config['training']['run_name'], self.config_file)
         else:
-            save_model(self.name, self.config)
+            save_model(self.name, self.config_file)
 
     def parse_dataset(self):
         """

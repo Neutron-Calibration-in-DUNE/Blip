@@ -97,7 +97,7 @@ class BlipDataset(InMemoryDataset):
         self.logger.info(f"setting 'use_class_weights':  {self.use_class_weights}.")
         self.logger.info(f"setting 'normalize':     {self.normalized}.")
 
-        super().__init__(root, transform, pre_transform, pre_filter)
+        super().__init__(root, transform, pre_transform, pre_filter, log=False)
 
     @property
     def raw_file_names(self):
@@ -118,6 +118,7 @@ class BlipDataset(InMemoryDataset):
     def process(self):
         # Read data into huge `Data` list.
         index = 0
+        self.logger.info(f"processing {len(self.input_files)} files.")
         self.input_events = {
             raw_path: []
             for raw_path in self.input_files
@@ -151,6 +152,7 @@ class BlipDataset(InMemoryDataset):
                 self.input_events[raw_path].append(index)
                 index += 1
         self.number_of_events = index
+        self.logger.info(f"processed {self.number_of_events} events.")
     
     def append_input_files(self,
         dict_name,
