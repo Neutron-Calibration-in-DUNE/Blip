@@ -54,28 +54,35 @@ training:
   seed:       42
 
 model:
-  model_type:   "SparseUNet"
-  in_channels:  1
+  # uncomment the line below and specify the model
+  # to load from a checkpoint.
+  # load_model:   ".checkpoints/checkpoint_200.ckpt"
+
+  # multiple options for model_type: 
+  # [ "SparseUNet", "PointNet", "UNet", ... ]
+  # or a Composite.
+  model_type:       "SparseUNet"  
+  in_channels:      1
   classifications:  ["source", "shape", "particle"]
   out_channels:     [8, 7, 32]  
-  filtrations:      [16, 32, 64, 128]    # the number of filters in each downsample
-  # standard double_conv parameters
-  double_conv_kernel:   3
-  double_conv_stride:   1
-  double_conv_dilation: 1
-  double_conv_activation:   "relu"
-  double_conv_dimension:    2
-  double_conv_batch_norm:   True
-  # conv transpose layers
-  conv_transpose_kernel:    2
-  conv_transpose_stride:    2
-  conv_transpose_dilation:  1
-  conv_transpose_dimension: 2
-  # max pooling layer
-  max_pooling_kernel:     2
-  max_pooling_stride:     2
-  max_pooling_dilation:   1
-  max_pooling_dimension:  2
+  filtrations:      [64, 128, 256, 512]    # the number of filters in each downsample
+  double_conv_params:
+    kernel_size:  3
+    stride:       1
+    dilation:     1
+    activation:   "relu"
+    dimension:    2
+    batch_norm:   True
+  conv_transpose_params:
+    kernel_size:  2
+    stride:       2
+    dilation:     1
+    dimension:    2
+  max_pooling_params:
+    kernel_size:  2
+    stride:       2
+    dilation:     1
+    dimension:    2
 
 criterion:
   multiclass_nll_loss:
