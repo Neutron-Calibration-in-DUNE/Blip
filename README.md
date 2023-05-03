@@ -1,8 +1,7 @@
 ### Installation
 ----------------
 
-### Conda/Pip
--------------
+#### Conda/Pip
 Assuming you have CUDA >= 11.8 installed, the easiest way to start from scratch is to use anaconda together with pip.  First, create a new anaconda environment using python version 3.9
 ```bash
 conda create -n blip python=3.10
@@ -26,8 +25,7 @@ conda install -c nvidia cuda
 pip install uproot
 ```
 
-### Environment YAML
---------------------
+#### Environment YAML
 The easiet way to install is to create a conda environment dedicated to the API using the packages defined in ``environment_blip.yml``:
 ```bash
 conda env create -f environment_blip.yml
@@ -35,7 +33,7 @@ conda activate blip
 ```
 You can optionally add the flag ``-n <name>`` to specify a name for the environment.
 
-# MinkowskiEngine
+#### MinkowskiEngine
 With the libopenblas dependency, we can install MinkowskiEngine via the following
 ```bash
 sudo apt-get install libopenblas-dev
@@ -49,8 +47,7 @@ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 11
 sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 11
 ```
 
-### BLIP
---------
+#### BLIP
 From the main folder of Blip you can run:
 ```bash
 pip install .
@@ -58,7 +55,6 @@ pip install .
 which should install the API for you.
 
 #### Wilson Cluster
--------------------
 To install BLIP on the Wilson cluter at FNAL, we first need to set up our conda environment.  Due to the limited size of the home directory, we want to tell anaconda to download packages and install blip in a different directory.  Once logged in to the Wilson cluster, do the following to activate gnu8, openblas, cuda and condaforge
 ```bash
 module load gnu8/8.3.0
