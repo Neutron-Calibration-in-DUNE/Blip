@@ -283,9 +283,13 @@ class SparseUNet(GenericModel):
         (coords, feats, labels, weights, weights)
         to a ME.SparseTensor(feats, coords).
         Iterate over the module dictionary.
-        """
+        """ 
         x = ME.SparseTensor(
-            features=data.x.float(), coordinates=torch.cat((data.batch.unsqueeze(1), data.pos.int()),dim=1), 
+            features=data.x, 
+            coordinates=torch.cat(
+                (data.batch.unsqueeze(1), data.pos),
+                dim=1
+            ), 
             device=self.device
         )
         # record the skip connections

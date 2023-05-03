@@ -21,12 +21,7 @@ class WirePlanePointCloud:
         self.input_file = input_file
         self.uproot_file = uproot.open(self.input_file)
         self.point_cloud_data = self.uproot_file['ana/wire_plane_point_cloud'].arrays(library="np")
-        self.wire_plane_dir = f"plots/{self.name}/"
 
-        # create directories
-        if not os.path.isdir(self.wire_plane_dir):
-            self.logger.info(f"creating wire_plane plots directory '{self.wire_plane_dir}'")
-            os.makedirs(self.wire_plane_dir)
         if not os.path.isdir(f"data/{self.name}"):
             os.makedirs(f"data/{self.name}")
         
@@ -82,8 +77,13 @@ class WirePlanePointCloud:
                 particle_label_view = []
 
                 for event in range(len(channel)):
-                    #view_mask = (view[event] == v) & (channel[event] >= channel_range[0]) & (channel[event] < channel_range[1])
-                    view_mask = (channel[event] >= tpc_view[0]) & (channel[event] < tpc_view[1]) & (source_label[event] >= 0) & (shape_label[event] >= 0) & (particle_label[event] >= 0)
+                    view_mask = (
+                        (channel[event] >= tpc_view[0]) & 
+                        (channel[event] < tpc_view[1]) & 
+                        (source_label[event] >= 0) &        # we don't want 'undefined' points in our dataset.
+                        (shape_label[event] >= 0) &         # i.e., things with a label == -1
+                        (particle_label[event] >= 0)
+                    )
                     if np.sum(view_mask) > 0:
                         channel_view.append(channel[event][view_mask])
                         tdc_view.append(tdc[event][view_mask])
@@ -103,17 +103,13 @@ class WirePlanePointCloud:
 
                 adc_view_sum = np.array([sum(a) for a in adc_view])
                 adc_view_normalized = adc_view / adc_view_sum
-
-                unique_source_labels = np.unique(np.concatenate(source_label_view))
-                unique_shape_labels = np.unique(np.concatenate(shape_label_view))
-                unique_particle_labels = np.unique(np.concatenate(particle_label_view))
                 
-                point_cloud = np.array([
+                features = np.array([
                     np.vstack((channel_view[ii], tdc_view[ii], adc_view_normalized[ii])).T
                     for ii in range(len(channel_view))],
                     dtype=object
                 )
-                labels = np.array([
+                classes = np.array([
                     np.vstack((source_label_view[ii], shape_label_view[ii], particle_label_view[ii])).T
                     for ii in range(len(channel_view))],
                     dtype=object
@@ -123,7 +119,7 @@ class WirePlanePointCloud:
                     "who_created":      "me",
                     "when_created":     datetime.now().strftime("%m-%d-%Y-%H:%M:%S"),
                     "where_created":    socket.gethostname(),
-                    "num_events":       len(point_cloud),
+                    "num_events":       len(features),
                     "view":             v,
                     "features": {
                         "channel": 0, "tdc": 1, "adc": 2
@@ -142,16 +138,15 @@ class WirePlanePointCloud:
                     "particle_labels": {
                         key: value
                         for key, value in classification_labels["particle"].items()
-                    },          
+                    },      
+                    "adc_view_sum":     adc_view_sum,    
                 }
 
                     
                 np.savez(
-                    f"data/{self.name}/point_cloud_view{v}_{tpc}.npz",
-                    point_cloud=point_cloud,
-                    energy=energy,
-                    adc=adc_view,
-                    labels=labels,
+                    f"data/{self.name}/view{v}_{tpc}.npz",
+                    features=features,
+                    classes=classes,
                     meta=meta
                 )
 

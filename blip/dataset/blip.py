@@ -22,7 +22,9 @@ from blip.utils.logger import Logger
 class BlipDataset(InMemoryDataset):
     def __init__(self, 
         name:   str,
+        dataset_type:   str='voxel',
         input_files:    list=None,
+        positions:      list=None,
         features:       list=None,
         classes:        list=None,
         sample_weights: str=None,
@@ -37,6 +39,14 @@ class BlipDataset(InMemoryDataset):
         self.input_files = input_files
         self.logger = Logger(self.name, output="both", file_mode='w')
         self.logger.info(f"constructing dataset.")
+
+        self.dataset_type = dataset_type
+        if dataset_type == 'voxel':
+            self.position_type = torch.int
+        else:
+            self.position_type = torch.float
+
+        self.positions = positions
         self.features = features
         self.classes = classes
         self.sample_weights = sample_weights
@@ -56,27 +66,36 @@ class BlipDataset(InMemoryDataset):
         for input_file in self.input_files:
             data = np.load(input_file, allow_pickle=True)
             self.meta.append(data['meta'].item())
-        
+
+        self.position_indices = [
+            self.meta[0]["features"][position] 
+            for position in self.positions
+        ]
+        self.feature_indices = [
+            self.meta[0]["features"][feature] 
+            for feature in self.features
+        ]
         self.class_labels = {
             label: self.meta[0][f"{label}_labels"]
             for label in self.classes
         }
-        self.class_indices = {
-            label: self.meta[0]["classes"][label]
+        self.class_indices = [
+            self.meta[0]["classes"][label]
             for label in self.classes
-        }
+        ]
         self.number_classes = {
             label: len(self.class_labels[label])
             for label in self.classes
         }
-
-        self.logger.info(f"setting 'features': {self.features}.")
-        self.logger.info(f"setting 'classes': {self.classes}.")
-        self.logger.info(f"setting 'sample_weights': {self.sample_weights}.")
+        self.logger.info(f"setting 'dataset_type:   {self.dataset_type}.")
+        self.logger.info(f"setting 'positions':     {self.positions}.")
+        self.logger.info(f"setting 'features':      {self.features}.")
+        self.logger.info(f"setting 'classes':       {self.classes}.")
+        self.logger.info(f"setting 'sample_weights':{self.sample_weights}.")
         self.logger.info(f"setting 'class_weights': {self.class_weights}.")
         self.logger.info(f"setting 'use_sample_weights': {self.use_sample_weights}.")
-        self.logger.info(f"setting 'use_class_weights': {self.use_class_weights}.")
-        self.logger.info(f"setting 'normalize': {self.normalized}.")
+        self.logger.info(f"setting 'use_class_weights':  {self.use_class_weights}.")
+        self.logger.info(f"setting 'normalize':     {self.normalized}.")
 
         super().__init__(root, transform, pre_transform, pre_filter)
 
@@ -105,19 +124,22 @@ class BlipDataset(InMemoryDataset):
         }
         for jj, raw_path in enumerate(self.input_files):
             data = np.load(raw_path, allow_pickle=True)
-            pos = data['point_cloud']
-            adc = data['adc']
-            y = data['labels']
+            features = data['features']
+            classes = data['classes']
 
-            for ii in range(len(pos)):
-                
-                event = Data(
-                    pos=torch.tensor(pos[ii]).type(torch.float),
-                    x=torch.zeros(pos[ii].shape).type(torch.float),
-                    #y=torch.full((len(pos[ii]),1),y[ii]).type(torch.long), 
-                    category=torch.tensor(y[ii]).type(torch.long),
-                    summed_adc=torch.tensor(adc[ii]).type(torch.float)
-                )
+            for ii in range(len(features)):
+                if len(self.feature_indices) != 0:
+                    event = Data(
+                        pos=torch.tensor(features[ii][:, self.position_indices]).type(self.position_type),
+                        x=torch.tensor(features[ii][:, self.feature_indices]).type(torch.float),
+                        category=torch.tensor(classes[ii][:, self.class_indices]).type(torch.long),
+                    )
+                else:
+                    event = Data(
+                        pos=torch.tensor(features[ii][:, self.position_indices]).type(self.position_type),
+                        x=torch.ones(features[ii].shape).type(self.float),
+                        category=torch.tensor(classes[ii][:, self.class_indices]).type(torch.long),
+                    )
                 
                 if self.pre_filter is not None:
                     event = self.pre_filter(event)

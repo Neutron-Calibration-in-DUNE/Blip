@@ -47,19 +47,11 @@ class ConfusionMatrixMetric(GenericMetric):
                 size=(0, self.number_of_classes[ii] + 1),
                 dtype=torch.float, device=self.device
             )
-            self.batch_summed_adc[input] = torch.empty(
-                size=(0, 1),
-                dtype=torch.float, device=self.device
-            )
 
     def reset_probabilities(self):
         for ii, input in enumerate(self.inputs):
             self.batch_probabilities[input] = torch.empty(
                 size=(0, self.number_of_classes[ii] + 1),
-                dtype=torch.float, device=self.device
-            )
-            self.batch_summed_adc[input] = torch.empty(
-                size=(0, 1),
                 dtype=torch.float, device=self.device
             )
     
@@ -96,11 +88,6 @@ class ConfusionMatrixMetric(GenericMetric):
                 dim=0
             )
             
-            # get summed adc from inputs
-            self.batch_summed_adc[input] = torch.cat(
-                (self.batch_summed_adc[input], data.summed_adc.unsqueeze(1).to(self.device)),
-                dim=0
-            )
             self.metrics[input].update(outputs[input], data.category[:,ii].to(self.device))
 
     def compute(self):

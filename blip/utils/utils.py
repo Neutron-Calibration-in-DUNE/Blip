@@ -208,4 +208,5 @@ def save_model(
         shutil.move("models/", f"runs/{now}/")
     shutil.move(".logs/", f"runs/{now}")
     shutil.move(".checkpoints/", f"runs/{now}")
-    shutil.copy(config, f"runs/{now}")
+    with open(f"runs/{now}/config.yml", "w") as file:
+        file.write(config)

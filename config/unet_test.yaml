@@ -2,6 +2,7 @@
 dataset:
   # If this is the first time processing the simulation output
   process_simulation: False
+  simulation_type:    "wire_plane"
   simulation_files:   [
     "data/protodune_mc_0.root",
     "data/protodune_mc_1.root",
@@ -19,18 +20,20 @@ dataset:
   # Otherwise, we want to just load the resulting data
   dataset_type:   "blip_unet"
   dataset_files:  [
-    "data/blip_simulation_0/point_cloud_view0_tpc0.npz",
-    "data/blip_simulation_1/point_cloud_view0_tpc0.npz",
-    "data/blip_simulation_2/point_cloud_view0_tpc0.npz",
-    "data/blip_simulation_3/point_cloud_view0_tpc0.npz",
-    "data/blip_simulation_4/point_cloud_view0_tpc0.npz",
-    "data/blip_simulation_5/point_cloud_view0_tpc0.npz",
-    "data/blip_simulation_6/point_cloud_view0_tpc0.npz",
-    "data/blip_simulation_7/point_cloud_view0_tpc0.npz",
-    "data/blip_simulation_8/point_cloud_view0_tpc0.npz",
-    "data/blip_simulation_9/point_cloud_view0_tpc0.npz",
-    "data/blip_simulation_10/point_cloud_view0_tpc0.npz",
+    "data/blip_simulation_0/view0_tpc0.npz",
+    "data/blip_simulation_1/view0_tpc0.npz",
+    "data/blip_simulation_2/view0_tpc0.npz",
+    "data/blip_simulation_3/view0_tpc0.npz",
+    "data/blip_simulation_4/view0_tpc0.npz",
+    "data/blip_simulation_5/view0_tpc0.npz",
+    "data/blip_simulation_6/view0_tpc0.npz",
+    "data/blip_simulation_7/view0_tpc0.npz",
+    "data/blip_simulation_8/view0_tpc0.npz",
+    "data/blip_simulation_9/view0_tpc0.npz",
+    "data/blip_simulation_10/view0_tpc0.npz",
   ]
+  positions:      ["channel", "tdc"]
+  features:       ["adc"]
   classes:        ["source", "shape", "particle"]
 
 loader:

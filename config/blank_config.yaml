@@ -7,6 +7,8 @@ dataset:
   # Otherwise, we want to just load the resulting data
   dataset_type:   ""
   dataset_files:  []
+  positions:      []
+  features:       []
   classes:        []
 
 loader:

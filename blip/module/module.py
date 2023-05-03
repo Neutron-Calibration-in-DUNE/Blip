@@ -111,20 +111,15 @@ class Module:
                 )
                 wire_plane_dataset.generate_training_data()
         # check for the type of data set
-        if dataset_config["dataset_type"] == "wire_plane":
-            self.dataset = BlipDataset(
-                name = f"{self.name}_wire_plane_dataset",
-                input_files=dataset_config["dataset_files"],
-                root=".",
-                classes=dataset_config["classes"]
-            )
-        elif dataset_config["dataset_type"] == "blip_unet":
-            self.dataset = BlipUNetDataset(
-                name = f"{self.name}_wire_plane_dataset",
-                input_files=dataset_config["dataset_files"],
-                root=".",
-                classes=dataset_config["classes"]
-            )
+        self.dataset = BlipDataset(
+            name = f"{self.name}_dataset",
+            dataset_type=dataset_config["dataset_type"],
+            input_files=dataset_config["dataset_files"],
+            positions=dataset_config["positions"],
+            features=dataset_config["features"],
+            classes=dataset_config["classes"],
+            root=".",
+        )
     
     def parse_loader(self):
         """

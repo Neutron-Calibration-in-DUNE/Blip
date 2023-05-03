@@ -41,10 +41,6 @@ class ConfusionMatrixCallback(GenericCallback):
         self.validation_probabilities = None
         self.test_probabilities = None
 
-        self.training_summed_adc = None
-        self.validation_summed_adc = None
-        self.test_summed_adc = None
-
         self.training_confusion = None
         self.validation_confusion = None
         self.test_confusion = None
@@ -53,10 +49,6 @@ class ConfusionMatrixCallback(GenericCallback):
         self.training_probabilities = None
         self.validation_probabilities = None
         self.test_probabilities = None
-
-        self.training_summed_adc = None
-        self.validation_summed_adc = None
-        self.test_summed_adc = None
 
         self.training_confusion = None
         self.validation_confusion = None
@@ -67,15 +59,12 @@ class ConfusionMatrixCallback(GenericCallback):
     ):  
         if train_type == "training":
             self.training_probabilities = self.metric.batch_probabilities
-            self.training_summed_adc = self.metric.batch_summed_adc
             self.training_confusion = self.metric.compute()
         elif train_type == "validation":
             self.validation_probabilities = self.metric.batch_probabilities
-            self.validation_summed_adc = self.metric.batch_summed_adc
             self.validation_confusion = self.metric.compute()
         else:
             self.test_probabilities = self.metric.batch_probabilities
-            self.test_summed_adc = self.metric.batch_summed_adc
             self.test_confusion = self.metric.compute()
         self.metric.reset_probabilities()
 
