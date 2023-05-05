@@ -81,11 +81,12 @@ class ConfusionMatrixCallback(GenericCallback):
                     self.training_confusion[input].cpu().numpy(),
                     display_labels = self.metric.labels[input]
                 ) 
-                training_display.figure_.set_figwidth(len(self.metric.labels[input]))
-                training_display.figure_.set_figheight(len(self.metric.labels[input]))
                 training_display.plot(
                     xticks_rotation="vertical"
-                )      
+                ) 
+                training_display.figure_.set_figwidth(len(self.metric.labels[input]))
+                training_display.figure_.set_figheight(len(self.metric.labels[input]))
+                     
             plt.suptitle(f"Training Confusion Matrix\nClass {input}")
             plt.tight_layout()
             plt.savefig(f"plots/confusion_matrix/training_confusion_matrix_{input}.png")
@@ -101,11 +102,12 @@ class ConfusionMatrixCallback(GenericCallback):
                     self.validation_confusion[input].cpu().numpy(),
                     display_labels = self.metric.labels[input]
                 ) 
-                validation_display.figure_.set_figwidth(len(self.metric.labels[input]))
-                validation_display.figure_.set_figheight(len(self.metric.labels[input]))
                 validation_display.plot(
                     xticks_rotation="vertical"
-                )             
+                ) 
+                validation_display.figure_.set_figwidth(len(self.metric.labels[input]))
+                validation_display.figure_.set_figheight(len(self.metric.labels[input]))
+            
             plt.suptitle(f"Validation Confusion Matrix\nClass {input}")
             plt.tight_layout()
             plt.savefig(f"plots/confusion_matrix/validation_confusion_matrix_{input}.png")
@@ -343,11 +345,12 @@ class ConfusionMatrixCallback(GenericCallback):
                     self.test_confusion[input].cpu().numpy(),
                     display_labels = self.metric.labels[input]
                 ) 
-                test_display.figure_.set_figwidth(len(self.metric.labels[input]))
-                test_display.figure_.set_figheight(len(self.metric.labels[input]))
                 test_display.plot(
                     xticks_rotation="vertical"
-                )      
+                )
+                test_display.figure_.set_figwidth(len(self.metric.labels[input]))
+                test_display.figure_.set_figheight(len(self.metric.labels[input]))
+                      
             plt.suptitle(f"Test Confusion Matrix\nClass {input}")
             plt.tight_layout()
             plt.savefig(f"plots/confusion_matrix/test_confusion_matrix_{input}.png")
