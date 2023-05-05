@@ -27,6 +27,7 @@ class BlipDataset(InMemoryDataset):
         positions:      list=None,
         features:       list=None,
         classes:        list=None,
+        consolidate_classes:    list=None,
         sample_weights: str=None,
         class_weights:  str=None,
         normalized:     bool=True,
@@ -49,6 +50,8 @@ class BlipDataset(InMemoryDataset):
         self.positions = positions
         self.features = features
         self.classes = classes
+        self.consolidate_classes = consolidate_classes
+
         self.sample_weights = sample_weights
         self.class_weights = class_weights
         self.number_of_events = 0
@@ -79,6 +82,40 @@ class BlipDataset(InMemoryDataset):
             label: self.meta[0][f"{label}_labels"]
             for label in self.classes
         }
+        
+        # determine if the list of class labels 
+        # contains everything from the dataset list.
+        # first, we check if [""] is an entry in the
+        # consolidation list, and if so, replace it with
+        # the left over classes which are not mentioned.
+        if self.consolidate_classes is not None:
+            for label in self.class_labels:
+                all_labels = list(self.class_labels[label].values())
+                for ii, labels in enumerate(self.consolidate_classes[label]):
+                    for jj, item in enumerate(labels):
+                        if item in all_labels:
+                            all_labels.remove(item)
+                if len(all_labels) != 0:
+                    if [""] in self.consolidate_classes[label]:
+                        for ii, labels in enumerate(self.consolidate_classes[label]):
+                            if labels == [""]:
+                                self.consolidate_classes[label][ii] = all_labels
+                    else:
+                        self.logger.error(
+                            f"consolidate_classes does not contain an exhaustive" +
+                            f" list for label '{label}'!  Perhaps you forgot to include" +
+                            f" the ['']? Leftover classes are {all_labels}."
+                        )
+            # now we create a map from old indices to new
+            self.consolidation_map = {
+                label: {}
+                for label in self.classes
+            }
+            for label in self.class_labels:
+                for key, val in self.class_labels[label].items():
+                    for jj, labels in enumerate(self.consolidate_classes[label]):
+                        if val in labels:
+                            self.consolidation_map[label][key] = jj
         self.class_indices = [
             self.meta[0]["classes"][label]
             for label in self.classes
@@ -98,6 +135,14 @@ class BlipDataset(InMemoryDataset):
         self.logger.info(f"setting 'normalize':     {self.normalized}.")
 
         super().__init__(root, transform, pre_transform, pre_filter, log=False)
+
+    def consolidate_class(self, 
+        classes
+    ):
+        for ii in range(len(classes)):
+            for jj, label in enumerate(self.consolidation_map):
+                classes[ii][jj] = self.consolidation_map[label][classes[ii][jj]]
+        return classes
 
     @property
     def raw_file_names(self):
@@ -129,19 +174,22 @@ class BlipDataset(InMemoryDataset):
             classes = data['classes']
 
             for ii in range(len(features)):
+                if self.consolidate_classes is not None:
+                    event_classes = self.consolidate_class(classes[ii][:, self.class_indices])
+                else:
+                    event_classes = classes[ii][:, self.class_indices]
                 if len(self.feature_indices) != 0:
                     event = Data(
                         pos=torch.tensor(features[ii][:, self.position_indices]).type(self.position_type),
                         x=torch.tensor(features[ii][:, self.feature_indices]).type(torch.float),
-                        category=torch.tensor(classes[ii][:, self.class_indices]).type(torch.long),
+                        category=torch.tensor(event_classes).type(torch.long),
                     )
                 else:
                     event = Data(
                         pos=torch.tensor(features[ii][:, self.position_indices]).type(self.position_type),
-                        x=torch.ones(features[ii].shape).type(self.float),
-                        category=torch.tensor(classes[ii][:, self.class_indices]).type(torch.long),
+                        x=torch.ones((len(features[ii]),1)).type(torch.float),
+                        category=torch.tensor(event_classes).type(torch.long),
                     )
-                
                 if self.pre_filter is not None:
                     event = self.pre_filter(event)
 

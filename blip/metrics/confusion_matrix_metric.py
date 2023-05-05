@@ -17,6 +17,7 @@ class ConfusionMatrixMetric(GenericMetric):
         inputs:             list=[''],
         number_of_classes:  list=[],
         when_to_compute:    str="all",
+        consolidate_classes:   dict=None,
     ):
         """
         """
@@ -24,7 +25,7 @@ class ConfusionMatrixMetric(GenericMetric):
             name,
             shape,
             inputs,
-            when_to_compute
+            when_to_compute,
         )
         self.number_of_classes = number_of_classes
         self.inputs = inputs
@@ -33,16 +34,20 @@ class ConfusionMatrixMetric(GenericMetric):
         self.metrics = {}
         self.batch_probabilities = {}
         self.batch_summed_adc = {}
+        if consolidate_classes is not None:
+            self.consolidate_classes = True
+        else:
+            self.consolidate_classes = False
         self.labels = {}
 
         for ii, input in enumerate(self.inputs):
-            if self.number_of_classes[ii] == 2:
-                self.metrics[input] = ConfusionMatrix(task="binary", number_of_classes=2)
+            self.metrics[input] = MulticlassConfusionMatrix(
+                num_classes=self.number_of_classes[ii]
+            )
+            if consolidate_classes is not None:
+                self.labels[input] = consolidate_classes[input]
             else:
-                self.metrics[input] = MulticlassConfusionMatrix(
-                    num_classes=self.number_of_classes[ii]
-                )
-            self.labels[input] = classification_labels[input].values()
+                self.labels[input] = classification_labels[input].values()
             self.batch_probabilities[input] = torch.empty(
                 size=(0, self.number_of_classes[ii] + 1),
                 dtype=torch.float, device=self.device
@@ -79,10 +84,9 @@ class ConfusionMatrixMetric(GenericMetric):
                 dim=1, dtype=torch.float
             )
             predictions = torch.cat(
-                (softmax, data.category[:,ii].unsqueeze(1).to(self.device)),
+                (softmax, data.category[:, ii].unsqueeze(1).to(self.device)),
                 dim=1
             ).to(self.device)
-
             self.batch_probabilities[input] = torch.cat(
                 (self.batch_probabilities[input], predictions),
                 dim=0

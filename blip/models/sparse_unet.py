@@ -141,7 +141,7 @@ class SparseUNet(GenericModel):
     """
     def __init__(self,
         name:   str='my_unet',      # name of the model
-        config:    dict=sparse_unet_params    # configuration parameters
+        config: dict=sparse_unet_params    # configuration parameters
     ):
         super(SparseUNet, self).__init__(name, config)
         self.name = name
@@ -152,7 +152,18 @@ class SparseUNet(GenericModel):
             if item not in self.config:
                 self.logger.error(f"parameter {item} was not specified in config file {self.config}")
                 raise AttributeError
-        
+        if ((self.config["double_conv_params"]["dimension"] != 
+             self.config["conv_transpose_params"]["dimension"]) or 
+            (self.config["double_conv_params"]["dimension"] !=
+             self.config["max_pooling_params"]["dimension"])):
+            self.logger.error(
+                "dimensions for 'double_conv_params', 'conv_transpose_params' and" +  
+                f"'max_pooling_params' (with values {self.config['double_conv_params']['dimension']}" +
+                f", {self.config['conv_transpose_params']['dimension']} and " + 
+                f"{self.config['max_pooling_params']['dimension']}) do not match!"
+            )
+            raise AttributeError
+
         # construct the model
         self.construct_model()
         self.save_model(flag='init')

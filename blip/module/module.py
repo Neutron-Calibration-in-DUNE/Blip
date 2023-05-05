@@ -69,6 +69,7 @@ class Module:
     def parse_config(self):
         """
         """
+        self.check_config()
         self.parse_dataset()
         self.parse_loader()
         self.parse_model()
@@ -94,6 +95,25 @@ class Module:
         else:
             save_model(self.name, self.config_file)
 
+    def check_config(self):
+        dataset_config = self.config['dataset']
+        loader_config = self.config['loader']
+        model_config = self.config['model']
+        criterion_config = self.config['criterion']
+        optimizer_config = self.config['optimizer']
+        metrics_config = self.config['metrics']
+        callbacks_config = self.config['callbacks']
+
+        if dataset_config["consolidate_classes"] is not None:
+            for item in dataset_config["consolidate_classes"]:
+                if item not in dataset_config["classes"]:
+                    self.logger.error(
+                        f"(dataset config) specified class in 'dataset: consolidate_classes' [{item}]" + 
+                        f" not in 'dataset: consolidate_classes [{dataset_config['consolidate_classes']}]"
+                    )
+        for item in metrics_config.keys():
+            self.config["metrics"][item]["consolidate_classes"] = dataset_config["consolidate_classes"]
+        
     def parse_dataset(self):
         """
         """
@@ -120,6 +140,9 @@ class Module:
             positions=dataset_config["positions"],
             features=dataset_config["features"],
             classes=dataset_config["classes"],
+            consolidate_classes=dataset_config["consolidate_classes"],
+            sample_weights=dataset_config["sample_weights"],
+            class_weights=dataset_config["class_weights"],
             root=".",
         )
     

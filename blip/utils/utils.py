@@ -77,7 +77,7 @@ def get_method_arguments(method):
         default_params = [None for item in args]
         if argparse.defaults != None:
             for ii, value in enumerate(argparse.defaults):
-                default_params[-(ii+1)] = value
+                default_params[ii] = value
         argdict = {item: default_params[ii] for ii, item in enumerate(args)}
         return argdict
     except:

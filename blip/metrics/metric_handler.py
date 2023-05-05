@@ -16,7 +16,7 @@ class MetricHandler:
     """
     def __init__(self,
         name:   str,
-        config:    dict={},
+        config: dict={},
         metrics:list=[],
         labels: list=[],
     ):
