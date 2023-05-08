@@ -141,7 +141,6 @@ class WirePlanePointCloud:
                     },      
                     "adc_view_sum":     adc_view_sum,    
                 }
-
                     
                 np.savez(
                     f"data/{self.name}/view{v}_{tpc}.npz",
