@@ -21,16 +21,10 @@ from bokeh.server.server import Server
 from bokeh.command.util import build_single_handler_applications
 from bokeh.document import Document
 
-# import holoviews as hv
-# from holoviews import opts
-# from holoviews.operation.datashader import datashade, shade, dynspread, spread
-# from holoviews.operation.datashader import rasterize, ResamplingOperation
-# from holoviews.operation import decimate
-# hv.extension('bokeh')
 import pandas as pd
 
-# import panel as pn
 import os
+from pathlib import Path
 import imageio
 
 from blip.utils.logger import Logger
@@ -41,9 +35,13 @@ class BlipDisplay:
     def __init__(self,
         document = None
     ):
-        self.file_folder = '.'
+        self.file_folder = str(Path().absolute())
+        self.available_folders = []
+        self.update_available_folders()
         self.available_files = []
         self.input_file = ''
+        self.update_available_files()
+        
         if document == None:
             self.document = curdoc()
         else:
@@ -51,66 +49,84 @@ class BlipDisplay:
 
         self.construct_widgets(self.document)
 
+    def update_available_folders(self):
+        self.available_folders = ['.', '..'] + [
+            f.parts[-1] for f in Path(self.file_folder).iterdir() if f.is_dir()
+        ]
+
+    def update_available_files(self):
+        self.available_files = [
+            f.parts[-1] for f in Path(self.file_folder).iterdir() if f.is_file()
+        ]
+
     def construct_widgets(self,
         document
     ):
         self.input_figure = figure()
         self.output_figure = figure()
 
-        # first column
-        # self.file_input = FileInput(accept='.txt')
-        # self.file_input.on_change('filename', self.update_folder)
-        # self.file_list = MultiSelect(title='Files in folder', height=300, width=200)
-        # self.file_list.on_change('value', self.select_file)
-        # self.update_file_list(self.file_folder)
-
-        self.file_folder_input = TextInput(value="data/", title="File folder location:")
-        self.file_folder_input.on_change("value", self.update_file_folder)
-        self.file_multi_select = Select(title="Blip file", value="", options=self.available_files)
-        self.file_multi_select.on_change("value", self.update_input_file)
-
-        self.button = Button(label="Foo", button_type="success")
-        # self.button.on_click()
+        self.file_folder_select = Select(
+            title=f"Blip folder: ~/{Path(self.file_folder).parts[-1]}",
+            value=".",
+            options=self.available_folders,
+            width_policy='fixed', width=350
+        )
+        self.file_folder_select.on_change(
+            "value", self.update_file_folder
+        )
+        self.file_select = Select(
+            title="Blip file", value="", 
+            options=self.available_files,
+            width_policy='fixed', width=350
+        )
+        if len(self.available_files) > 0:
+            self.file_select.value = self.available_files[0]
+            self.input_file = self.file_select.value
+        self.file_select.on_change(
+            "value", self.update_input_file
+        )
+        self.button = Button(
+            label="Load file", 
+            button_type="success",
+            width_policy='fixed', width=100
+        )
+        self.button.on_click(
+            self.load_input_file
+        )
+        # construct the layout
         self.layout = row(
             column(
-                self.file_folder_input,
-                self.file_multi_select
-                # self.file_input,
-                # self.file_list
+                self.file_folder_select,
+                self.file_select,
+                self.button,
+                width_policy = 'fixed', width=400
             ),
             column(self.input_figure),
-            column(self.output_figure, self.button)
+            column(self.output_figure)
         )
 
         document.add_root(self.layout)
         document.title = "Blip Display"
-
-    def update_folder(self, attr, old, new):
-        self.folder = os.path.dirname(new)
-        self.update_file_list(self.folder)
-
-    def update_file_list(self, folder):
-        self.file_list.items = ['..'] + sorted(os.listdir(folder))
-
-    def select_file(self, attr, old, new):
-        selected_file = self.file_list.value
-        if selected_file == '..':
-            parent_folder = os.path.abspath(os.path.join(self.folder, os.pardir))
-            self.update_file_list(parent_folder)
-            self.folder = parent_folder
-        elif os.path.isfile(os.path.join(self.folder, selected_file)):
-            print(f'Selected file: {selected_file}')
-        elif os.path.isdir(os.path.join(self.folder, selected_file)):
-            self.folder = os.path.join(self.folder, selected_file)
-            self.update_file_list(self.folder)
     
     def update_file_folder(self, attr, old, new):
-        if os.path.isdir(new):
-            self.file_folder = new
-            self.available_files = os.listdir(self.file_folder)
-            self.file_multi_select.options = self.available_files
+        if new == '..':
+            self.file_folder = str(Path(self.file_folder).parent)
+        elif new == '.':
+            pass
         else:
-            self.file_folder_input.title = f"File folder location: ({new} not valid!)"
+            self.file_folder = str(Path(self.file_folder)) + "/" + new
+        self.update_available_folders()
+        self.file_folder_select.options = self.available_folders
+        self.file_folder_select.title = title=f"Blip folder: ~/{Path(self.file_folder).parts[-1]}"
+        self.file_folder_select.value = '.'
+
+        self.update_available_files()
+        self.file_select.options = self.available_files
+        if len(self.available_files) > 0:
+            self.file_select.value = self.available_files[0]
     
     def update_input_file(self, attr, old, new):
         self.input_file = new
+    
+    def load_input_file(self):
+        print(self.input_file)

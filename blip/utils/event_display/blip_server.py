@@ -5,7 +5,7 @@ script and run it in the notebook.
 
 To run the bokeh server from a terminal + browser,
 run the command:
-    > bokeh server --show blip_server.py
+    > bokeh server --show blip_http_server.py
 """
 from bokeh.io import output_notebook, show
 from bokeh.layouts import column
@@ -34,6 +34,3 @@ def create_server():
     output_notebook()
     show(app, notebook_url="localhost:8888")
     return blip_server
-
-blip_display = BlipDisplay()
-curdoc().add_root(blip_display.layout)
