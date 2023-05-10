@@ -1,7 +1,7 @@
 ### Installation
 ----------------
 
-#### Conda/Pip
+<!-- #### Conda/Pip
 Assuming you have CUDA >= 11.8 installed, the easiest way to start from scratch is to use anaconda together with pip.  First, create a new anaconda environment using python version 3.9
 ```bash
 conda create -n blip python=3.10
@@ -23,7 +23,7 @@ Finally, we install several other dependecies,
 conda install matplotlib pyyaml pandas seaborn
 conda install -c nvidia cuda
 pip install uproot
-```
+``` -->
 
 #### Environment YAML
 The easiet way to install is to create a conda environment dedicated to the API using the packages defined in ``environment_blip.yml``:
@@ -45,6 +45,20 @@ You may need to switch to a different version of GCC in order to install CUDA.  
 sudo apt -y install gcc-11 g++-11
 sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 11
 sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 11
+```
+You'll then need to select the alternative version
+```bash
+$ sudo update-alternatives --config gcc
+
+There are 2 choices for the alternative gcc (providing /usr/bin/gcc).
+
+  Selection    Path             Priority   Status
+------------------------------------------------------------
+* 0            /usr/bin/gcc-12   12        auto mode
+  1            /usr/bin/gcc-11   11        manual mode
+  2            /usr/bin/gcc-12   12        manual mode
+
+Press <enter> to keep the current choice[*], or type selection number: 1
 ```
 
 #### BLIP

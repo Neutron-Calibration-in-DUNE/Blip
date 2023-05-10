@@ -1,0 +1,21 @@
+package:
+  name: blip
+  version: 0.1.0
+
+source:
+  git_url: https://github.com/Neutron-Calibration-in-DUNE/Blip
+  git_rev: 0.1.0
+
+build:
+  number: 0
+
+requirements:
+  run:
+    - python
+about:
+  summary: The BLIP (Blips and Low-energy Interaction PointNet) is
+    a package for training neural networks on liquid argon time
+    projection chamber (LArTPC) data for the purposes of event
+    reconstruction, analysis, etc.  This module also contains 
+    classes for constructing training data sets, and an event
+    display.  
