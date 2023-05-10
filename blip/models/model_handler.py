@@ -4,7 +4,7 @@ Container for models
 from blip.utils.logger import Logger
 from blip.models import GenericModel, PointNetPlusPlus
 from blip.models import VietorisRipsNet
-from blip.models import SparseUNet
+from blip.models import SparseUNet, SparseUResNet, SparseUResNeXt
 from blip.utils.utils import get_method_arguments
 
 class ModelHandler:
@@ -37,7 +37,9 @@ class ModelHandler:
         self.available_models = {
             'PointNet++':       PointNetPlusPlus,
             'VietorisRipsNet':  VietorisRipsNet,
-            'SparseUNet':       SparseUNet
+            'SparseUNet':       SparseUNet,
+            'SparseUResNet':    SparseUResNet,
+            'SparseUResNeXt':   SparseUResNeXt
         }
         # check config
         if self.config["model_type"] not in self.available_models.keys():

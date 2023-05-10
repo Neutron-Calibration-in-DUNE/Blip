@@ -4,9 +4,10 @@ Container for generic losses
 from blip.utils.logger import Logger
 from blip.losses import GenericLoss
 from blip.losses import L1Loss, L2Loss, NTXEntropyLoss
-from blip.losses import SparseCrossEntropyLoss
+from blip.losses import CrossEntropyLoss
 from blip.losses import NegativeLogLikelihoodLoss
 from blip.losses import MultiClassNegativeLogLikelihoodLoss
+from blip.losses import MultiClassCrossEntropyLoss
 from blip.utils.utils import get_method_arguments
 
 class LossHandler:
@@ -40,9 +41,10 @@ class LossHandler:
             'l1_loss':                  L1Loss,
             'l2_loss':                  L2Loss,
             'ntx_entropy_loss':         NTXEntropyLoss,
-            'sparse_cross_entropy_loss':SparseCrossEntropyLoss,
+            'ce_loss':                  CrossEntropyLoss,
             'nll_loss':                 NegativeLogLikelihoodLoss,
             'multiclass_nll_loss':      MultiClassNegativeLogLikelihoodLoss,
+            'multiclass_ce_loss':       MultiClassCrossEntropyLoss
         }
         # check config
         for item in self.cfg.keys():

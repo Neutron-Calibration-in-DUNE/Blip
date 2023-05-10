@@ -10,4 +10,6 @@ from .pointnet_plus_plus import PointNetPlusPlus
 from .vietoris_rips_net import VietorisRipsNet
 from .unet import UNet
 from .sparse_unet import SparseUNet
+from .sparse_uresnet import SparseUResNet
+from .sparse_uresnext import SparseUResNeXt
 from .model_handler import ModelHandler

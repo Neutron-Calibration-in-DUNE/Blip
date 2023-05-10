@@ -1,5 +1,5 @@
 """
-SparseUNet implementation using MinkowskiEngine
+SparseUResNeXt implementation using MinkowskiEngine
 """
 import numpy as np
 import torch
@@ -113,7 +113,7 @@ class DoubleConv(ME.MinkowskiNetwork):
     Here are a set of standard UNet parameters, which must be 
     adjusted by the user for each application
 """
-sparse_unet_params = {
+sparse_uresnext_params = {
     'in_channels':  1,
     'out_channels': 1,  # this is the number of classes for the semantic segmentation
     'filtrations':  [64, 128, 256, 512],    # the number of filters in each downsample
@@ -139,19 +139,19 @@ sparse_unet_params = {
     }
 }
 
-class SparseUNet(GenericModel):
+class SparseUResNeXt(GenericModel):
     """
     """
     def __init__(self,
         name:   str='my_unet',      # name of the model
-        config: dict=sparse_unet_params    # configuration parameters
+        config: dict=sparse_uresnext_params    # configuration parameters
     ):
-        super(SparseUNet, self).__init__(name, config)
+        super(SparseUResNeXt, self).__init__(name, config)
         self.name = name
         self.config = config
         # check config
-        self.logger.info(f"checking SparseUNet architecture using config: {self.config}")
-        for item in sparse_unet_params.keys():
+        self.logger.info(f"checking SparseUResNeXt architecture using config: {self.config}")
+        for item in sparse_uresnext_params.keys():
             if item not in self.config:
                 self.logger.error(f"parameter {item} was not specified in config file {self.config}")
                 raise AttributeError

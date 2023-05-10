@@ -6,7 +6,7 @@ import torch.nn as nn
 
 from blip.losses import GenericLoss
 
-class CrossEntropyLoss(GenericLoss):
+class MultiClassCrossEntropyLoss(GenericLoss):
     """
     """
     def __init__(self,
@@ -14,7 +14,7 @@ class CrossEntropyLoss(GenericLoss):
         name:   str='cross_entropy_loss',
         reduction:  str='mean'
     ):
-        super(CrossEntropyLoss, self).__init__(name)
+        super(MultiClassCrossEntropyLoss, self).__init__(name)
         self.alpha = alpha
         self.reduction = reduction
         self.cross_entropy_loss = nn.CrossEntropyLoss(reduction=self.reduction)
@@ -24,11 +24,8 @@ class CrossEntropyLoss(GenericLoss):
         data,
     ):
         """Computes and returns/saves loss information"""
-        embeddings = outputs['classifications']
-        augmented_labels = torch.cat([
-            data.category.to(self.device) 
-            for ii in range(int(len(outputs['reductions'])/len(data.category)))
-        ])
-        loss = self.cross_entropy_loss(embeddings, augmented_labels)
+        loss = 0
+        for ii, classes in enumerate(outputs.keys()):
+            loss += self.cross_entropy_loss(outputs[classes], data.category[:,ii].to(self.device))
         self.batch_loss = torch.cat((self.batch_loss, torch.tensor([[loss]], device=self.device)), dim=0)
         return self.alpha * loss

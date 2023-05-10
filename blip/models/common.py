@@ -15,3 +15,9 @@ normalizations = {
     'batch_norm',
     'bias',
 }
+
+class Identity(nn.Module):
+    def __init__(self):
+        super(Identity, self).__init__()
+    def forward(self, input):
+        return input

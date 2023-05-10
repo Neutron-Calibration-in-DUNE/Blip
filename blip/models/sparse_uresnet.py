@@ -1,5 +1,5 @@
 """
-SparseUNet implementation using MinkowskiEngine
+SparseUResNet implementation using MinkowskiEngine
 """
 import numpy as np
 import torch
@@ -14,6 +14,7 @@ import os
 import csv
 
 from blip.models import GenericModel
+from blip.models.common import Identity
 
 activations = {
     'relu':     ME.MinkowskiReLU(),
@@ -70,9 +71,16 @@ class DoubleConv(ME.MinkowskiNetwork):
         """
         Create model dictionary
         """
-        _dict = OrderedDict()
+        if self.in_channels != self.out_channels:
+            self.residual = ME.MinkowskiLinear(
+                self.in_channels, self.out_channels, bias=self.bias
+            )
+        else:
+            self.residual = Identity()
+        _first_conv = OrderedDict()
+        _second_conv = OrderedDict()
         # create conv layer
-        _dict[f'{self.name}_conv1'] = ME.MinkowskiConvolution(
+        _first_conv[f'{self.name}_conv1'] = ME.MinkowskiConvolution(
             in_channels  = self.in_channels,
             out_channels = self.out_channels,
             kernel_size  = self.kernel_size,
@@ -82,10 +90,9 @@ class DoubleConv(ME.MinkowskiNetwork):
             dimension    = self.dimension
         )
         if self.batch_norm:
-            _dict[f'{self.name}_batch_norm1'] = ME.MinkowskiBatchNorm(self.out_channels)
-        _dict[f'{self.name}_{self.activation}1'] = self.activation_fn
+            _first_conv[f'{self.name}_batch_norm1'] = ME.MinkowskiBatchNorm(self.out_channels)
         # second conv layer
-        _dict[f'{self.name}_conv2'] = ME.MinkowskiConvolution(
+        _second_conv[f'{self.name}_conv2'] = ME.MinkowskiConvolution(
             in_channels  = self.out_channels,
             out_channels = self.out_channels,
             kernel_size  = self.kernel_size,
@@ -95,9 +102,9 @@ class DoubleConv(ME.MinkowskiNetwork):
             dimension    = self.dimension
         )
         if self.batch_norm:
-            _dict[f'{self.name}_batch_norm2'] = ME.MinkowskiBatchNorm(self.out_channels)
-        _dict[f'{self.name}_{self.activation}2'] = self.activation_fn
-        self.module_dict = nn.ModuleDict(_dict)
+            _second_conv[f'{self.name}_batch_norm2'] = ME.MinkowskiBatchNorm(self.out_channels)
+        self.first_conv_dict = nn.ModuleDict(_first_conv)
+        self.second_conv_dict = nn.ModuleDict(_second_conv)
 
     def forward(self, 
         x
@@ -105,15 +112,21 @@ class DoubleConv(ME.MinkowskiNetwork):
         """
         Iterate over the module dictionary.
         """
-        for layer in self.module_dict.keys():
-            x = self.module_dict[layer](x)
+        identity = self.residual(x)
+        for layer in self.first_conv_dict.keys():
+            x = self.first_conv_dict[layer](x)
+        x = self.activation_fn(x)
+        for layer in self.second_conv_dict.keys():
+            x = self.second_conv_dict[layer](x)
+        x += identity
+        x = self.activation_fn(x)
         return x
 
 """ 
     Here are a set of standard UNet parameters, which must be 
     adjusted by the user for each application
 """
-sparse_unet_params = {
+sparse_uresnet_params = {
     'in_channels':  1,
     'out_channels': 1,  # this is the number of classes for the semantic segmentation
     'filtrations':  [64, 128, 256, 512],    # the number of filters in each downsample
@@ -139,19 +152,19 @@ sparse_unet_params = {
     }
 }
 
-class SparseUNet(GenericModel):
+class SparseUResNet(GenericModel):
     """
     """
     def __init__(self,
         name:   str='my_unet',      # name of the model
-        config: dict=sparse_unet_params    # configuration parameters
+        config: dict=sparse_uresnet_params    # configuration parameters
     ):
-        super(SparseUNet, self).__init__(name, config)
+        super(SparseUResNet, self).__init__(name, config)
         self.name = name
         self.config = config
         # check config
-        self.logger.info(f"checking SparseUNet architecture using config: {self.config}")
-        for item in sparse_unet_params.keys():
+        self.logger.info(f"checking SparseUResNet architecture using config: {self.config}")
+        for item in sparse_uresnet_params.keys():
             if item not in self.config:
                 self.logger.error(f"parameter {item} was not specified in config file {self.config}")
                 raise AttributeError
