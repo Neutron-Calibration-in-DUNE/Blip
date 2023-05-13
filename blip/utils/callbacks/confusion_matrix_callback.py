@@ -18,10 +18,11 @@ class ConfusionMatrixCallback(GenericCallback):
     """
     """
     def __init__(self,
-        metrics_list,
-        sig_acceptance: list=[0.1,0.5,0.9]
+        metrics_list: list=[],
+        sig_acceptance: list=[0.1,0.5,0.9],
+        device: str='cpu'
     ):  
-        super(ConfusionMatrixCallback, self).__init__()
+        super(ConfusionMatrixCallback, self).__init__(device)
         self.metrics_list = metrics_list
         if "confusion_matrix" in self.metrics_list.metrics.keys():
             self.metric = self.metrics_list.metrics["confusion_matrix"]

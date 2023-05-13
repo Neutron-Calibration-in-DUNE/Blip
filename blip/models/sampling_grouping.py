@@ -29,9 +29,10 @@ class SamplingAndGrouping(GenericModel):
     """
     def __init__(self,
         name:   str='sampling_grouping',
-        config:    dict=sampling_grouping_config
+        config: dict=sampling_grouping_config,
+        device: str='cpu'
     ):
-        super(SamplingAndGrouping, self).__init__(name, config)
+        super(SamplingAndGrouping, self).__init__(name, config, device)
         self.config = config
 
         # construct the model

@@ -13,8 +13,9 @@ class MultiClassNegativeLogLikelihoodLoss(GenericLoss):
     def __init__(self,
         alpha: float=1.0,
         name:   str='multiclass_nll_loss',
+        device:     str='cpu'
     ):
-        super(MultiClassNegativeLogLikelihoodLoss, self).__init__(name)
+        super(MultiClassNegativeLogLikelihoodLoss, self).__init__(name, device)
         self.alpha = alpha
         self.nll_loss = F.nll_loss
 

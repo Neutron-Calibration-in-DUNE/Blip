@@ -5,14 +5,16 @@ Functions for evaluating and storing training information.
 class GenericCallback:
     """
     """
-    def __init__(self):
+    def __init__(self,
+        device: str='cpu'
+    ):
         self.epochs = None
         self.num_training_batches = None
         self.num_validation_batches = None
         self.num_test_batches = None
         self.plot_colors = ['b','g','r','c','m','y']
 
-        self.device = 'cpu'
+        self.device = device
 
     def set_device(self,
         device

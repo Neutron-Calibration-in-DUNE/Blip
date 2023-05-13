@@ -430,7 +430,7 @@ class BlipDisplay:
                 else:
                     if self.first_figure_label not in self.available_prediction_labels:
                         continue
-                    labels = np.argmax(self.event_predictions[self.first_figure_label], axis=1) - 1
+                    labels = np.argmax(self.event_predictions[self.first_figure_label], axis=1)
                     mask = (labels == key)
                 if np.sum(mask) == 0:
                     continue
@@ -464,7 +464,7 @@ class BlipDisplay:
                 else:
                     if self.second_figure_label not in self.available_prediction_labels:
                         continue
-                    labels = np.argmax(self.event_predictions[self.second_figure_label], axis=1) - 1
+                    labels = np.argmax(self.event_predictions[self.second_figure_label], axis=1)
                     mask = (labels == key)
                 if np.sum(mask) == 0:
                     continue

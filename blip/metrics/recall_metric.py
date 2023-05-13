@@ -14,13 +14,12 @@ class RecallMetric(GenericMetric):
         shape:      tuple=(),
         input:      str='classifications',
         num_classes:    int=2,
+        device: str='cpu'
     ):
         """
         """
         super(RecallMetric, self).__init__(
-            name,
-            shape,
-            input
+            name, shape, input, device
         )
         self.num_classes = num_classes
         if self.num_classes == 2:

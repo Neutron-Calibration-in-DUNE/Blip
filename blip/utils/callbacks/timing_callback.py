@@ -13,10 +13,11 @@ class TimingCallback(GenericCallback):
     """
     def __init__(self,
         output_dir: str,
-        timers: Timers
+        timers: Timers,
+        device: str='cpu'
     ):
         self.name = "timing"
-        super(TimingCallback, self).__init__()
+        super(TimingCallback, self).__init__(device)
         self.output_dir = output_dir
         self.timers = timers
     

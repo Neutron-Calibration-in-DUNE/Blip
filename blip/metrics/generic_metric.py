@@ -11,13 +11,14 @@ class GenericMetric:
         shape:      tuple=(),
         input:      str='reductions',
         when_to_compute:   str='all',
+        device: str='cpu'
     ):
         self.name = name
         self.shape = shape
         self.input = input
         self.when_to_compute = when_to_compute
         # set device to none for now
-        self.device = 'cpu'
+        self.device = device
 
         # create empty tensors for evaluation
         self.batch_metric = torch.empty(

@@ -46,10 +46,11 @@ class PointNetPlusPlus(GenericModel):
     """
     """
     def __init__(self,
-        name:       str='pointnet_plusplus',
-        config:    dict=pointnet_plusplus_config
+        name:   str='pointnet_plusplus',
+        config: dict=pointnet_plusplus_config,
+        device: str='cpu'
     ):
-        super(PointNetPlusPlus, self).__init__(name, config)
+        super(PointNetPlusPlus, self).__init__(name, config, device)
         self.config = config
 
         # construct the model

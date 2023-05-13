@@ -8,11 +8,13 @@ class GenericLoss:
     """
     def __init__(self,
         name:   str='generic',
+        device: str='cpu'
     ):
         self.name = name
         self.alpha = 0.0
+        self.classes = []
         # set device to cpu for now
-        self.device = 'cpu'
+        self.device = device
 
         # create empty tensors for batching
         self.batch_loss = torch.empty(size=(0,1), dtype=torch.float, device=self.device)

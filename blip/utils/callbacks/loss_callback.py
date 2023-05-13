@@ -11,9 +11,10 @@ class LossCallback(GenericCallback):
     """
     """
     def __init__(self,
-        criterion_list,
+        criterion_list: list=[],
+        device: str='cpu'
     ):
-        super(LossCallback, self).__init__()
+        super(LossCallback, self).__init__(device)
 
         self.criterion_list = criterion_list
         self.loss_names = [loss.name for name, loss in self.criterion_list.losses.items()]

@@ -8,7 +8,6 @@ from tqdm import tqdm
 from blip.dataset.blip import BlipDataset
 from blip.utils.logger import Logger
 from blip.models import ModelChecker
-from blip.metrics import GenericMetric
 from blip.metrics import MetricHandler
 from blip.utils.timing import Timers
 from blip.utils.memory import MemoryTrackers
@@ -32,11 +31,11 @@ class Trainer:
         model,
         criterion,
         optimizer,
-        metrics:        GenericMetric=None,
-        callbacks:      CallbackHandler=None,
-        gpu:            bool=True,
-        gpu_device:     int=0,
-        seed:           int=0,
+        metrics:    MetricHandler=None,
+        callbacks:  CallbackHandler=None,
+        device:     str='cpu',
+        gpu:        bool=False,
+        seed:       int=0,
     ): 
         self.name = model.name + "_trainer"
         self.logger = Logger(self.name, output='both', file_mode='w')
@@ -68,34 +67,9 @@ class Trainer:
             os.makedirs(self.memory_dir)
 
         # check for devices
+        self.device = device
         self.gpu = gpu
-        self.gpu_device = gpu_device
         self.seed = seed
-        
-        if torch.cuda.is_available():
-            self.logger.info(f"CUDA is available with devices:")
-            for ii in range(torch.cuda.device_count()):
-                device_properties = torch.cuda.get_device_properties(ii)
-                cuda_stats = f"name: {device_properties.name}, "
-                cuda_stats += f"compute: {device_properties.major}.{device_properties.minor}, "
-                cuda_stats += f"memory: {device_properties.total_memory}"
-                self.logger.info(f" -- device: {ii} - " + cuda_stats)
-
-        # set gpu settings
-        if self.gpu:
-            if torch.cuda.is_available():
-                if gpu_device >= torch.cuda.device_count() or gpu_device < 0:
-                    self.logger.warn(f"desired gpu_device '{gpu_device}' not available, using device '0'")
-                    self.gpu_device = 0
-                self.device = torch.device(f"cuda:{self.gpu_device}")
-                self.logger.info(f"CUDA is available, using device {self.gpu_device} - {torch.cuda.get_device_name(self.gpu_device)}")
-            else:
-                self.gpu == False
-                self.logger.warn(f"CUDA not available! Using the cpu")
-                self.device = torch.device("cpu")
-        else:
-            self.logger.info(f"using cpu as device")
-            self.device = torch.device("cpu")
         
         # assign objects
         self.model = model

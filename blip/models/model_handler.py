@@ -15,10 +15,13 @@ class ModelHandler:
         config:  dict={},
         models:  list=[],
         use_sample_weights: bool=False,
+        device: str='cpu'
     ):
         self.name = name
         self.use_sample_weights = use_sample_weights
         self.logger = Logger(self.name, file_mode="w")
+        self.device = device
+
         if bool(config) and len(models) != 0:
             self.logger.error(f"handler received both a config and a list of models! The user should only provide one or the other!")
         else:
@@ -28,9 +31,6 @@ class ModelHandler:
             else:
                 self.models = {model.name: model for model in models}
 
-        # set to whatever the last call of set_device was.
-        self.device = 'None'
-    
     def process_config(self):
         # list of available models
         # TODO: Make this automatic
@@ -48,7 +48,7 @@ class ModelHandler:
                 f"is not an available type! Available types:\n{self.available_models}"
             )
         self.model = self.available_models[self.config['model_type']](
-            "blip_model", self.config
+            "blip_model", self.config, device=self.device
         )
         if 'load_model' in self.config.keys():
             self.model.load_model(self.config['load_model'])

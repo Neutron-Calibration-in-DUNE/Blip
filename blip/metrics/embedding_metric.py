@@ -14,13 +14,12 @@ class EmbeddingMetric(GenericMetric):
         shape:      tuple=(),
         input:      str='reductions',
         num_classes:    int=2,
+        device: str='cpu'
     ):
         """
         """
         super(EmbeddingMetric, self).__init__(
-            name,
-            (0,2),
-            input
+            name, (0,2), input, device
         )
         self.num_classes = num_classes
         self.embedding = TSNE(

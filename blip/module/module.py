@@ -51,7 +51,6 @@ class Module:
         self.trainer = None
 
         self.config_file = config_file
-
         if config_file != "":
             self.logger.info(f"parsing config file: {config_file}.")
             self.config = ConfigParser(config_file).data
@@ -70,6 +69,7 @@ class Module:
         """
         """
         self.check_config()
+        self.parse_device()
         self.parse_dataset()
         self.parse_loader()
         self.parse_model()
@@ -113,7 +113,40 @@ class Module:
                     )
         for item in metrics_config.keys():
             self.config["metrics"][item]["consolidate_classes"] = dataset_config["consolidate_classes"]
+    
+    def parse_device(self):
+        # check for devices
+        self.gpu = self.config["device"]["gpu"]
+        self.gpu_device = self.config["device"]["gpu_device"]
         
+        if torch.cuda.is_available():
+            self.logger.info(f"CUDA is available with devices:")
+            for ii in range(torch.cuda.device_count()):
+                device_properties = torch.cuda.get_device_properties(ii)
+                cuda_stats = f"name: {device_properties.name}, "
+                cuda_stats += f"compute: {device_properties.major}.{device_properties.minor}, "
+                cuda_stats += f"memory: {device_properties.total_memory}"
+                self.logger.info(f" -- device: {ii} - " + cuda_stats)
+
+        # set gpu settings
+        if self.gpu:
+            if torch.cuda.is_available():
+                if self.gpu_device >= torch.cuda.device_count() or self.gpu_device < 0:
+                    self.logger.warn(f"desired gpu_device '{self.gpu_device}' not available, using device '0'")
+                    self.gpu_device = 0
+                self.device = torch.device(f"cuda:{self.gpu_device}")
+                self.logger.info(
+                    f"CUDA is available, using device {self.gpu_device}" + 
+                    f": {torch.cuda.get_device_name(self.gpu_device)}"
+                )
+            else:
+                self.gpu == False
+                self.logger.warn(f"CUDA not available! Using the cpu")
+                self.device = torch.device("cpu")
+        else:
+            self.logger.info(f"using cpu as device")
+            self.device = torch.device("cpu")
+
     def parse_dataset(self):
         """
         """
@@ -144,6 +177,7 @@ class Module:
             sample_weights=dataset_config["sample_weights"],
             class_weights=dataset_config["class_weights"],
             root=".",
+            device=self.device
         )
     
     def parse_loader(self):
@@ -185,9 +219,9 @@ class Module:
         model_config = self.config["model"]
         self.model = ModelHandler(
             "blip_model",
-            model_config
+            model_config,
+            device=self.device
         )
-        self.model.model.set_device('cuda')
 
     def parse_loss(self):
         """
@@ -197,9 +231,13 @@ class Module:
             return
         self.logger.info("configuring criterion.")
         criterion_config = self.config['criterion']
+        # add in class weight numbers for loss functions
+        criterion_config['classes'] = self.config['dataset']['classes']
+        criterion_config['class_weights'] = self.dataset.class_weights
         self.criterion = LossHandler(
             "blip_criterion",
-            criterion_config
+            criterion_config,
+            device=self.device
         )
 
     def parse_optimizer(self):
@@ -230,7 +268,8 @@ class Module:
         metrics_config = self.config['metrics']
         self.metrics = MetricHandler(
             "blip_metrics",
-            metrics_config
+            metrics_config,
+            device=self.device
         )
     
     def parse_callbacks(self):
@@ -247,7 +286,8 @@ class Module:
             callbacks_config["confusion_matrix"]["metrics_list"] = self.metrics
         self.callbacks = CallbackHandler(
             "blip_callbacks",
-            callbacks_config
+            callbacks_config,
+            device=self.device
         )
     
     def parse_training(self):
@@ -264,7 +304,7 @@ class Module:
             self.optimizer,
             self.metrics,
             self.callbacks,
-            gpu=training_config['gpu'],
-            gpu_device=training_config['gpu_device'],
+            device=self.device,
+            gpu=self.config['device']['gpu'],
             seed=training_config['seed']
         )

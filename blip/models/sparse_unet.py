@@ -144,9 +144,10 @@ class SparseUNet(GenericModel):
     """
     def __init__(self,
         name:   str='my_unet',      # name of the model
-        config: dict=sparse_unet_params    # configuration parameters
+        config: dict=sparse_unet_params,
+        device: str='cpu'
     ):
-        super(SparseUNet, self).__init__(name, config)
+        super(SparseUNet, self).__init__(name, config, device)
         self.name = name
         self.config = config
         # check config

@@ -13,8 +13,9 @@ class L1Loss(GenericLoss):
         alpha: float=1.0,
         name:   str='l1_loss',
         reduction:  str='mean',
+        device:     str='cpu'
     ):
-        super(L1Loss, self).__init__(name)
+        super(L1Loss, self).__init__(name, device)
         self.alpha = alpha
         self.reduction = reduction
         self.l1_loss = nn.L1Loss(reduction=reduction)

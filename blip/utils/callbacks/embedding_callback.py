@@ -16,9 +16,10 @@ class EmbeddingCallback(GenericCallback):
     """
     """
     def __init__(self,
-        metrics_list,
+        metrics_list: list=[],
+        device: str='cpu'
     ):  
-        super(EmbeddingCallback, self).__init__()
+        super(EmbeddingCallback, self).__init__(device)
         self.metrics_list = metrics_list
         self.output_name = None
         self.target_name = None

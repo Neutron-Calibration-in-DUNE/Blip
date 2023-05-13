@@ -34,10 +34,10 @@ class BlipDataset(InMemoryDataset):
         root:   str=".", 
         transform=None, 
         pre_transform=None, 
-        pre_filter=None
+        pre_filter=None,
+        device=None
     ):
         self.name = name
-        self.input_files = input_files
         self.logger = Logger(self.name, output="both", file_mode='w')
         self.logger.info(f"constructing dataset.")
 
@@ -46,6 +46,8 @@ class BlipDataset(InMemoryDataset):
             self.position_type = torch.int
         else:
             self.position_type = torch.float
+        
+        self.input_files = input_files
 
         self.positions = positions
         self.features = features
@@ -53,22 +55,48 @@ class BlipDataset(InMemoryDataset):
         self.consolidate_classes = consolidate_classes
 
         self.sample_weights = sample_weights
-        self.class_weights = class_weights
+        self.class_weight_labels = class_weights
+        
         self.number_of_events = 0
+
+        self.meta = []
+        for input_file in self.input_files:
+            data = np.load(input_file, allow_pickle=True)
+            self.meta.append(data['meta'].item())
+
+        # Set up weights
         if sample_weights != None:
             self.use_sample_weights = True
         else:
             self.use_sample_weights = False
         if class_weights != None:
             self.use_class_weights = True
+            self.class_weights = {
+                key: torch.tensor(np.sum([
+                    [self.meta[ii][f"{key}_points"][jj] 
+                     for jj in self.meta[ii][f"{key}_points"].keys()
+                    ] for ii in range(len(self.meta))
+                ], axis=0), dtype=torch.float)
+                for key in class_weights
+            }
+            self.class_weight_totals = {
+                key: float(torch.sum(value))
+                for key, value in self.class_weights.items()
+            }
+            for key, value in self.class_weights.items():
+                for ii, val in enumerate(value):
+                    if val != 0:
+                        self.class_weights[key][ii] = self.class_weight_totals[key] / float(len(value) * val)
         else:
             self.use_class_weights = False
+            self.class_weights = {}
+        
         self.normalized = normalized
-
-        self.meta = []
-        for input_file in self.input_files:
-            data = np.load(input_file, allow_pickle=True)
-            self.meta.append(data['meta'].item())
+        self.root = root
+        self.transform = transform
+        self.pre_transform = pre_transform
+        self.pre_filter = pre_filter
+        self.device = device
 
         self.position_indices = [
             self.meta[0]["features"][position] 

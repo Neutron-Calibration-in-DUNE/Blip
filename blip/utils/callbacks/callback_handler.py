@@ -14,10 +14,13 @@ class CallbackHandler:
     def __init__(self,
         name:   str,
         cfg:    dict={},
-        callbacks:  list=[]
+        callbacks:  list=[],
+        device: str='device'
     ):
         self.name = name
         self.logger = Logger(self.name, file_mode="w")
+        self.device = device
+
         if bool(cfg) and len(callbacks) != 0:
             self.logger.error(f"handler received both a config and a list of callbacks! The user should only provide one or the other!")
         else:
@@ -25,10 +28,7 @@ class CallbackHandler:
                 self.cfg = cfg
                 self.process_config()
             else:
-                self.callbacks = {callback.name: callback for callback in callbacks}
-
-        # set to whatever the last call of set_device was.
-        self.device = 'None'
+                self.callbacks = {callback.name: callback for callback in callbacks}        
 
     def process_config(self):
         # list of available callbacks
@@ -52,7 +52,7 @@ class CallbackHandler:
                         self.logger.error(f"required input parameters '{item}:{value}' not specified! Constructor parameters:\n{argdict}")
         self.callbacks = {}
         for item in self.cfg.keys():
-            self.callbacks[item] = self.available_callbacks[item](**self.cfg[item])
+            self.callbacks[item] = self.available_callbacks[item](**self.cfg[item], device=self.device)
     
     def set_device(self,
         device

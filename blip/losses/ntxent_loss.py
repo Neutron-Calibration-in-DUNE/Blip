@@ -14,8 +14,9 @@ class NTXEntropyLoss(GenericLoss):
         alpha: float=1.0,
         name:   str='ntxent_loss',
         temperature:  float=0.10,
+        device:     str='cpu'
     ):
-        super(NTXEntropyLoss, self).__init__(name)
+        super(NTXEntropyLoss, self).__init__(name, device)
         self.alpha = alpha
         self.temperature = temperature
         self.ntxent_loss = NTXentLoss(temperature=temperature)

@@ -46,10 +46,11 @@ class VietorisRipsNet(GenericModel):
     """
     """
     def __init__(self,
-        name:       str='vietoris_rips_net',
-        config:    dict=vietoris_rips_net_config
+        name:   str='vietoris_rips_net',
+        config: dict=vietoris_rips_net_config,
+        device: str='cpu'
     ):
-        super(VietorisRipsNet, self).__init__(name, config)
+        super(VietorisRipsNet, self).__init__(name, config, device)
         self.config = config
 
         # construct the model

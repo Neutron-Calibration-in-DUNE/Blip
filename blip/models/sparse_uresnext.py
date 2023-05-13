@@ -144,9 +144,10 @@ class SparseUResNeXt(GenericModel):
     """
     def __init__(self,
         name:   str='my_unet',      # name of the model
-        config: dict=sparse_uresnext_params    # configuration parameters
+        config: dict=sparse_uresnext_params,
+        device: str='cpu'    # configuration parameters
     ):
-        super(SparseUResNeXt, self).__init__(name, config)
+        super(SparseUResNeXt, self).__init__(name, config, device)
         self.name = name
         self.config = config
         # check config

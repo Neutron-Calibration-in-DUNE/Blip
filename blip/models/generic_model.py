@@ -22,11 +22,12 @@ class GenericModel(nn.Module):
     """
     def __init__(self,
         name:   str,
-        cfg:    dict=generic_config,
+        config: dict=generic_config,
+        device: str='cpu'
     ):
         super(GenericModel, self).__init__()
         self.name = name
-        self.cfg = cfg
+        self.config = config
         self.logger = Logger(self.name, file_mode='w')
         self.logger.info(f"configuring model.")
         # now define the model
@@ -35,7 +36,8 @@ class GenericModel(nn.Module):
         self.input_shape = None
         self.output_shape = None
         # device for the model
-        self.device = None
+        self.device = device
+        self.to(self.device)
 
     def set_device(self,
         device
@@ -87,8 +89,8 @@ class GenericModel(nn.Module):
             meta_info.append([])
         meta_info.append(['Model configuration:'])
         meta_info.append([])
-        for item in self.cfg:
-            meta_info.append([item, self.cfg[item]])
+        for item in self.config:
+            meta_info.append([item, self.config[item]])
         meta_info.append([])
         meta_info.append(['Model dictionary:'])
         for item in self.state_dict():
@@ -98,15 +100,15 @@ class GenericModel(nn.Module):
             writer = csv.writer(file, delimiter="\t")
             writer.writerows(meta_info)
         # save config
-        cfg = [[item, self.cfg[item]] for item in self.cfg]
-        with open(output+".cfg", "w") as file:
+        config = [[item, self.config[item]] for item in self.config]
+        with open(output+".config", "w") as file:
             writer = csv.writer(file, delimiter=",")
-            writer.writerows(cfg)
+            writer.writerows(config)
         # save parameters
         torch.save(
             {
             'model_state_dict': self.state_dict(), 
-            'model_config': self.cfg
+            'model_config': self.config
             }, 
             output + "_params.ckpt"
         )
@@ -122,7 +124,7 @@ class GenericModel(nn.Module):
         try:
             checkpoint = torch.load(model_file)
             print(checkpoint)
-            self.cfg = checkpoint['model_config']
+            self.config = checkpoint['model_config']
             self.construct_model()
             # register hooks
             self.register_forward_hooks()

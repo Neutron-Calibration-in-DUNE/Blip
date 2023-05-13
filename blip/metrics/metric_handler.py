@@ -19,9 +19,13 @@ class MetricHandler:
         config: dict={},
         metrics:list=[],
         labels: list=[],
+        device: str='cpu'
     ):
         self.name = name
         self.logger = Logger(self.name, file_mode="w")
+        self.device = device
+        self.labels = labels
+
         if bool(config) and len(metrics) != 0:
             self.logger.error(f"handler received both a config and a list of metrics! The user should only provide one or the other!")
         else:
@@ -30,10 +34,6 @@ class MetricHandler:
                 self.process_config()
             else:
                 self.metrics = {metric.name: metric for metric in metrics}
-
-        # set to whatever the last call of set_device was.
-        self.device = 'None'
-        self.labels = labels
     
     def process_config(self):
         # list of available criterions
@@ -65,7 +65,7 @@ class MetricHandler:
         
         self.metrics = {}
         for item in self.config.keys():
-            self.metrics[item] = self.available_metrics[item](**self.config[item])
+            self.metrics[item] = self.available_metrics[item](**self.config[item], device=self.device)
 
     def set_device(self,
         device

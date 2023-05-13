@@ -131,14 +131,27 @@ class WirePlanePointCloud:
                         key: value
                         for key, value in classification_labels["source"].items()
                     },
+                    "source_points": {
+                        key: np.count_nonzero(np.concatenate(source_label_view) == key)
+                        for key, value in classification_labels["source"].items()
+                    },
                     "shape_labels": {
                         key: value
+                        for key, value in classification_labels["shape"].items()
+                    },
+                    "shape_points": {
+                        key: np.count_nonzero(np.concatenate(shape_label_view) == key)
                         for key, value in classification_labels["shape"].items()
                     },
                     "particle_labels": {
                         key: value
                         for key, value in classification_labels["particle"].items()
                     },      
+                    "particle_points": {
+                        key: np.count_nonzero(np.concatenate(particle_label_view) == key)
+                        for key, value in classification_labels["particle"].items()
+                    },
+                    "total_points":     len(np.concatenate(features)),
                     "adc_view_sum":     adc_view_sum,    
                 }
                     

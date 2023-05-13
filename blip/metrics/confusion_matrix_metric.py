@@ -18,14 +18,12 @@ class ConfusionMatrixMetric(GenericMetric):
         number_of_classes:  list=[],
         when_to_compute:    str="all",
         consolidate_classes:   dict=None,
+        device: str='cpu'
     ):
         """
         """
         super(ConfusionMatrixMetric, self).__init__(
-            name,
-            shape,
-            inputs,
-            when_to_compute,
+            name, shape, inputs, when_to_compute, device
         )
         self.number_of_classes = number_of_classes
         self.inputs = inputs

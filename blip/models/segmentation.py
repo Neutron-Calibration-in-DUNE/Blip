@@ -23,9 +23,10 @@ class Segmentation(GenericModel):
     """
     def __init__(self,
         name:   str='segmentation',
-        config: dict=segmentation_config
+        config: dict=segmentation_config,
+        device: str='cpu'
     ):
-        super(Segmentation, self).__init__(name, config)
+        super(Segmentation, self).__init__(name, config, device)
         self.config = config
 
         # construct the model

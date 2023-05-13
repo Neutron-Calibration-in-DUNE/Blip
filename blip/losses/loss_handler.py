@@ -15,24 +15,24 @@ class LossHandler:
     """
     def __init__(self,
         name:   str,
-        cfg:    dict={},
+        config:    dict={},
         losses:  list=[],
         use_sample_weights: bool=False,
+        device: str='cpu'
     ):
         self.name = name
         self.use_sample_weights = use_sample_weights
         self.logger = Logger(self.name, output="both", file_mode="w")
-        if bool(cfg) and len(losses) != 0:
+        self.device = device
+
+        if bool(config) and len(losses) != 0:
             self.logger.error(f"handler received both a config and a list of losses! The user should only provide one or the other!")
         else:
-            if bool(cfg):
-                self.cfg = cfg
+            if bool(config):
+                self.config = config
                 self.process_config()
             else:
-                self.losses = {loss.name: loss for loss in losses}
-
-        # set to whatever the last call of set_device was.
-        self.device = 'None'
+                self.losses = {loss.name: loss for loss in losses}        
     
     def process_config(self):
         # list of available criterions
@@ -47,20 +47,30 @@ class LossHandler:
             'multiclass_ce_loss':       MultiClassCrossEntropyLoss
         }
         # check config
-        for item in self.cfg.keys():
-            if item not in self.available_criterions.keys():
-                self.logger.error(f"specified callback '{item}' is not an available type! Available types:\n{self.available_criterions}")
+        for item in self.config.keys():
+            if item == 'classes' or item == 'class_weights':
+                continue
+            elif item not in self.available_criterions.keys():
+                self.logger.error(f"specified loss function '{item}' is not an available type! Available types:\n{self.available_criterions}")
             argdict = get_method_arguments(self.available_criterions[item])
-            for value in self.cfg[item].keys():
+            for value in self.config[item].keys():
                 if value not in argdict.keys():
-                    self.logger.error(f"specified callback value '{item}:{value}' not a constructor parameter for '{item}'! Constructor parameters:\n{argdict}")
+                    self.logger.error(f"specified loss function value '{item}:{value}' not a constructor parameter for '{item}'! Constructor parameters:\n{argdict}")
             for value in argdict.keys():
                 if argdict[value] == None:
-                    if value not in self.cfg[item].keys():
+                    if value not in self.config[item].keys():
                         self.logger.error(f"required input parameters '{item}:{value}' not specified! Constructor parameters:\n{argdict}")
+            if "classes" in self.config.keys():
+                self.config[item]["classes"] = self.config["classes"]
+            if "class_weights" in self.config.keys():
+                self.config[item]["class_weights"] = self.config["class_weights"]
+            self.config[item]["device"] = self.device
         self.losses = {}
-        for item in self.cfg.keys():
-            self.losses[item] = self.available_criterions[item](**self.cfg[item])
+        for item in self.config.keys():
+            if item == 'classes' or item == 'class_weights':
+                continue
+            else:
+                self.losses[item] = self.available_criterions[item](**self.config[item])
 
     def set_device(self,
         device

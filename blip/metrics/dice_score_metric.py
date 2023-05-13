@@ -13,13 +13,12 @@ class DiceScoreMetric(GenericMetric):
         shape:      tuple=(),
         input:      str='classifications',
         num_classes:    int=2,
+        device: str='cpu'
     ):
         """
         """
         super(DiceScoreMetric, self).__init__(
-            name,
-            shape,
-            input
+            name, shape, input, device
         )
         self.num_classes = num_classes
         self.metric = Dice(num_classes=self.num_classes)

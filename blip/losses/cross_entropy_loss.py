@@ -12,9 +12,10 @@ class CrossEntropyLoss(GenericLoss):
     def __init__(self,
         alpha: float=1.0,
         name:   str='cross_entropy_loss',
-        reduction:  str='mean'
+        reduction:  str='mean',
+        device:     str='cpu'
     ):
-        super(CrossEntropyLoss, self).__init__(name)
+        super(CrossEntropyLoss, self).__init__(name, device)
         self.alpha = alpha
         self.reduction = reduction
         self.cross_entropy_loss = nn.CrossEntropyLoss(reduction=self.reduction)
