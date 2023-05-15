@@ -27,10 +27,9 @@ class ConfusionMatrixMetric(GenericMetric):
         )
         self.number_of_classes = number_of_classes
         self.inputs = inputs
-        self.number_of_classes = number_of_classes
 
         self.metrics = {}
-        self.batch_probabilities = {}
+        self.batch_predictions = {}
         self.batch_summed_adc = {}
         if consolidate_classes is not None:
             self.consolidate_classes = True
@@ -46,14 +45,14 @@ class ConfusionMatrixMetric(GenericMetric):
                 self.labels[input] = consolidate_classes[input]
             else:
                 self.labels[input] = classification_labels[input].values()
-            self.batch_probabilities[input] = torch.empty(
+            self.batch_predictions[input] = torch.empty(
                 size=(0, self.number_of_classes[ii] + 1),
                 dtype=torch.float, device=self.device
             )
 
     def reset_probabilities(self):
         for ii, input in enumerate(self.inputs):
-            self.batch_probabilities[input] = torch.empty(
+            self.batch_predictions[input] = torch.empty(
                 size=(0, self.number_of_classes[ii] + 1),
                 dtype=torch.float, device=self.device
             )
@@ -85,12 +84,14 @@ class ConfusionMatrixMetric(GenericMetric):
                 (softmax, data.category[:, ii].unsqueeze(1).to(self.device)),
                 dim=1
             ).to(self.device)
-            self.batch_probabilities[input] = torch.cat(
-                (self.batch_probabilities[input], predictions),
+            self.batch_predictions[input] = torch.cat(
+                (self.batch_predictions[input], predictions),
                 dim=0
             )
             
-            self.metrics[input].update(outputs[input], data.category[:,ii].to(self.device))
+            self.metrics[input].update(
+                outputs[input], data.category[:,ii].to(self.device)
+            )
 
     def compute(self):
         outputs = {}

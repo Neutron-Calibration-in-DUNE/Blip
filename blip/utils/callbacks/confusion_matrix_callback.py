@@ -59,13 +59,13 @@ class ConfusionMatrixCallback(GenericCallback):
         train_type='training'
     ):  
         if train_type == "training":
-            self.training_probabilities = self.metric.batch_probabilities
+            self.training_probabilities = self.metric.batch_predictions
             self.training_confusion = self.metric.compute()
         elif train_type == "validation":
-            self.validation_probabilities = self.metric.batch_probabilities
+            self.validation_probabilities = self.metric.batch_predictions
             self.validation_confusion = self.metric.compute()
         else:
-            self.test_probabilities = self.metric.batch_probabilities
+            self.test_probabilities = self.metric.batch_predictions
             self.test_confusion = self.metric.compute()
         self.metric.reset_probabilities()
 
@@ -470,7 +470,7 @@ class ConfusionMatrixCallback(GenericCallback):
     def evaluate_inference(self):
         return
         confusion = self.metric.compute()
-        probabilities = self.metric.batch_probabilities
+        probabilities = self.metric.batch_predictions
         summed_adc = self.metric.batch_summed_adc
 
         # plot the training confusion matrix
