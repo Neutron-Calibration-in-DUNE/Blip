@@ -159,6 +159,8 @@ class Module:
         # check for processing simulation files
         if "simulation_files" in dataset_config and dataset_config["process_simulation"]:
             for ii, simulation_file in enumerate(dataset_config["simulation_files"]):
+                if "simulation_folder" in dataset_config:
+                    simulation_file = dataset_config["simulation_folder"] + simulation_file
                 self.logger.info(f"processing simulation file: {simulation_file}.")
                 wire_plane_dataset = WirePlanePointCloud(
                     f"{self.name}_simulation_{ii}",
@@ -169,6 +171,7 @@ class Module:
         self.dataset = BlipDataset(
             name = f"{self.name}_dataset",
             dataset_type=dataset_config["dataset_type"],
+            input_folder=dataset_config["dataset_folder"],
             input_files=dataset_config["dataset_files"],
             positions=dataset_config["positions"],
             features=dataset_config["features"],

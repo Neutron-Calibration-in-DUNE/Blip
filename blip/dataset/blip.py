@@ -23,6 +23,7 @@ class BlipDataset(InMemoryDataset):
     def __init__(self, 
         name:   str,
         dataset_type:   str='voxel',
+        input_folder:   str='',
         input_files:    list=None,
         positions:      list=None,
         features:       list=None,
@@ -46,8 +47,8 @@ class BlipDataset(InMemoryDataset):
             self.position_type = torch.int
         else:
             self.position_type = torch.float
-        
-        self.input_files = input_files
+        self.input_folder = input_folder
+        self.input_files = [self.input_folder + input_file for input_file in input_files]
 
         self.positions = positions
         self.features = features
