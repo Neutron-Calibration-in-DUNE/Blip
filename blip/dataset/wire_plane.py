@@ -59,6 +59,8 @@ class WirePlanePointCloud:
         source_label = self.point_cloud_data['source_label']
         shape_label = self.point_cloud_data['shape_label']
         particle_label = self.point_cloud_data['particle_label']
+        unique_shape_label = self.point_cloud_data['unique_shape']
+        unique_particle_label = self.point_cloud_data['unique_particle']
 
         #for v in np.unique(np.concatenate(view)):
         for tpc, tpc_ranges in self.protodune_tpc_channels.items():
@@ -75,6 +77,8 @@ class WirePlanePointCloud:
                 source_label_view = []
                 shape_label_view = []
                 particle_label_view = []
+                unique_shape_label_view = []
+                unique_particle_label_view = []
 
                 for event in range(len(channel)):
                     view_mask = (
@@ -92,6 +96,8 @@ class WirePlanePointCloud:
                         source_label_view.append(source_label[event][view_mask])
                         shape_label_view.append(shape_label[event][view_mask])
                         particle_label_view.append(particle_label[event][view_mask])
+                        unique_shape_label_view.append(unique_shape_label[event][view_mask])
+                        unique_particle_label_view.append(unique_particle_label[event][view_mask])
 
                 channel_view = np.array(channel_view, dtype=object)
                 tdc_view = np.array(tdc_view, dtype=object)
@@ -100,6 +106,8 @@ class WirePlanePointCloud:
                 source_label_view = np.array(source_label_view, dtype=object)
                 shape_label_view = np.array(shape_label_view, dtype=object)
                 particle_label_view = np.array(particle_label_view, dtype=object)
+                unique_shape_label_view = np.array(unique_shape_label_view, dtype=object)
+                unique_particle_label_view = np.array(unique_particle_label_view, dtype=object)
 
                 adc_view_sum = np.array([sum(a) for a in adc_view])
                 adc_view_normalized = adc_view / adc_view_sum
@@ -114,6 +122,11 @@ class WirePlanePointCloud:
                     for ii in range(len(channel_view))],
                     dtype=object
                 )          
+                clusters = np.array([
+                    np.vstack((unique_shape_label_view[ii], unique_particle_label_view[ii])).T
+                    for ii in range(len(channel_view))],
+                    dtype=object
+                )
 
                 meta = {
                     "who_created":      "me",
@@ -159,6 +172,7 @@ class WirePlanePointCloud:
                     f"data/{self.name}/view{v}_{tpc}.npz",
                     features=features,
                     classes=classes,
+                    clusters=clusters,
                     meta=meta
                 )
 
