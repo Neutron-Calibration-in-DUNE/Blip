@@ -43,7 +43,7 @@ class MultiClassProbabilityLoss(GenericLoss):
         """Computes and returns/saves loss information"""
         loss = 0
         batch = data.batch
-        for ii, classes in enumerate(outputs.keys()):
+        for ii, classes in enumerate(self.classes):
             # convert categories to probabilities.
             answer = torch.zeros(outputs[classes].shape)
             for jj, batches in enumerate(torch.unique(data.batch)):

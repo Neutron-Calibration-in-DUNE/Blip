@@ -62,7 +62,8 @@ class Module:
         config_file:    str
     ):
         self.logger.info(f"parsing config file: {config_file}.")
-        self.config = ConfigParser(config_file).data
+        self.config_file = config_file
+        self.config = ConfigParser(self.config_file).data
         self.parse_config()
     
     def parse_config(self):
@@ -224,7 +225,6 @@ class Module:
         self.logger.info("configuring criterion.")
         criterion_config = self.config['criterion']
         # add in class weight numbers for loss functions
-        criterion_config['classes'] = self.config['dataset']['classes']
         criterion_config['class_weights'] = self.dataset.class_weights
         self.criterion = LossHandler(
             "blip_criterion",

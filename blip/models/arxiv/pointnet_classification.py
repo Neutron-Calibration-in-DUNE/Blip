@@ -50,7 +50,6 @@ class PointNetClassification(GenericModel):
     ):
         super(PointNetClassification, self).__init__(name, cfg)
         self.cfg = cfg
-        self.augmentation = T.Compose(self.cfg['augmentations'])
 
         # construct the model
         self.forward_views      = {}
@@ -68,6 +67,8 @@ class PointNetClassification(GenericModel):
         The current methodology is to create an ordered
         dictionary and fill it with individual modules.
         """
+        
+        self.augmentation = T.Compose(self.cfg['augmentations'])
         self.logger.info(f"Attempting to build {self.name} architecture using cfg: {self.cfg}")
         _embedding_dict = OrderedDict()
         _reduction_dict = OrderedDict()

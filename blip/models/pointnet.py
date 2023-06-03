@@ -17,6 +17,12 @@ from blip.models import GenericModel
 pointnet_config = {
     "input_dimension":      3,
     "classifications":      ["source", "shape", "particle"],
+    'augmentations':    {
+        'jitter':   0.03,
+        'flip':     1.0,
+        'shear':    0.2
+    },
+    'number_of_augmentations':  2,
     "embedding_type":       "dynamic_edge_conv",
     "number_of_embeddings": 4,
     "number_of_neighbors":  [5, 10, 20, 30],
@@ -58,6 +64,20 @@ class PointNet(GenericModel):
         The current methodology is to create an ordered
         dictionary and fill it with individual modules.
         """
+        augmentations = []
+        for augmentation in self.config["augmentations"]:
+            if augmentation == 'jitter':
+                augmentations.append(T.RandomJitter(self.config['augmentations'][augmentation]))
+            elif augmentation == 'flip':
+                for ii in range(len(self.config['augmentations'][augmentation]['positions'])):
+                    augmentations.append(T.RandomFlip(
+                        self.config['augmentations'][augmentation]['positions'][ii],
+                        self.config['augmentations'][augmentation]['probabilities'][ii]
+                    ))
+            elif augmentation == 'shear':
+                augmentations.append(T.RandomShear(self.config['augmentations'][augmentation]))
+        self.augmentations = T.Compose(augmentations)
+        self.number_of_augmentations = self.config['number_of_augmentations']
         self.logger.info(f"Attempting to build {self.name} architecture using config: {self.config}")
         
         """
@@ -111,21 +131,41 @@ class PointNet(GenericModel):
         """
         Iterate over the model dictionary
         """
-        pos = data.pos.to(self.device)
-        batch = data.batch.to(self.device)
-        
-        embeddings = []
-        for ii, embedding in enumerate(self.embedding_dict.keys()):
-            pos = self.embedding_dict[embedding](pos, batch)
-            if ii == 0:
-                linear_input = pos
-            else:
-                linear_input = torch.cat([linear_input, pos], dim=1)
-        linear_output = self.reduction_dict['linear_layer'](linear_input)
-        linear_pool = global_max_pool(linear_output, batch)
-        outputs = {
-            classifications: self.softmax(self.classification_dict[classifications](linear_pool))
-            for classifications in self.classification_dict.keys()
-        }
-        #outputs['reductions'] = linear_pool
+        if self.training:
+            reductions, classifications = [], [[]]
+            for kk in range(self.number_of_augmentations):
+                augmentations = self.augmentations(data).to(self.device)
+                pos, batch = augmentations.pos, augmentations.batch
+                for ii, embedding in enumerate(self.embedding_dict.keys()):
+                    pos = self.embedding_dict[embedding](pos, batch)
+                    if ii == 0:
+                        linear_input = pos
+                    else:
+                        linear_input = torch.cat([linear_input, pos], dim=1)
+                linear_output = self.reduction_dict['linear_layer'](linear_input)
+                linear_pool = global_max_pool(linear_output, batch)
+                for jj, classification in enumerate(self.classification_dict.keys()):
+                    classifications[jj].append(self.classification_dict[classification](linear_pool))
+                reductions.append(linear_pool)
+            outputs = {
+                classification: torch.cat(classifications[jj])
+                for jj, classification in enumerate(self.classification_dict.keys())
+            }
+            outputs['reductions'] = torch.cat(reductions)
+        else:
+            pos = data.pos.to(self.device)
+            batch = data.batch.to(self.device)
+            for ii, embedding in enumerate(self.embedding_dict.keys()):
+                pos = self.embedding_dict[embedding](pos, batch)
+                if ii == 0:
+                    linear_input = pos
+                else:
+                    linear_input = torch.cat([linear_input, pos], dim=1)
+            linear_output = self.reduction_dict['linear_layer'](linear_input)
+            linear_pool = global_max_pool(linear_output, batch)
+            outputs = {
+                classifications: self.classification_dict[classifications](linear_pool)
+                for classifications in self.classification_dict.keys()
+            }
+            outputs['reductions'] = linear_pool
         return outputs
