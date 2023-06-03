@@ -3,7 +3,7 @@ Container for models
 """
 from blip.utils.logger import Logger
 from blip.models import GenericModel, PointNetPlusPlus
-from blip.models import VietorisRipsNet
+from blip.models import PointNet, VietorisRipsNet
 from blip.models import SparseUNet, SparseUResNet, SparseUResNeXt
 from blip.utils.utils import get_method_arguments
 
@@ -35,6 +35,7 @@ class ModelHandler:
         # list of available models
         # TODO: Make this automatic
         self.available_models = {
+            "PointNet":         PointNet,
             'PointNet++':       PointNetPlusPlus,
             'VietorisRipsNet':  VietorisRipsNet,
             'SparseUNet':       SparseUNet,

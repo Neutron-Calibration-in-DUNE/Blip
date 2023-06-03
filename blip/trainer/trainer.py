@@ -672,7 +672,7 @@ class Trainer:
             predictions[key] = np.vstack(np.array(predictions[key], dtype=object))
         # save predictions if wanted
         if save_predictions:
-            dataset_loader.dataset.append_input_files(
+            dataset_loader.dataset.append_dataset_files(
                 self.model.name + "_predictions",
                 predictions,
                 inference_indices

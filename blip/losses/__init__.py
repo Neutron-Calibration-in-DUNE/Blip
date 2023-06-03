@@ -3,7 +3,9 @@ from .l1_loss import *
 from .l2_loss import *
 from .nll_loss import *
 from .multiclass_nll_loss import *
-from .ntxent_loss import *
+from .ntx_entropy_loss import *
 from .cross_entropy_loss import *
 from .multiclass_ce_loss import *
+from .multiclass_prob_loss import *
+from .multiclass_ntx_entropy_loss import *
 from .loss_handler import *

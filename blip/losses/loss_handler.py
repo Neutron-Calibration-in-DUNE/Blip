@@ -8,6 +8,8 @@ from blip.losses import CrossEntropyLoss
 from blip.losses import NegativeLogLikelihoodLoss
 from blip.losses import MultiClassNegativeLogLikelihoodLoss
 from blip.losses import MultiClassCrossEntropyLoss
+from blip.losses import MultiClassProbabilityLoss
+from blip.losses import MultiClassNTXEntropyLoss
 from blip.utils.utils import get_method_arguments
 
 class LossHandler:
@@ -44,7 +46,8 @@ class LossHandler:
             'ce_loss':                  CrossEntropyLoss,
             'nll_loss':                 NegativeLogLikelihoodLoss,
             'multiclass_nll_loss':      MultiClassNegativeLogLikelihoodLoss,
-            'multiclass_ce_loss':       MultiClassCrossEntropyLoss
+            'multiclass_ce_loss':       MultiClassCrossEntropyLoss,
+            'multiclass_prob_loss':     MultiClassProbabilityLoss,
         }
         # check config
         for item in self.config.keys():

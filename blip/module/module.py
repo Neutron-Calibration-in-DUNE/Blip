@@ -111,8 +111,9 @@ class Module:
                         f"(dataset config) specified class in 'dataset: consolidate_classes' [{item}]" + 
                         f" not in 'dataset: consolidate_classes [{dataset_config['consolidate_classes']}]"
                     )
-        for item in metrics_config.keys():
-            self.config["metrics"][item]["consolidate_classes"] = dataset_config["consolidate_classes"]
+        if metrics_config:
+            for item in metrics_config.keys():
+                self.config["metrics"][item]["consolidate_classes"] = dataset_config["consolidate_classes"]
     
     def parse_device(self):
         # check for devices
@@ -167,40 +168,10 @@ class Module:
                     simulation_file
                 )
                 wire_plane_dataset.generate_training_data()
-        if dataset_config["dataset_type"] == "voxel":
-            self.dataset = BlipDataset(
-                name = f"{self.name}_dataset",
-                dataset_type=dataset_config["dataset_type"],
-                input_folder=dataset_config["dataset_folder"],
-                input_files=dataset_config["dataset_files"],
-                positions=dataset_config["positions"],
-                features=dataset_config["features"],
-                classes=dataset_config["classes"],
-                consolidate_classes=dataset_config["consolidate_classes"],
-                sample_weights=dataset_config["sample_weights"],
-                class_weights=dataset_config["class_weights"],
-                root=".",
-                device=self.device
-            )
-        elif dataset_config["dataset_type"] == "cluster":
-            self.dataset = BlipClusterDataset(
-                name = f"{self.name}_dataset",
-                dataset_type=dataset_config["dataset_type"],
-                input_folder=dataset_config["dataset_folder"],
-                input_files=dataset_config["dataset_files"],
-                dbscan_min_samples=dataset_config["dbscan_min_samples"],
-                dbscan_eps=dataset_config["dbscan_eps"],
-                cluster_class=dataset_config["cluster_class"],
-                cluster_label=dataset_config["cluster_label"],
-                positions=dataset_config["positions"],
-                features=dataset_config["features"],
-                classes=dataset_config["classes"],
-                consolidate_classes=dataset_config["consolidate_classes"],
-                sample_weights=dataset_config["sample_weights"],
-                class_weights=dataset_config["class_weights"],
-                root=".",
-                device=self.device
-            )
+        dataset_config["name"] = f"{self.name}_dataset"
+        dataset_config["device"] = self.device
+        self.dataset = BlipDataset(dataset_config)
+
     def parse_loader(self):
         """
         """
