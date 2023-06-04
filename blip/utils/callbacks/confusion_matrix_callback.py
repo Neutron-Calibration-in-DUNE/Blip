@@ -24,8 +24,8 @@ class ConfusionMatrixCallback(GenericCallback):
     ):  
         super(ConfusionMatrixCallback, self).__init__(device)
         self.metrics_list = metrics_list
-        if "confusion_matrix" in self.metrics_list.metrics.keys():
-            self.metric = self.metrics_list.metrics["confusion_matrix"]
+        if "ConfusionMatrixMetric" in self.metrics_list.metrics.keys():
+            self.metric = self.metrics_list.metrics["ConfusionMatrixMetric"]
 
         if not os.path.isdir("plots/confusion_matrix/"):
             os.makedirs("plots/confusion_matrix/")

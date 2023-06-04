@@ -74,21 +74,29 @@ class Logger:
 
         # set format
         self.dateformat = '%H:%M:%S'
-        self.console_format = '[%(levelname)s] [%(name)s]: %(message)s'
-        grey = "\x1b[38;20m"
-        yellow = "\x1b[33;20m"
-        red = "\x1b[31;20m"
-        bold_red = "\x1b[31;1m"
-        reset = "\x1b[0m"
-        self.FORMATS = {
-            logging.DEBUG: grey + self.console_format + reset,
-            logging.INFO: grey + self.console_format + reset,
-            logging.WARNING: yellow + self.console_format + reset,
-            logging.ERROR: red + self.console_format + reset,
-            logging.CRITICAL: bold_red + self.console_format + reset
-        }
+        class LoggingFormatter(logging.Formatter):
+            
+            console_extra = ' [%(name)s]: %(message)s'
+            grey = "\x1b[38;20m"
+            yellow = "\x1b[33;20m"
+            blue = "\x1b[1;34m"
+            purple = "\x1b[1;35m"
+            red = "\x1b[31;20m"
+            bold_red = "\x1b[31;1m"
+            reset = "\x1b[0m"
+            FORMATS = {
+                logging.DEBUG: '[' + grey + '%(levelname)s' + reset + '] [' + purple + '%(name)s' + reset + ']: %(message)s',
+                logging.INFO: '[' + blue + '%(levelname)s' + reset + '] [' + purple + '%(name)s' + reset + ']: %(message)s',
+                logging.WARNING: '[' + yellow + '%(levelname)s' + reset + '] [' + purple + '%(name)s' + reset + ']: %(message)s',
+                logging.ERROR: '[' + red + '%(levelname)s' + reset + '] [' + purple + '%(name)s' + reset + ']: %(message)s',
+                logging.CRITICAL: '[' + bold_red + '%(levelname)s' + reset + '] [' + purple + '%(name)s' + reset + ']: %(message)s'
+            }
+            def format(self, record):
+                log_fmt = self.FORMATS.get(record.levelno)
+                formatter = logging.Formatter(log_fmt)
+                return formatter.format(record)
 
-        self.console_formatter = logging.Formatter('[%(levelname)s] [%(name)s]: %(message)s')
+        self.console_formatter = LoggingFormatter()
         self.file_formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s',self.dateformat)
 
         # create handler
@@ -123,6 +131,7 @@ class Logger:
         formatted_lines = traceback.format_stack()[-2]
         if warning_type not in warning_list.keys():
             warning_type = 'user'
+        self.logger.warning(message)
         warnings.warn(f"traceback: {formatted_lines}\nerror: {message}", warning_list[warning_type])
         if self.output == 'file':
             return self.logger.warning(f"traceback: {formatted_lines}\nerror: {message}")
@@ -138,6 +147,7 @@ class Logger:
             error_type = 'value'
         if self.output == 'file':
             self.logger.error(f"traceback: {formatted_lines}\nerror: {message}")
+        self.logger.error(message)
         raise error_list[error_type](f"traceback: {formatted_lines}\nerror: {message}")
     
     def get_system_info(self):

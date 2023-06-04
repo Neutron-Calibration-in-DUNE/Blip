@@ -1,6 +1,9 @@
 """
 Container for models
 """
+import os 
+import importlib.util
+import sys
 from blip.utils.logger import Logger
 from blip.models import GenericModel, PointNetPlusPlus
 from blip.models import PointNet, VietorisRipsNet
@@ -19,11 +22,14 @@ class ModelHandler:
     ):
         self.name = name
         self.use_sample_weights = use_sample_weights
-        self.logger = Logger(self.name, file_mode="w")
+        self.logger = Logger(self.name, output="both", file_mode="w")
         self.device = device
 
         if bool(config) and len(models) != 0:
-            self.logger.error(f"handler received both a config and a list of models! The user should only provide one or the other!")
+            self.logger.error(
+                f"handler received both a config and a list of models!" + 
+                "The user should only provide one or the other!"
+            )
         else:
             if bool(config):
                 self.config = config
@@ -42,6 +48,28 @@ class ModelHandler:
             'SparseUResNet':    SparseUResNet,
             'SparseUResNeXt':   SparseUResNeXt
         }
+        if "custom_model_file" in self.config.keys():
+            if os.path.isfile(self.config["custom_model_file"]):
+                try:
+                    spec = importlib.util.spec_from_file_location(
+                        'custom_model_module.name', self.config["custom_model_file"]
+                    )
+                    custom_model_file = importlib.util.module_from_spec(spec)
+                    sys.modules['custom_model_module.name'] = custom_model_file
+                    spec.loader.exec_module(custom_model_file)
+                    custom_model = getattr(custom_model_file, self.config["custom_model_name"])
+                    self.available_models[self.config['custom_model_name']] = custom_model   
+                    self.logger.info(
+                        f'added custom model from file {self.config["custom_model_file"]}' + 
+                        f' with name {self.config["custom_model_name"]}.'
+                    )
+                except:
+                    self.logger.error(
+                        f'loading class {self.config["custom_model_name"]}' +
+                        f' from file {self.config["custom_model_file"]} failed!'
+                    )
+            else:
+                self.logger.error(f'custom_model_file {self.config["custom_model_file"]} not found!')
         # check config
         if self.config["model_type"] not in self.available_models.keys():
             self.logger.error(

@@ -81,9 +81,7 @@ class PointNet(GenericModel):
         self.logger.info(f"Attempting to build {self.name} architecture using config: {self.config}")
         
         """
-        Feature extraction layers
-        Each radii (for multi-scale grouping) will have a set
-        of pointnet embedding layers applied.
+        
         """
         self.embedding_dicts = []
         _embedding_dict = OrderedDict()

@@ -1,6 +1,9 @@
 """
 Container for generic callbacks
 """
+import os
+import importlib
+import sys
 from blip.utils.logger import Logger
 from blip.utils.callbacks import GenericCallback
 from blip.utils.callbacks import LossCallback, MetricCallback
@@ -13,19 +16,19 @@ class CallbackHandler:
 
     def __init__(self,
         name:   str,
-        cfg:    dict={},
+        config:    dict={},
         callbacks:  list=[],
         device: str='device'
     ):
         self.name = name
-        self.logger = Logger(self.name, file_mode="w")
+        self.logger = Logger(self.name, output="both", file_mode="w")
         self.device = device
 
-        if bool(cfg) and len(callbacks) != 0:
+        if bool(config) and len(callbacks) != 0:
             self.logger.error(f"handler received both a config and a list of callbacks! The user should only provide one or the other!")
         else:
-            if bool(cfg):
-                self.cfg = cfg
+            if bool(config):
+                self.config = config
                 self.process_config()
             else:
                 self.callbacks = {callback.name: callback for callback in callbacks}        
@@ -33,26 +36,52 @@ class CallbackHandler:
     def process_config(self):
         # list of available callbacks
         self.available_callbacks = {
-            'loss':     LossCallback,
-            'metric':   MetricCallback,
-            'embedding':        EmbeddingCallback,
-            'confusion_matrix': ConfusionMatrixCallback,
+            'LossCallback':         LossCallback,
+            'MetricCallback':       MetricCallback,
+            'EmbeddingCallback':        EmbeddingCallback,
+            'ConfusionMatrixCallback':  ConfusionMatrixCallback,
         }
         # check config
-        for item in self.cfg.keys():
+        if "custom_callback_file" in self.config.keys():
+            if os.path.isfile(self.config["custom_callback_file"]):
+                try:
+                    spec = importlib.util.spec_from_file_location(
+                        'custom_callback_module.name', self.config["custom_callback_file"]
+                    )
+                    custom_callback_file = importlib.util.module_from_spec(spec)
+                    sys.modules['custom_callback_module.name'] = custom_callback_file
+                    spec.loader.exec_module(custom_callback_file)
+                    custom_callback = getattr(custom_callback_file, self.config["custom_callback_name"])
+                    self.available_callbacks[self.config['custom_callback_name']] = custom_callback   
+                    self.logger.info(
+                        f'added custom callback from file {self.config["custom_callback_file"]}' + 
+                        f' with name {self.config["custom_callback_name"]}.'
+                    )
+                except:
+                    self.logger.error(
+                        f'loading class {self.config["custom_callback_name"]}' +
+                        f' from file {self.config["custom_callback_file"]} failed!'
+                    )
+            else:
+                self.logger.error(f'custom_callback_file {self.config["custom_callback_file"]} not found!')
+        for item in self.config.keys():
+            if item == 'classes' or item == 'class_weights' or item == 'custom_callback_file' or item == 'custom_callback_name':
+                continue
             if item not in self.available_callbacks.keys():
                 self.logger.error(f"specified callback '{item}' is not an available type! Available types:\n{self.available_callbacks}")
             argdict = get_method_arguments(self.available_callbacks[item])
-            for value in self.cfg[item].keys():
+            for value in self.config[item].keys():
                 if value not in argdict.keys():
                     self.logger.error(f"specified callback value '{item}:{value}' not a constructor parameter for '{item}'! Constructor parameters:\n{argdict}")
             for value in argdict.keys():
                 if argdict[value] == None:
-                    if value not in self.cfg[item].keys():
+                    if value not in self.config[item].keys():
                         self.logger.error(f"required input parameters '{item}:{value}' not specified! Constructor parameters:\n{argdict}")
         self.callbacks = {}
-        for item in self.cfg.keys():
-            self.callbacks[item] = self.available_callbacks[item](**self.cfg[item], device=self.device)
+        for item in self.config.keys():
+            if item == 'classes' or item == 'class_weights' or item == 'custom_callback_file' or item == 'custom_callback_name':
+                continue
+            self.callbacks[item] = self.available_callbacks[item](**self.config[item], device=self.device)
     
     def set_device(self,
         device

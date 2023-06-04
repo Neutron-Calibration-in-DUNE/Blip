@@ -3,6 +3,7 @@
 import json
 import os
 import os.path as osp
+import glob
 import shutil
 from typing import Callable, List, Optional, Union
 import numpy as np
@@ -63,6 +64,13 @@ class BlipDataset(InMemoryDataset):
         self.number_of_events = 0
         self.root = self.config["root"]
         self.device = self.config["device"]
+        self.skip_processing = self.config["skip_processing"]
+        if self.skip_processing:
+            if os.path.isdir('processed/'):
+                for path in os.listdir('processed/'):
+                    if os.path.isfile(os.path.join('processed/', path)):
+                        self.number_of_events += 1
+            self.logger.info(f'found {self.number_of_events} processed files.')
         
         self.configure_dataset()
         self.configure_variables()
@@ -123,17 +131,39 @@ class BlipDataset(InMemoryDataset):
 
     def configure_dataset(self):
         # set dataset type
+        if "dataset_type" not in self.config.keys():
+            self.logger.error(f'no dataset_type specified in config!')
         self.dataset_type = self.config["dataset_type"]
         if self.dataset_type == 'voxel':
             self.position_type = torch.int
         else:
             self.position_type = torch.float
-        self.dataset_folder = self.config["dataset_folder"]
-        self.dataset_files = [
-            self.dataset_folder + input_file 
-            for input_file in self.config["dataset_files"]
-        ]
         self.logger.info(f"setting 'dataset_type: {self.dataset_type}.")
+
+        if "dataset_folder" not in self.config.keys():
+            self.logger.error(f'no dataset_folder specified in config!')
+        self.dataset_folder = self.config["dataset_folder"]
+        self.logger.info(f"setting 'dataset_folder: {self.dataset_folder}.")
+
+        if "dataset_files" not in self.config.keys():
+            self.logger.error(f'no dataset_files specified in config!')
+        if isinstance(self.config["dataset_files"], list):
+            self.dataset_files = [
+                self.dataset_folder + input_file 
+                for input_file in self.config["dataset_files"]
+            ]
+        elif isinstance(self.config["dataset_files"], str):
+            if self.config["dataset_files"] == "all":
+                self.logger.info(f'searching {self.dataset_folder} recursively for all .npz files.')
+                self.dataset_files = glob.glob(self.dataset_folder + '**/*.npz', recursive=True)
+            else:
+                try:
+                    self.logger.info(f'searching {self.dataset_folder} recursively for all {self.config["dataset_files"]} files.')
+                    self.dataset_files = glob.glob(self.dataset_folder + f'**/{self.config["dataset_files"]}', recursive=True)
+                except:
+                    self.logger.error(f'specified "dataset_files" parameter: {self.config["dataset_files"]} incompatible!')
+        else:       
+            self.logger.error(f'specified "dataset_files" parameter: {self.config["dataset_files"]} incompatible!')
 
     def configure_variables(self):
         # set positions, features and classes
@@ -272,17 +302,29 @@ class BlipDataset(InMemoryDataset):
 
     def process(self):
         # Read data into huge `Data` list.
-        self.index = 0
-        self.logger.info(f"processing {len(self.dataset_files)} files.")
         self.input_events = {
             raw_path: []
             for raw_path in self.dataset_files
         }
+        self.cluster_events = {
+            raw_path: []
+            for raw_path in self.dataset_files
+        }
+        self.cluster_indicies = {
+            raw_path: []
+            for raw_path in self.dataset_files
+        }
+        if self.skip_processing:
+            self.logger.info(f'skipping processing of data.')
+            return
+        self.index = 0
+        self.logger.info(f"processing {len(self.dataset_files)} files.")
+        
         for jj, raw_path in enumerate(self.dataset_files):
             data = np.load(raw_path, allow_pickle=True)
             features = data['features']
             classes = data['classes']
-
+            cluster_events = []
             for ii in range(len(features)):
                 # gather event features and classes
                 event_features = features[ii]
@@ -294,15 +336,18 @@ class BlipDataset(InMemoryDataset):
 
                 if self.dataset_type == "cluster":
                     self.process_cluster(event_features, event_classes, raw_path)
+                    cluster_events.append(np.full(len(event_features), ii, dtype=int))
                 elif self.dataset_type == "voxel":
                     self.process_voxel(event_features, event_classes, raw_path)
+            if self.dataset_type == "cluster":
+                self.cluster_events[raw_path] = np.concatenate(cluster_events)
         self.number_of_events = self.index
         self.logger.info(f"processed {self.number_of_events} events.")
 
     def process_cluster(self,
         event_features,
         event_classes,
-        raw_path,
+        raw_path
     ):
         # create clusters using DBSCAN
         cluster_mask = (event_classes[:, self.cluster_class_index] == self.cluster_label_value)
@@ -344,6 +389,7 @@ class BlipDataset(InMemoryDataset):
 
             torch.save(event, osp.join(self.processed_dir, f'data_{self.index}.pt'))
             self.input_events[raw_path].append(self.index)
+            self.cluster_indicies[raw_path].append(np.where(temp_mask))
             self.index += 1
                            
     def process_voxel(self,
@@ -389,6 +435,8 @@ class BlipDataset(InMemoryDataset):
                 classes: input_dict[classes][events]
                 for classes in input_dict.keys()
             }
+            output['cluster_events'] = self.cluster_events[raw_path]
+            output['cluster_indices'] = self.cluster_indicies[raw_path]
             # otherwise add the array and save
             loaded_arrays.update(output)
             np.savez(

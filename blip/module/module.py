@@ -15,7 +15,6 @@ from blip.utils.config import ConfigParser
 
 from blip.dataset.wire_plane import WirePlanePointCloud
 from blip.dataset.blip import BlipDataset
-from blip.dataset.blip_cluster import BlipClusterDataset
 from blip.utils.loader import Loader
 from blip.utils.sparse_loader import SparseLoader
 from blip.models import ModelHandler
@@ -114,6 +113,8 @@ class Module:
                     )
         if metrics_config:
             for item in metrics_config.keys():
+                if item == "custom_metric_file" or item == "custom_metric_name":
+                    continue
                 self.config["metrics"][item]["consolidate_classes"] = dataset_config["consolidate_classes"]
     
     def parse_device(self):
@@ -272,10 +273,10 @@ class Module:
             return
         self.logger.info("configuring callbacks.")
         callbacks_config = self.config['callbacks']
-        if "loss" in callbacks_config.keys():
-            callbacks_config["loss"] = {"criterion_list": self.criterion}
-        if "confusion_matrix" in callbacks_config.keys():
-            callbacks_config["confusion_matrix"]["metrics_list"] = self.metrics
+        if "LossCallback" in callbacks_config.keys():
+            callbacks_config["LossCallback"] = {"criterion_list": self.criterion}
+        if "ConfusionMatrixCallback" in callbacks_config.keys():
+            callbacks_config["ConfusionMatrixCallback"]["metrics_list"] = self.metrics
         self.callbacks = CallbackHandler(
             "blip_callbacks",
             callbacks_config,

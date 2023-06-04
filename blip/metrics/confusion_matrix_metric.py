@@ -14,6 +14,7 @@ class ConfusionMatrixMetric(GenericMetric):
     def __init__(self,
         name:       str='confusion_matrix',
         shape:      tuple=(),
+        mode:       str="voxel",
         inputs:             list=[''],
         number_of_classes:  list=[],
         when_to_compute:    str="all",
@@ -25,8 +26,9 @@ class ConfusionMatrixMetric(GenericMetric):
         super(ConfusionMatrixMetric, self).__init__(
             name, shape, inputs, when_to_compute, device
         )
-        self.number_of_classes = number_of_classes
+        self.mode = mode
         self.inputs = inputs
+        self.number_of_classes = number_of_classes
 
         self.metrics = {}
         self.batch_predictions = {}
@@ -45,17 +47,29 @@ class ConfusionMatrixMetric(GenericMetric):
                 self.labels[input] = consolidate_classes[input]
             else:
                 self.labels[input] = classification_labels[input].values()
-            self.batch_predictions[input] = torch.empty(
-                size=(0, self.number_of_classes[ii] + 1),
-                dtype=torch.float, device=self.device
-            )
+            if self.mode == "voxel":
+                self.batch_predictions[input] = torch.empty(
+                    size=(0, self.number_of_classes[ii] + 1),
+                    dtype=torch.float, device=self.device
+                )
+            elif self.mode == "cluster":
+                self.batch_predictions[input] = torch.empty(
+                    size=(0, self.number_of_classes[ii] * 2),
+                    dtype=torch.float, device=self.device
+                )
 
     def reset_probabilities(self):
         for ii, input in enumerate(self.inputs):
-            self.batch_predictions[input] = torch.empty(
-                size=(0, self.number_of_classes[ii] + 1),
-                dtype=torch.float, device=self.device
-            )
+            if self.mode == "voxel":
+                self.batch_predictions[input] = torch.empty(
+                    size=(0, self.number_of_classes[ii] + 1),
+                    dtype=torch.float, device=self.device
+                )
+            elif self.mode == "cluster":
+                self.batch_predictions[input] = torch.empty(
+                    size=(0, self.number_of_classes[ii] * 2),
+                    dtype=torch.float, device=self.device
+                )
     
     def reset(self,
     ):
@@ -75,23 +89,45 @@ class ConfusionMatrixMetric(GenericMetric):
         data,
     ):
         # get output probabilities for each class
+        batch = data.batch.to(self.device)
+        data.to(self.device)
         for ii, input in enumerate(self.inputs):
             softmax = nn.functional.softmax(
                 outputs[input], 
                 dim=1, dtype=torch.float
             )
-            predictions = torch.cat(
-                (softmax, data.category[:, ii].unsqueeze(1).to(self.device)),
-                dim=1
-            ).to(self.device)
-            self.batch_predictions[input] = torch.cat(
-                (self.batch_predictions[input], predictions),
-                dim=0
-            )
-            
-            self.metrics[input].update(
-                outputs[input], data.category[:,ii].to(self.device)
-            )
+            if self.mode == "voxel":
+                predictions = torch.cat(
+                    (softmax, data.category[:, ii].unsqueeze(1).to(self.device)),
+                    dim=1
+                ).to(self.device)
+                self.batch_predictions[input] = torch.cat(
+                    (self.batch_predictions[input], predictions),
+                    dim=0
+                )
+                self.metrics[input].update(
+                    outputs[input], data.category[:,ii].to(self.device)
+                )
+            elif self.mode == "cluster":
+                # convert categories to probabilities.
+                answer = torch.zeros(outputs[input].shape).to(self.device)
+                for jj, batches in enumerate(torch.unique(data.batch)):
+                    labels, counts = torch.unique(
+                        data.category[(batch == batches), ii], return_counts=True, dim=0
+                    )
+                    for kk, label in enumerate(labels):
+                        answer[jj][label] = counts[kk] / len(data.category[(batch == batches), ii])
+                predictions = torch.cat(
+                    (softmax, answer),
+                    dim=1
+                ).to(self.device)
+                self.batch_predictions[input] = torch.cat(
+                    (self.batch_predictions[input], predictions),
+                    dim=0
+                )
+                self.metrics[input].update(
+                    softmax, answer
+                )
 
     def compute(self):
         outputs = {}

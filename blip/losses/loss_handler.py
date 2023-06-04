@@ -1,6 +1,9 @@
 """
 Container for generic losses
 """
+import os
+import importlib.util
+import sys
 from blip.utils.logger import Logger
 from blip.losses import GenericLoss
 from blip.losses import L1Loss, L2Loss, NTXEntropyLoss
@@ -40,18 +43,40 @@ class LossHandler:
         # list of available criterions
         # TODO: Make this automatic
         self.available_criterions = {
-            'l1_loss':                  L1Loss,
-            'l2_loss':                  L2Loss,
-            'ntx_entropy_loss':         NTXEntropyLoss,
-            'ce_loss':                  CrossEntropyLoss,
-            'nll_loss':                 NegativeLogLikelihoodLoss,
-            'multiclass_nll_loss':      MultiClassNegativeLogLikelihoodLoss,
-            'multiclass_ce_loss':       MultiClassCrossEntropyLoss,
-            'multiclass_prob_loss':     MultiClassProbabilityLoss,
+            'L1loss':                   L1Loss,
+            'L2loss':                   L2Loss,
+            'NTXEntropyLoss':           NTXEntropyLoss,
+            'CrossEntropyloss':         CrossEntropyLoss,
+            'NegativeLogLikelihoodLoss':    NegativeLogLikelihoodLoss,
+            'MultiClassNegativeLogLikelihoodLoss':  MultiClassNegativeLogLikelihoodLoss,
+            'MultiClassCrossEntropyLoss':   MultiClassCrossEntropyLoss,
+            'MultiClassProbabilityLoss':    MultiClassProbabilityLoss,
         }
         # check config
+        if "custom_loss_file" in self.config.keys():
+            if os.path.isfile(self.config["custom_loss_file"]):
+                try:
+                    spec = importlib.util.spec_from_file_location(
+                        'custom_loss_module.name', self.config["custom_loss_file"]
+                    )
+                    custom_loss_file = importlib.util.module_from_spec(spec)
+                    sys.modules['custom_loss_module.name'] = custom_loss_file
+                    spec.loader.exec_module(custom_loss_file)
+                    custom_model = getattr(custom_loss_file, self.config["custom_loss_name"])
+                    self.available_criterions[self.config['custom_loss_name']] = custom_model   
+                    self.logger.info(
+                        f'added custom loss from file {self.config["custom_loss_file"]}' + 
+                        f' with name {self.config["custom_loss_name"]}.'
+                    )
+                except:
+                    self.logger.error(
+                        f'loading class {self.config["custom_loss_name"]}' +
+                        f' from file {self.config["custom_loss_file"]} failed!'
+                    )
+            else:
+                self.logger.error(f'custom_loss_file {self.config["custom_loss_file"]} not found!')
         for item in self.config.keys():
-            if item == 'classes' or item == 'class_weights':
+            if item == 'classes' or item == 'class_weights' or item == 'custom_loss_file' or item == 'custom_loss_name':
                 continue
             elif item not in self.available_criterions.keys():
                 self.logger.error(f"specified loss function '{item}' is not an available type! Available types:\n{self.available_criterions}")
@@ -70,7 +95,7 @@ class LossHandler:
             self.config[item]["device"] = self.device
         self.losses = {}
         for item in self.config.keys():
-            if item == 'classes' or item == 'class_weights':
+            if item == 'classes' or item == 'class_weights' or item == 'custom_loss_file' or item == 'custom_loss_name':
                 continue
             else:
                 self.losses[item] = self.available_criterions[item](**self.config[item])

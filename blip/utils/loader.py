@@ -77,9 +77,7 @@ class Loader:
         self.logger.info(f"use_class_weights: {self.use_class_weights}.")
 
         # determine number of all batches
-        self.num_all_batches = int(len(self.dataset)/self.batch_size)
-        if len(self.dataset) % self.batch_size != 0:
-            self.num_all_batches += 1
+        self.num_all_batches = len(self.dataset)
         self.logger.info(f"number of total samples: {len(self.dataset)}.")
         self.logger.info(f"number of all batches: {self.num_all_batches}.")
 
