@@ -56,8 +56,8 @@ class LossCallback(GenericCallback):
         )
         # run through criteria
         if train_type == 'training':
-            for name, loss in self.criterion_list.losses.items():
-                temp_loss = loss.batch_loss.sum()/self.num_training_batches
+            for name, loss in self.criterion_list.batch_loss.items():
+                temp_loss = loss.sum()/self.num_training_batches
                 temp_losses = torch.cat(
                     (temp_losses,torch.tensor([[temp_loss]], device=self.device)),
                     dim=1
@@ -67,8 +67,8 @@ class LossCallback(GenericCallback):
                 dim=0
             )
         elif train_type == 'validation':
-            for name, loss in self.criterion_list.losses.items():
-                temp_loss = loss.batch_loss.sum()/self.num_validation_batches
+            for name, loss in self.criterion_list.batch_loss.items():
+                temp_loss = loss.sum()/self.num_validation_batches
                 temp_losses = torch.cat(
                     (temp_losses,torch.tensor([[temp_loss]], device=self.device)),
                     dim=1
@@ -78,8 +78,8 @@ class LossCallback(GenericCallback):
                 dim=0
             )
         else:
-            for name, loss in self.criterion_list.losses.items():
-                temp_loss = loss.batch_loss.sum()/self.num_test_batches
+            for name, loss in self.criterion_list.batch_loss.items():
+                temp_loss = loss.sum()/self.num_test_batches
                 temp_losses = torch.cat(
                     (temp_losses,torch.tensor([[temp_loss]], device=self.device)),
                     dim=1

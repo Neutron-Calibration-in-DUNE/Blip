@@ -26,5 +26,4 @@ class L1Loss(GenericLoss):
     ):
         """Computes and returns/saves loss information"""
         loss = self.l1_loss(outputs, data[1].to(self.device))
-        self.batch_loss = torch.cat((self.batch_loss, torch.tensor([[loss]], device=self.device)), dim=0)
         return self.alpha * loss

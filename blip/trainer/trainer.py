@@ -129,7 +129,7 @@ class Trainer:
             self.logger.error(f"device: '{self.device}' and model device: '{self.model.device}' are different!")
         if (self.criterion.device != self.device):
             self.logger.error(f"device: '{self.device}' and model device: '{self.criterion.device}' are different!")
-        # TODO: run consistency check
+        # run consistency check
         self.logger.info(f"running consistency check...")
         self.shapes = self.model_checker.run_consistency_check(
             dataset_loader=dataset_loader,
@@ -137,7 +137,6 @@ class Trainer:
             criterion=self.criterion,
             metrics=self.metrics
         )
-
         self.model.save_model(flag='init')
         # setting values in callbacks
         self.callbacks.set_device(self.device)

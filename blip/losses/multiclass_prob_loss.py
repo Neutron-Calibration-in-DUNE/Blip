@@ -53,5 +53,4 @@ class MultiClassProbabilityLoss(GenericLoss):
                 for kk, label in enumerate(labels):
                     answer[jj][label] = counts[kk] / len(data.category[(batch == batches), ii])
             loss += self.cross_entropy_loss[classes](outputs[classes], answer.to(self.device))
-        self.batch_loss = torch.cat((self.batch_loss, torch.tensor([[loss]], device=self.device)), dim=0)
         return self.alpha * loss

@@ -44,5 +44,4 @@ class MultiClassCrossEntropyLoss(GenericLoss):
         loss = 0
         for ii, classes in enumerate(self.classes):
             loss += self.cross_entropy_loss[classes](outputs[classes], data.category[:,ii].to(self.device))
-        self.batch_loss = torch.cat((self.batch_loss, torch.tensor([[loss]], device=self.device)), dim=0)
         return self.alpha * loss

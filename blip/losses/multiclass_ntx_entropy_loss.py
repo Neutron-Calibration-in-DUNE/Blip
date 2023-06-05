@@ -38,5 +38,4 @@ class MultiClassNTXEntropyLoss(GenericLoss):
             for ii in range(int(len(outputs['reductions'])/len(data.category)))
         ])
         loss = self.ntxent_loss(embeddings, labels)
-        self.batch_loss = torch.cat((self.batch_loss, torch.tensor([[loss]], device=self.device)), dim=0)
         return self.alpha * loss

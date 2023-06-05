@@ -226,9 +226,8 @@ class Module:
         self.logger.info("configuring criterion.")
         criterion_config = self.config['criterion']
         # add in class weight numbers for loss functions
-        criterion_config['class_weights'] = self.dataset.class_weights
         self.criterion = LossHandler(
-            "blip_criterion",
+            "blip",
             criterion_config,
             device=self.device
         )

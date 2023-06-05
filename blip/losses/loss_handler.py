@@ -4,70 +4,91 @@ Container for generic losses
 import os
 import importlib.util
 import sys
+import inspect
+import torch
+
 from blip.utils.logger import Logger
 from blip.losses import GenericLoss
-from blip.losses import L1Loss, L2Loss, NTXEntropyLoss
-from blip.losses import CrossEntropyLoss
-from blip.losses import NegativeLogLikelihoodLoss
-from blip.losses import MultiClassNegativeLogLikelihoodLoss
-from blip.losses import MultiClassCrossEntropyLoss
-from blip.losses import MultiClassProbabilityLoss
-from blip.losses import MultiClassNTXEntropyLoss
 from blip.utils.utils import get_method_arguments
 
 class LossHandler:
     """
     """
     def __init__(self,
-        name:   str,
-        config:    dict={},
+        name:    str,
+        config:  dict={},
         losses:  list=[],
         use_sample_weights: bool=False,
         device: str='cpu'
     ):
-        self.name = name
+        self.name = name + '_loss_handler'
         self.use_sample_weights = use_sample_weights
         self.logger = Logger(self.name, output="both", file_mode="w")
         self.device = device
+        self.losses = {}
+        self.batch_loss = {}
 
         if bool(config) and len(losses) != 0:
-            self.logger.error(f"handler received both a config and a list of losses! The user should only provide one or the other!")
+            self.logger.error(
+                f"handler received both a config and a list of losses! " + 
+                f"The user should only provide one or the other!")
+        elif bool(config):
+            self.set_config(config)
         else:
-            if bool(config):
-                self.config = config
-                self.process_config()
-            else:
-                self.losses = {loss.name: loss for loss in losses}        
+            if len(losses) == 0:
+                self.logger.error(f"handler received neither a config or losses!")
+            self.losses = {
+                loss.name: loss 
+                for loss in losses
+            }
+            self.batch_loss = {
+                loss.name: torch.empty(size=(0,1), dtype=torch.float, device=self.device) 
+                for loss in losses
+            }
+
+    def set_config(self, config):
+        self.config = config
+        self.process_config()
     
+    def collect_loss_functions(self):
+        self.available_criterions = {}
+        self.criterion_files = [
+            os.path.dirname(__file__) + '/' + file 
+            for file in os.listdir(path=os.path.dirname(__file__))
+        ]
+        for criterion_file in self.criterion_files:
+            if criterion_file in ["__init__.py", "__pycache__.py", "generic_loss.py"]:
+                continue
+            try:
+                self.load_loss_function(criterion_file)
+            except:
+                pass
+    
+    def load_loss_function(self,
+        criterion_file: str
+    ):
+        spec = importlib.util.spec_from_file_location(
+            f'{criterion_file.removesuffix(".py")}.name', 
+            criterion_file
+        )
+        custom_loss_file = importlib.util.module_from_spec(spec)
+        sys.modules[f'{criterion_file.removesuffix(".py")}.name'] = custom_loss_file
+        spec.loader.exec_module(custom_loss_file)
+        for name, obj in inspect.getmembers(sys.modules[f'{criterion_file.removesuffix(".py")}.name']):
+            if inspect.isclass(obj):
+                custom_class = getattr(custom_loss_file, name)
+                if issubclass(custom_class, GenericLoss):
+                    self.available_criterions[name] = custom_class
+
     def process_config(self):
         # list of available criterions
-        # TODO: Make this automatic
-        self.available_criterions = {
-            'L1loss':                   L1Loss,
-            'L2loss':                   L2Loss,
-            'NTXEntropyLoss':           NTXEntropyLoss,
-            'CrossEntropyloss':         CrossEntropyLoss,
-            'NegativeLogLikelihoodLoss':    NegativeLogLikelihoodLoss,
-            'MultiClassNegativeLogLikelihoodLoss':  MultiClassNegativeLogLikelihoodLoss,
-            'MultiClassCrossEntropyLoss':   MultiClassCrossEntropyLoss,
-            'MultiClassProbabilityLoss':    MultiClassProbabilityLoss,
-        }
+        self.collect_loss_functions()
         # check config
         if "custom_loss_file" in self.config.keys():
             if os.path.isfile(self.config["custom_loss_file"]):
                 try:
-                    spec = importlib.util.spec_from_file_location(
-                        'custom_loss_module.name', self.config["custom_loss_file"]
-                    )
-                    custom_loss_file = importlib.util.module_from_spec(spec)
-                    sys.modules['custom_loss_module.name'] = custom_loss_file
-                    spec.loader.exec_module(custom_loss_file)
-                    custom_model = getattr(custom_loss_file, self.config["custom_loss_name"])
-                    self.available_criterions[self.config['custom_loss_name']] = custom_model   
-                    self.logger.info(
-                        f'added custom loss from file {self.config["custom_loss_file"]}' + 
-                        f' with name {self.config["custom_loss_name"]}.'
-                    )
+                    self.load_loss_function(self.config["custom_loss_file"])
+                    self.logger.info(f'added custom loss function from file {self.config["custom_loss_file"]}.')
                 except:
                     self.logger.error(
                         f'loading class {self.config["custom_loss_name"]}' +
@@ -75,70 +96,72 @@ class LossHandler:
                     )
             else:
                 self.logger.error(f'custom_loss_file {self.config["custom_loss_file"]} not found!')
+        # process loss functions
         for item in self.config.keys():
-            if item == 'classes' or item == 'class_weights' or item == 'custom_loss_file' or item == 'custom_loss_name':
-                continue
-            elif item not in self.available_criterions.keys():
-                self.logger.error(f"specified loss function '{item}' is not an available type! Available types:\n{self.available_criterions}")
+            # check that loss function exists
+            if item not in self.available_criterions.keys():
+                self.logger.error(
+                    f"specified loss function '{item}' is not an available type! " + 
+                    f"Available types:\n{self.available_criterions.keys()}"
+                )
+            # check that function arguments are provided
             argdict = get_method_arguments(self.available_criterions[item])
             for value in self.config[item].keys():
                 if value not in argdict.keys():
-                    self.logger.error(f"specified loss function value '{item}:{value}' not a constructor parameter for '{item}'! Constructor parameters:\n{argdict}")
+                    self.logger.error(
+                        f"specified loss function value '{item}:{value}' " + 
+                        f"not a constructor parameter for '{item}'! " + 
+                        f"Constructor parameters:\n{argdict}"
+                    )
             for value in argdict.keys():
                 if argdict[value] == None:
                     if value not in self.config[item].keys():
-                        self.logger.error(f"required input parameters '{item}:{value}' not specified! Constructor parameters:\n{argdict}")
-            if "classes" in self.config.keys():
-                self.config[item]["classes"] = self.config["classes"]
-            if "class_weights" in self.config.keys():
-                self.config[item]["class_weights"] = self.config["class_weights"]
+                        self.logger.error(
+                            f"required input parameters '{item}:{value}' "+
+                            f"not specified! Constructor parameters:\n{argdict}"
+                        )
             self.config[item]["device"] = self.device
         self.losses = {}
+        self.batch_loss = {}
         for item in self.config.keys():
-            if item == 'classes' or item == 'class_weights' or item == 'custom_loss_file' or item == 'custom_loss_name':
-                continue
-            else:
-                self.losses[item] = self.available_criterions[item](**self.config[item])
+            self.losses[item] = self.available_criterions[item](**self.config[item])
+            self.batch_loss[item] = torch.empty(size=(0,1), dtype=torch.float, device=self.device)
+            self.logger.info(f'added loss function "{item}" to LossHandler.')
 
     def set_device(self,
         device
     ):  
+        self.logger.info(f'setting device to "{device}".')
         for name, loss in self.losses.items():
             loss.set_device(device)
-            loss.reset_batch()
+            self.batch_loss[name] = torch.empty(size=(0,1), dtype=torch.float, device=self.device)
         self.device = device
 
     def reset_batch(self):  
         for name, loss in self.losses.items():
-            loss.reset_batch()
+            self.batch_loss[name] = torch.empty(size=(0,1), dtype=torch.float, device=self.device)
 
     def add_loss(self,
         loss:   GenericLoss
     ):
-        self.losses[loss.name] = loss
-    
-    def set_training_info(self,
-        epochs: int,
-        num_training_batches:   int,
-        num_validation_batches:  int,
-        num_test_batches:   int,
-    ):
-        for name, loss in self.losses.items():
-            loss.set_training_info(
-                epochs,
-                num_training_batches,
-                num_validation_batches,
-                num_test_batches
+        if issubclass(loss, GenericLoss):
+            self.logger.info(f'added loss function "{loss}" to LossHandler.')
+            self.losses[loss.name] = loss
+        else:
+            self.logger.error(
+                f'specified loss {loss} is not a child of "GenericLoss"!' + 
+                f' Only loss functions which inherit from GenericLoss can' +
+                f' be used by the LossHandler in BLIP.'
             )
-            loss.reset_batch()
 
     def loss(self,
         outputs,
         data,
     ):
-        if self.use_sample_weights:
-            weights = data[2].to(self.device)
-            losses = [(loss.loss(outputs, data) * weights / weights.sum()).sum() for name, loss in self.losses.items()]
-        else:
-            losses = [loss.loss(outputs, data) for name, loss in self.losses.items()]
-        return sum(losses)
+        batch_loss = 0
+        for name, loss in self.losses.items():
+            temp_loss = loss.loss(outputs, data)
+            self.batch_loss[name] = torch.cat(
+                (self.batch_loss[name], torch.tensor([[temp_loss]], device=self.device)), dim=0)
+            batch_loss += temp_loss
+        return batch_loss

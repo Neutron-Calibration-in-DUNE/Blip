@@ -31,5 +31,4 @@ class CrossEntropyLoss(GenericLoss):
             for ii in range(int(len(outputs['reductions'])/len(data.category)))
         ])
         loss = self.cross_entropy_loss(embeddings, augmented_labels)
-        self.batch_loss = torch.cat((self.batch_loss, torch.tensor([[loss]], device=self.device)), dim=0)
         return self.alpha * loss

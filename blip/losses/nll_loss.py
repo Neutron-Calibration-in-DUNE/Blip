@@ -25,5 +25,4 @@ class NegativeLogLikelihoodLoss(GenericLoss):
     ):
         """Computes and returns/saves loss information"""
         loss = self.nll_loss(outputs, data.category)
-        self.batch_loss = torch.cat((self.batch_loss, torch.tensor([[loss]], device=self.device)), dim=0)
         return self.alpha * loss

@@ -27,5 +27,4 @@ class MultiClassNegativeLogLikelihoodLoss(GenericLoss):
         loss = 0
         for ii, classes in enumerate(outputs.keys()):
             loss += self.nll_loss(F.log_softmax(outputs[classes], dim=1), data.category[:,ii].to(self.device))
-        self.batch_loss = torch.cat((self.batch_loss, torch.tensor([[loss]], device=self.device)), dim=0)
         return self.alpha * loss
