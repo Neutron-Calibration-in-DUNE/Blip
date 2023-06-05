@@ -40,6 +40,8 @@ class Module:
         self.logger = Logger(self.name, file_mode='w')
         self.logger.info(f"configuring module.")
 
+        self.analysis = None
+        self.clustering = None
         self.dataset = None
         self.loader = None
         self.model = None
@@ -47,6 +49,7 @@ class Module:
         self.metrics = None
         self.optimizer = None
         self.callbacks = None
+        self.topology = None
         self.trainer = None
 
         self.config_file = config_file
@@ -69,7 +72,7 @@ class Module:
         """
         """
         self.check_config()
-        self.parse_device()
+        self.parse_module()
         self.parse_dataset()
         self.parse_loader()
         self.parse_model()
@@ -79,23 +82,26 @@ class Module:
         self.parse_callbacks()
         self.parse_training()
 
-        self.trainer.train(
-            self.loader,
-            epochs=self.config['training']['epochs'],
-            checkpoint=self.config['training']['checkpoint'],
-            progress_bar=self.config['training']['progress_bar'],
-            rewrite_bar=self.config['training']['rewrite_bar'],
-            save_predictions=self.config['training']['save_predictions'],
-            no_timing=self.config['training']['no_timing']
-        )
-
-        # save model/data/config
-        if 'run_name' in self.config['training'].keys():
-            save_model(self.config['training']['run_name'], self.config_file)
-        else:
-            save_model(self.name, self.config_file)
+        self.run_module()
 
     def check_config(self):
+        if "module" not in self.config.keys():
+            self.logger.error(f'"module" section not specified in config!')
+        if "dataset" not in self.config.keys():
+            self.logger.error(f'"dataset" section not specified in config!')
+        if "loader" not in self.config.keys():
+            self.logger.error(f'"loader" section not specified in config!')
+        if "model" not in self.config.keys():
+            self.logger.error(f'"model" section not specified in config!')
+        if "criterion" not in self.config.keys():
+            self.logger.error(f'"criterion" section not specified in config!')
+        if "optimizer" not in self.config.keys():
+            self.logger.error(f'"optimizer" section not specified in config!')
+        if "metrics" not in self.config.keys():
+            self.logger.error(f'"metrics" section not specified in config!')
+        if "callbacks" not in self.config.keys():
+            self.logger.error(f'"callbacks" section not specified in config!')
+
         dataset_config = self.config['dataset']
         loader_config = self.config['loader']
         model_config = self.config['model']
@@ -117,10 +123,22 @@ class Module:
                     continue
                 self.config["metrics"][item]["consolidate_classes"] = dataset_config["consolidate_classes"]
     
-    def parse_device(self):
+    def parse_module(self):
+        # check for module type
+        if "module_type" not in self.config["module"].keys():
+            self.logger.error(f'"module_type" not specified in config!')
+        self.module_type = self.config["module"]["module_type"]
         # check for devices
-        self.gpu = self.config["device"]["gpu"]
-        self.gpu_device = self.config["device"]["gpu_device"]
+        if "gpu" not in self.config["module"].keys():
+            self.logger.warn(f'"gpu" not specified in config!')
+            self.gpu = None
+        else:
+            self.gpu = self.config["module"]["gpu"]
+        if "gpu_device" not in self.config["module"].keys():
+            self.logger.warn(f'"gpu_device" not specified in config!')
+            self.gpu_device = None
+        else:
+            self.gpu_device = self.config["module"]["gpu_device"]
         
         if torch.cuda.is_available():
             self.logger.info(f"CUDA is available with devices:")
@@ -297,6 +315,36 @@ class Module:
             self.metrics,
             self.callbacks,
             device=self.device,
-            gpu=self.config['device']['gpu'],
+            gpu=self.gpu,
             seed=training_config['seed']
         )
+    
+    def run_module(self):
+        """
+        Once everything is configured, we run the module here.
+        """
+        if self.module_type == 'training':
+            self.trainer.train(
+                self.loader,
+                epochs=self.config['training']['epochs'],
+                checkpoint=self.config['training']['checkpoint'],
+                progress_bar=self.config['training']['progress_bar'],
+                rewrite_bar=self.config['training']['rewrite_bar'],
+                save_predictions=self.config['training']['save_predictions'],
+                no_timing=self.config['training']['no_timing']
+            )
+
+            # save model/data/config
+            if 'run_name' in self.config['training'].keys():
+                save_model(self.config['training']['run_name'], self.config_file)
+            else:
+                save_model(self.name, self.config_file)
+                
+        elif self.module_type == 'clustering':
+            self.clustering.cluster(
+                self.loader,
+                progress_bar=self.config['clustering']['progress_bar'],
+                rewrite_bar=self.config['clustering']['rewrite_bar'],
+                save_predictions=self.config['clustering']['save_predictions'],
+                no_timing=self.config['clustering']['no_timing']
+            )

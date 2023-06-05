@@ -91,13 +91,14 @@ class LossHandler:
                     self.logger.info(f'added custom loss function from file {self.config["custom_loss_file"]}.')
                 except:
                     self.logger.error(
-                        f'loading class {self.config["custom_loss_name"]}' +
-                        f' from file {self.config["custom_loss_file"]} failed!'
+                        f'loading classes from file {self.config["custom_loss_file"]} failed!'
                     )
             else:
                 self.logger.error(f'custom_loss_file {self.config["custom_loss_file"]} not found!')
         # process loss functions
         for item in self.config.keys():
+            if item == "custom_loss_file":
+                continue
             # check that loss function exists
             if item not in self.available_criterions.keys():
                 self.logger.error(
@@ -124,6 +125,8 @@ class LossHandler:
         self.losses = {}
         self.batch_loss = {}
         for item in self.config.keys():
+            if item == "custom_loss_file":
+                continue
             self.losses[item] = self.available_criterions[item](**self.config[item])
             self.batch_loss[item] = torch.empty(size=(0,1), dtype=torch.float, device=self.device)
             self.logger.info(f'added loss function "{item}" to LossHandler.')

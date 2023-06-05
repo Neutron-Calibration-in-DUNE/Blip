@@ -13,7 +13,7 @@ class DiceScoreMetric(GenericMetric):
     def __init__(self,
         name:       str='dice_score',
         shape:      tuple=(),
-        inputs:             list=[''],
+        inputs:             list=[],
         number_of_classes:  list=[],
         when_to_compute:    str="all",
         consolidate_classes:   dict=None,

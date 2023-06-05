@@ -13,9 +13,8 @@ class ConfusionMatrixMetric(GenericMetric):
     
     def __init__(self,
         name:       str='confusion_matrix',
-        shape:      tuple=(),
         mode:       str="voxel",
-        inputs:             list=[''],
+        inputs:             list=[],
         number_of_classes:  list=[],
         when_to_compute:    str="all",
         consolidate_classes:   dict=None,
@@ -24,7 +23,7 @@ class ConfusionMatrixMetric(GenericMetric):
         """
         """
         super(ConfusionMatrixMetric, self).__init__(
-            name, shape, inputs, when_to_compute, device
+            name, inputs, when_to_compute, device
         )
         self.mode = mode
         self.inputs = inputs
@@ -47,42 +46,42 @@ class ConfusionMatrixMetric(GenericMetric):
                 self.labels[input] = consolidate_classes[input]
             else:
                 self.labels[input] = classification_labels[input].values()
-            if self.mode == "voxel":
-                self.batch_predictions[input] = torch.empty(
-                    size=(0, self.number_of_classes[ii] + 1),
-                    dtype=torch.float, device=self.device
-                )
-            elif self.mode == "cluster":
-                self.batch_predictions[input] = torch.empty(
-                    size=(0, self.number_of_classes[ii] * 2),
-                    dtype=torch.float, device=self.device
-                )
+    #         if self.mode == "voxel":
+    #             self.batch_predictions[input] = torch.empty(
+    #                 size=(0, self.number_of_classes[ii] + 1),
+    #                 dtype=torch.float, device=self.device
+    #             )
+    #         elif self.mode == "cluster":
+    #             self.batch_predictions[input] = torch.empty(
+    #                 size=(0, self.number_of_classes[ii] * 2),
+    #                 dtype=torch.float, device=self.device
+    #             )
 
-    def reset_probabilities(self):
-        for ii, input in enumerate(self.inputs):
-            if self.mode == "voxel":
-                self.batch_predictions[input] = torch.empty(
-                    size=(0, self.number_of_classes[ii] + 1),
-                    dtype=torch.float, device=self.device
-                )
-            elif self.mode == "cluster":
-                self.batch_predictions[input] = torch.empty(
-                    size=(0, self.number_of_classes[ii] * 2),
-                    dtype=torch.float, device=self.device
-                )
+    # def reset_probabilities(self):
+    #     for ii, input in enumerate(self.inputs):
+    #         if self.mode == "voxel":
+    #             self.batch_predictions[input] = torch.empty(
+    #                 size=(0, self.number_of_classes[ii] + 1),
+    #                 dtype=torch.float, device=self.device
+    #             )
+    #         elif self.mode == "cluster":
+    #             self.batch_predictions[input] = torch.empty(
+    #                 size=(0, self.number_of_classes[ii] * 2),
+    #                 dtype=torch.float, device=self.device
+    #             )
     
-    def reset(self,
-    ):
-        for ii, input in enumerate(self.inputs):
-            self.metrics[input].reset()
-        self.reset_probabilities()
+    # def reset(self,
+    # ):
+    #     for ii, input in enumerate(self.inputs):
+    #         self.metrics[input].reset()
+    #     self.reset_probabilities()
 
-    def set_device(self,
-        device
-    ):
-        for ii, input in enumerate(self.inputs):
-            self.metrics[input].to(device)
-        self.device = device
+    # def set_device(self,
+    #     device
+    # ):
+    #     for ii, input in enumerate(self.inputs):
+    #         self.metrics[input].to(device)
+    #     self.device = device
 
     def update(self,
         outputs,
@@ -97,14 +96,14 @@ class ConfusionMatrixMetric(GenericMetric):
                 dim=1, dtype=torch.float
             )
             if self.mode == "voxel":
-                predictions = torch.cat(
-                    (softmax, data.category[:, ii].unsqueeze(1).to(self.device)),
-                    dim=1
-                ).to(self.device)
-                self.batch_predictions[input] = torch.cat(
-                    (self.batch_predictions[input], predictions),
-                    dim=0
-                )
+                # predictions = torch.cat(
+                #     (softmax, data.category[:, ii].unsqueeze(1).to(self.device)),
+                #     dim=1
+                # ).to(self.device)
+                # self.batch_predictions[input] = torch.cat(
+                #     (self.batch_predictions[input], predictions),
+                #     dim=0
+                # )
                 self.metrics[input].update(
                     outputs[input], data.category[:,ii].to(self.device)
                 )
@@ -117,20 +116,20 @@ class ConfusionMatrixMetric(GenericMetric):
                     )
                     for kk, label in enumerate(labels):
                         answer[jj][label] = counts[kk] / len(data.category[(batch == batches), ii])
-                predictions = torch.cat(
-                    (softmax, answer),
-                    dim=1
-                ).to(self.device)
-                self.batch_predictions[input] = torch.cat(
-                    (self.batch_predictions[input], predictions),
-                    dim=0
-                )
+                # predictions = torch.cat(
+                #     (softmax, answer),
+                #     dim=1
+                # ).to(self.device)
+                # self.batch_predictions[input] = torch.cat(
+                #     (self.batch_predictions[input], predictions),
+                #     dim=0
+                # )
                 self.metrics[input].update(
                     softmax, answer
                 )
 
-    def compute(self):
-        outputs = {}
-        for ii, input in enumerate(self.inputs):
-            outputs[input] = self.metrics[input].compute()
-        return outputs
+    # def compute(self):
+    #     outputs = {}
+    #     for ii, input in enumerate(self.inputs):
+    #         outputs[input] = self.metrics[input].compute()
+    #     return outputs

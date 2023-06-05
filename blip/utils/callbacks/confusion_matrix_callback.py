@@ -37,20 +37,12 @@ class ConfusionMatrixCallback(GenericCallback):
             os.makedirs("plots/summed_adc/")
 
         self.sig_acceptance = sig_acceptance
-        
-        self.training_probabilities = None
-        self.validation_probabilities = None
-        self.test_probabilities = None
 
         self.training_confusion = None
         self.validation_confusion = None
         self.test_confusion = None
 
     def reset_batch(self):
-        self.training_probabilities = None
-        self.validation_probabilities = None
-        self.test_probabilities = None
-
         self.training_confusion = None
         self.validation_confusion = None
         self.test_confusion = None
@@ -59,15 +51,11 @@ class ConfusionMatrixCallback(GenericCallback):
         train_type='training'
     ):  
         if train_type == "training":
-            self.training_probabilities = self.metric.batch_predictions
             self.training_confusion = self.metric.compute()
         elif train_type == "validation":
-            self.validation_probabilities = self.metric.batch_predictions
             self.validation_confusion = self.metric.compute()
         else:
-            self.test_probabilities = self.metric.batch_predictions
             self.test_confusion = self.metric.compute()
-        self.metric.reset_probabilities()
 
     def evaluate_training(self):
         for ii, input in enumerate(self.metric.inputs):

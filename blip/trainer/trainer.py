@@ -76,7 +76,6 @@ class Trainer:
         self.optimizer = optimizer
         self.criterion = criterion
         self.metrics = metrics
-        # TODO: Change this to a CallbackList, which is easier to maintain.
         if callbacks == None:
             # add generic callbacks
             self.callbacks = CallbackHandler(
@@ -107,11 +106,6 @@ class Trainer:
             self.memory_trackers
         )
         self.callbacks.add_callback(self.memory_callback)
-    
-    def __run_consistency_check(self,
-        dataset_loader
-    ):
-        pass
 
     def train(self,
         dataset_loader,             # dataset_loader to pass in
@@ -294,7 +288,7 @@ class Trainer:
                         )
                     else:
                         metrics_training_loop = enumerate(dataset_loader.train_loader, 0)
-                    self.metrics.reset()
+                    self.metrics.reset_batch()
                     for ii, data in metrics_training_loop:
                         # update metrics
                         self.timers.timers['training_metrics'].start()
@@ -381,7 +375,7 @@ class Trainer:
                         )
                     else:
                         metrics_validation_loop = enumerate(dataset_loader.validation_loader, 0)
-                    self.metrics.reset()
+                    self.metrics.reset_batch()
                     for ii, data in metrics_validation_loop:
                         # update metrics
                         self.timers.timers['validation_metrics'].start()
@@ -432,7 +426,7 @@ class Trainer:
         # make sure to set model to eval() during validation!
         self.model.eval()
         if self.metrics != None:
-            self.metrics.reset()
+            self.metrics.reset_batch()
         with torch.no_grad():
             for ii, data in test_loop:
                 # get the network output
@@ -508,7 +502,7 @@ class Trainer:
                     )
                 else:
                     metrics_training_loop = enumerate(dataset_loader.train_loader, 0)
-                self.metrics.reset()
+                self.metrics.reset_batch()
                 for ii, data in metrics_training_loop:
                     outputs = self.model(data)
                     self.metrics.update(outputs, data, train_type="train")
@@ -542,7 +536,7 @@ class Trainer:
                         )
                     else:
                         metrics_validation_loop = enumerate(dataset_loader.validation_loader, 0)
-                    self.metrics.reset()
+                    self.metrics.reset_batch()
                     for ii, data in metrics_validation_loop:
                         outputs = self.model(data)
                         self.metrics.update(outputs, data, train_type="validation")
@@ -573,7 +567,7 @@ class Trainer:
                 outputs = self.model(data)
                 loss = self.criterion.loss(outputs, data)
                 if self.metrics != None:
-                    self.metrics.reset()
+                    self.metrics.reset_batch()
                     self.metrics.update(outputs, data, train_type="test")
                 if (progress_bar == 'all' or progress_bar == 'test'):
                     test_loop.set_description(f"Testing: Batch [{ii+1}/{dataset_loader.num_test_batches}]")
@@ -649,7 +643,7 @@ class Trainer:
         self.model.eval()
         with torch.no_grad():
             if self.metrics != None:
-                self.metrics.reset()
+                self.metrics.reset_batch()
             for ii, data in inference_loop:
                 # get the network output
                 outputs = self.model(data)

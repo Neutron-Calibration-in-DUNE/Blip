@@ -8,12 +8,12 @@ class GenericLoss:
     """
     def __init__(self,
         name:   str='generic',
+        alpha:  float=0.0,
         device: str='cpu'
     ):
         self.name = name
-        self.alpha = 0.0
+        self.alpha = alpha
         self.classes = []
-        # set device to cpu for now
         self.device = device
 
     def set_device(self,

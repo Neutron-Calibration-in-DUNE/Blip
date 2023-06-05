@@ -43,8 +43,8 @@ class ModelChecker:
         except Exception as e:
             self.logger.error(f"problem indexing elements of dataset {dataset_loader.dataset}: {e}")
         if isinstance(data, Batch):
-            self.shapes["input"]["x"] = data.x[0].shape
-            self.shapes["input"]["pos"] = data.pos[0].shape
+            self.shapes["input"]["features"] = data['x'][0].shape
+            self.shapes["input"]["positions"] = data['pos'][0].shape
             self.shapes["input"]["category"] = data.category[0].shape
 
         model.eval()
