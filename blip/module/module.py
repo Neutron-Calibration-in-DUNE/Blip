@@ -13,6 +13,7 @@ from datetime import datetime
 from blip.utils.logger import Logger
 from blip.utils.config import ConfigParser
 
+from blip.clustering.clusterer import Clusterer
 from blip.dataset.wire_plane import WirePlanePointCloud
 from blip.dataset.blip import BlipDataset
 from blip.utils.loader import Loader
@@ -81,6 +82,7 @@ class Module:
         self.parse_metrics()
         self.parse_callbacks()
         self.parse_training()
+        self.parse_cluster()
 
         self.run_module()
 
@@ -89,26 +91,35 @@ class Module:
             self.logger.error(f'"module" section not specified in config!')
         if "dataset" not in self.config.keys():
             self.logger.error(f'"dataset" section not specified in config!')
-        if "loader" not in self.config.keys():
-            self.logger.error(f'"loader" section not specified in config!')
-        if "model" not in self.config.keys():
-            self.logger.error(f'"model" section not specified in config!')
-        if "criterion" not in self.config.keys():
-            self.logger.error(f'"criterion" section not specified in config!')
-        if "optimizer" not in self.config.keys():
-            self.logger.error(f'"optimizer" section not specified in config!')
-        if "metrics" not in self.config.keys():
-            self.logger.error(f'"metrics" section not specified in config!')
-        if "callbacks" not in self.config.keys():
-            self.logger.error(f'"callbacks" section not specified in config!')
+        
+        if self.config["module"]["module_type"] == "training":
+            if "loader" not in self.config.keys():
+                self.logger.error(f'"loader" section not specified in config!')
+            if "model" not in self.config.keys():
+                self.logger.error(f'"model" section not specified in config!')
+            if "criterion" not in self.config.keys():
+                self.logger.error(f'"criterion" section not specified in config!')
+            if "optimizer" not in self.config.keys():
+                self.logger.error(f'"optimizer" section not specified in config!')
+            if "metrics" not in self.config.keys():
+                self.logger.error(f'"metrics" section not specified in config!')
+            if "callbacks" not in self.config.keys():
+                self.logger.error(f'"callbacks" section not specified in config!')
+        
+            loader_config = self.config['loader']
+            model_config = self.config['model']
+            criterion_config = self.config['criterion']
+            optimizer_config = self.config['optimizer']
+            metrics_config = self.config['metrics']
+            callbacks_config = self.config['callbacks']
 
+            if metrics_config:
+                for item in metrics_config.keys():
+                    if item == "custom_metric_file" or item == "custom_metric_name":
+                        continue
+                    self.config["metrics"][item]["consolidate_classes"] = dataset_config["consolidate_classes"]
+        
         dataset_config = self.config['dataset']
-        loader_config = self.config['loader']
-        model_config = self.config['model']
-        criterion_config = self.config['criterion']
-        optimizer_config = self.config['optimizer']
-        metrics_config = self.config['metrics']
-        callbacks_config = self.config['callbacks']
 
         if dataset_config["consolidate_classes"] is not None:
             for item in dataset_config["consolidate_classes"]:
@@ -117,11 +128,7 @@ class Module:
                         f"(dataset config) specified class in 'dataset: consolidate_classes' [{item}]" + 
                         f" not in 'dataset: consolidate_classes [{dataset_config['consolidate_classes']}]"
                     )
-        if metrics_config:
-            for item in metrics_config.keys():
-                if item == "custom_metric_file" or item == "custom_metric_name":
-                    continue
-                self.config["metrics"][item]["consolidate_classes"] = dataset_config["consolidate_classes"]
+        
     
     def parse_module(self):
         # check for module type
@@ -225,7 +232,7 @@ class Module:
         """
         """
         if "model" not in self.config.keys():
-            self.logger.error("no model in config file!")
+            self.logger.warn("no model in config file.")
             return
         self.logger.info("configuring model.")
         model_config = self.config["model"]
@@ -317,6 +324,21 @@ class Module:
             device=self.device,
             gpu=self.gpu,
             seed=training_config['seed']
+        )
+
+    def parse_cluster(self):
+        """
+        """
+        if "clustering" not in self.config.keys():
+            self.logger.warn("no clustering in config file.")
+            return
+        self.logger.info("configuring clustering.")
+        cluster_config = self.config['clustering']
+        self.clustering = Clusterer(
+            self.name + "_cluster", 
+            device=self.device,
+            gpu=self.gpu,
+            seed=cluster_config['seed']
         )
     
     def run_module(self):
