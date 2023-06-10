@@ -140,6 +140,9 @@ class WirePlanePointCloud:
                     "classes": {
                         "source": 0, "shape": 1, "particle": 2
                     },
+                    "clusters": {
+                        "shape":  0, "particle": 1
+                    },
                     "source_labels": {
                         key: value
                         for key, value in classification_labels["source"].items()

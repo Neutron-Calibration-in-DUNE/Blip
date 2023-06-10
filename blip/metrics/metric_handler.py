@@ -37,7 +37,7 @@ class MetricHandler:
             self.metrics = {
                 metric.name: metric 
                 for metric in metrics
-            }
+            } 
 
     def set_config(self, config):
         self.config = config
@@ -138,7 +138,7 @@ class MetricHandler:
     def add_metric(self,
         metric:   GenericMetric
     ):
-        if issubclass(metric, GenericMetric):
+        if issubclass(type(metric), GenericMetric):
             self.logger.info(f'added metric function "{metric}" to MetricHandler.')
             self.metrics[metric.name] = metric
         else:

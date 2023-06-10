@@ -6,6 +6,8 @@ class GenericCallback:
     """
     """
     def __init__(self,
+        criterion_list: list=[],
+        metrics_list: list=[],
         device: str='cpu'
     ):
         self.epochs = None
@@ -14,6 +16,8 @@ class GenericCallback:
         self.num_test_batches = None
         self.plot_colors = ['b','g','r','c','m','y']
 
+        self.criterion_list = criterion_list
+        self.metrics_list = metrics_list
         self.device = device
 
     def set_device(self,

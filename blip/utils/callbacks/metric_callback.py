@@ -12,10 +12,15 @@ class MetricCallback(GenericCallback):
     """
     """
     def __init__(self,
-        metrics_list,
+        criterion_list: list=[],
+        metrics_list: list=[],
         device: str='cpu'
     ):  
-        super(MetricCallback, self).__init__(device)
+        super(MetricCallback, self).__init__(
+            criterion_list,
+            metrics_list, 
+            device
+        )
         self.metrics_list = metrics_list
         if metrics_list != None:
             self.metric_names = [

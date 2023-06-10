@@ -101,18 +101,29 @@ class BlipDataset(InMemoryDataset):
             self.meta[0]["features"][feature] 
             for feature in self.features
         ]
-        self.class_labels = {
-            label: self.meta[0][f"{label}_labels"]
-            for label in self.meta[0]["classes"].keys()
-        }
         self.class_indices = [
             self.meta[0]["classes"][label]
             for label in self.classes
         ]
+        self.cluster_indices = [
+            self.meta[0]["clusters"][label]
+            for label in self.clusters
+        ]
+
+        self.class_labels = {
+            label: self.meta[0][f"{label}_labels"]
+            for label in self.meta[0]["classes"].keys()
+        }
+        self.cluster_labels = {
+            label: self.meta[0][f"{label}_labels"]
+            for label in self.meta[0]["clusters"].keys()
+        }
+        
         self.number_classes = {
             label: len(self.class_labels[label])
             for label in self.meta[0]["classes"].keys()
         }
+
         self.class_labels_by_name = {
             label: {val: key for key, val in self.class_labels[label].items()}
             for label in self.class_labels.keys()
@@ -128,6 +139,25 @@ class BlipDataset(InMemoryDataset):
             label: {key: ii for ii, key in enumerate(self.class_labels[label].keys())}
             for label in self.class_labels.keys()
         }
+        self.cluster_labels_by_name = {
+            label: {val: key for key, val in self.cluster_labels[label].items()}
+            for label in self.cluster_labels.keys()
+        }
+        self.cluster_label_names = [
+            label for label in self.meta[0]["clusters"].keys()
+        ]
+        self.cluster_label_index = {
+            label: ii
+            for ii, label in enumerate(self.meta[0]["clusters"].keys())
+        }
+        self.cluster_label_indices = {
+            label: {key: ii for ii, key in enumerate(self.cluster_labels[label].keys())}
+            for label in self.cluster_labels.keys()
+        }
+        if "class_mask" in self.config:
+            self.class_mask_index = self.class_label_index[self.class_mask]
+        if "label_mask" in self.config:
+            self.label_mask_value = self.class_labels_by_name[self.class_mask][self.label_mask]
 
     def configure_dataset(self):
         # set dataset type
@@ -170,6 +200,16 @@ class BlipDataset(InMemoryDataset):
         self.positions = self.config["positions"]
         self.features = self.config["features"]
         self.classes = self.config["classes"]
+        if "clusters" in self.config:
+            self.clusters = self.config["clusters"]
+            self.logger.info(f"setting 'clusters':      {self.clusters}")
+        if "class_mask" in self.config:
+            self.class_mask = self.config["class_mask"]
+            self.logger.info(f"setting 'class_mask':    {self.class_mask}.")
+        if "label_mask" in self.config:
+            self.label_mask = self.config["label_mask"]
+            self.logger.info(f"setting 'label_mask':    {self.label_mask}.")
+
         self.consolidate_classes = self.config["consolidate_classes"]
         self.sample_weights = self.config["sample_weights"]
         self.class_weights = self.config["class_weights"]
@@ -222,8 +262,6 @@ class BlipDataset(InMemoryDataset):
             return
         self.dbscan_min_samples = self.config["dbscan_min_samples"]
         self.dbscan_eps = self.config["dbscan_eps"]
-        self.cluster_class = self.config["cluster_class"]
-        self.cluster_label = self.config["cluster_label"]
         self.cluster_positions = self.config["cluster_positions"]
         self.cluster_position_indices = [
             self.meta[0]["features"][position] 
@@ -231,12 +269,7 @@ class BlipDataset(InMemoryDataset):
         ]
         self.logger.info(f"setting 'dbscan_min_samples': {self.dbscan_min_samples}.")
         self.logger.info(f"setting 'dbscan_eps': {self.dbscan_eps}.")
-        self.logger.info(f"setting 'cluster_class': {self.cluster_class}.")
-        self.logger.info(f"setting 'cluster_label': {self.cluster_label}.")
         self.logger.info(f"setting 'cluster_positions': {self.cluster_positions}")
-
-        self.cluster_class_index = self.class_label_index[self.cluster_class]
-        self.cluster_label_value = self.class_labels_by_name[self.cluster_class][self.cluster_label]
 
         self.dbscan = DBSCAN(
             eps=self.dbscan_eps, 
@@ -324,21 +357,33 @@ class BlipDataset(InMemoryDataset):
             data = np.load(raw_path, allow_pickle=True)
             features = data['features']
             classes = data['classes']
+            clusters = data['clusters']
             cluster_events = []
             for ii in range(len(features)):
                 # gather event features and classes
                 event_features = features[ii]
+                event_clusters = clusters[ii]
                 # check if classes need to be consolidated
                 if self.consolidate_classes is not None:
                     event_classes = self.consolidate_class(classes[ii])
                 else:
                     event_classes = classes[ii]
 
+                # apply masks
+                if "class_mask" in self.config and "label_mask" in self.config:
+                    event_mask = (event_classes[:, self.class_mask_index] == self.label_mask_value)
+                    event_features = event_features[event_mask]
+                    event_clusters = event_clusters[event_mask]
+                    event_classes = event_classes[event_mask]
+
                 if self.dataset_type == "cluster":
                     self.process_cluster(event_features, event_classes, raw_path)
                     cluster_events.append(np.full(len(event_features), ii, dtype=int))
                 elif self.dataset_type == "voxel":
-                    self.process_voxel(event_features, event_classes, raw_path)
+                    self.process_voxel(
+                        event_features, event_classes, 
+                        event_clusters, raw_path
+                    )
             if self.dataset_type == "cluster":
                 self.cluster_events[raw_path] = np.concatenate(cluster_events)
         self.number_of_events = self.index
@@ -350,9 +395,8 @@ class BlipDataset(InMemoryDataset):
         raw_path
     ):
         # create clusters using DBSCAN
-        cluster_mask = (event_classes[:, self.cluster_class_index] == self.cluster_label_value)
-        cluster_positions = event_features[:, self.cluster_position_indices][cluster_mask]
-        cluster_classes = event_classes[:, self.class_indices][cluster_mask]
+        cluster_positions = event_features[:, self.cluster_position_indices]
+        cluster_classes = event_classes[:, self.class_indices]
         
         cluster_labels = self.dbscan.fit(cluster_positions).labels_
         unique_labels = np.unique(cluster_labels)
@@ -363,7 +407,7 @@ class BlipDataset(InMemoryDataset):
             if kk == -1:
                 continue
             temp_mask = (cluster_labels == kk)
-            temp_positions = event_features[:, self.position_indices][cluster_mask][temp_mask]
+            temp_positions = event_features[:, self.position_indices][temp_mask]
             min_positions = np.min(temp_positions, axis=0)
             max_positions = np.max(temp_positions, axis=0)
             scale = max_positions - min_positions
@@ -371,17 +415,14 @@ class BlipDataset(InMemoryDataset):
             temp_positions = 2 * (temp_positions - min_positions) / scale - 1
             temp_classes = cluster_classes[temp_mask]
             if len(self.feature_indices) != 0:
-                event = Data(
-                    pos=torch.tensor(temp_positions).type(self.position_type),
-                    x=torch.tensor(event_features[:, self.feature_indices][cluster_mask][temp_mask]).type(torch.float),
-                    category=torch.tensor(temp_classes).type(torch.long)
-                )
+                temp_features = torch.tensor(event_features[:, self.feature_indices][temp_mask]).type(torch.float)
             else:
-                event = Data(
-                    pos=torch.tensor(temp_positions).type(self.position_type),
-                    x=torch.ones((len(event_features[cluster_mask][temp_mask]),1)).type(torch.float),
-                    category=torch.tensor(temp_classes).type(torch.long)
-                )
+                temp_features = torch.ones((len(event_features[temp_mask]),1)).type(torch.float)
+            event = Data(
+                pos=torch.tensor(temp_positions).type(self.position_type),
+                x=temp_features,
+                category=torch.tensor(temp_classes).type(torch.long)
+            )
             if self.pre_filter is not None:
                 event = self.pre_filter(event)
             if self.pre_transform is not None:
@@ -395,20 +436,25 @@ class BlipDataset(InMemoryDataset):
     def process_voxel(self,
         event_features,
         event_classes,
+        event_clusters,
         raw_path
     ):
         if len(self.feature_indices) != 0:
-            event = Data(
-                pos=torch.tensor(event_features[:, self.position_indices]).type(self.position_type),
-                x=torch.tensor(event_features[:, self.feature_indices]).type(torch.float),
-                category=torch.tensor(event_classes[:, self.class_indices]).type(torch.long),
-            )
+            temp_features = torch.tensor(event_features[:, self.feature_indices]).type(torch.float)
         else:
-            event = Data(
-                pos=torch.tensor(event_features[:, self.position_indices]).type(self.position_type),
-                x=torch.ones((len(event_features),1)).type(torch.float),
-                category=torch.tensor(event_classes[:, self.class_indices]).type(torch.long),
-            )
+            temp_features = torch.ones((len(event_features),1)).type(torch.float)
+
+        if len(self.cluster_indices) != 0:
+            temp_clusters = torch.tensor(event_clusters[:, self.cluster_indices]).type(torch.long)
+        else:
+            temp_clusters = None
+        
+        event = Data(
+            pos=torch.tensor(event_features[:, self.position_indices]).type(self.position_type),
+            x=temp_features,
+            category=torch.tensor(event_classes[:, self.class_indices]).type(torch.long),
+            clusters=temp_clusters,
+        )
         if self.pre_filter is not None:
             event = self.pre_filter(event)
 

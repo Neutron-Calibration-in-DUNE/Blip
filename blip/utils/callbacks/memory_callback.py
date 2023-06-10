@@ -14,10 +14,16 @@ class MemoryTrackerCallback(GenericCallback):
     def __init__(self,
         output_dir: str,
         memory_trackers: MemoryTrackers,
+        criterion_list: list=[],
+        metrics_list: list=[],
         device: str='cpu'
     ):
         self.name = "memory"
-        super(MemoryTrackerCallback, self).__init__(device)
+        super(MemoryTrackerCallback, self).__init__(
+            criterion_list,
+            metrics_list, 
+            device
+        )
         self.output_dir = output_dir
         self.memory_trackers = memory_trackers
     

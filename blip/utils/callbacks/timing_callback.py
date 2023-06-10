@@ -14,10 +14,16 @@ class TimingCallback(GenericCallback):
     def __init__(self,
         output_dir: str,
         timers: Timers,
+        criterion_list: list=[],
+        metrics_list: list=[],
         device: str='cpu'
     ):
         self.name = "timing"
-        super(TimingCallback, self).__init__(device)
+        super(TimingCallback, self).__init__(
+            criterion_list,
+            metrics_list, 
+            device
+        )
         self.output_dir = output_dir
         self.timers = timers
     

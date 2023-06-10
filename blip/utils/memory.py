@@ -69,6 +69,11 @@ class MemoryTrackers:
             'level':'batch',
             'gpu':  'self.gpu'
         }
+        self.clustering_batch_params = {
+            'type': 'clustering',
+            'level': 'event',
+            'gpu':  'self.gpu'
+        }
         self.memory_trackers = {
             'epoch_training':   MemoryTracker('epoch_training', type='training', level='epoch',  gpu=self.gpu),
             'epoch_validation': MemoryTracker('epoch_validation', type='validation', level='epoch', gpu=self.gpu),
@@ -89,6 +94,13 @@ class MemoryTrackers:
             'validation_metrics':   MemoryTracker('validation_metrics',   **self.validation_batch_params),
             'validation_progress':  MemoryTracker('validation_progress',  **self.validation_batch_params),
             'validation_callbacks': MemoryTracker('validation_callbacks', type='validation', level='epoch',  gpu=self.gpu),
+            # clustering information
+            'parameter_clustering':  MemoryTracker('parameter_clustering',  type='clustering', level='parameter', gpu=self.gpu),
+            'cluster_data':         MemoryTracker('cluster_data',         **self.clustering_batch_params),
+            'cluster_algorithm':    MemoryTracker('cluster_algorithm',    **self.clustering_batch_params),
+            'cluster_metrics':      MemoryTracker('cluster_metrics',      **self.clustering_batch_params),
+            'cluster_progress':     MemoryTracker('cluster_progress',     **self.clustering_batch_params),
+            'cluster_callbacks':    MemoryTracker('cluster_callbacks',    type='clustering', level='parameter', gpu=self.gpu),
         }
     
     def reset_trackers(self):
@@ -112,6 +124,13 @@ class MemoryTrackers:
             'validation_metrics':   MemoryTracker('validation_metrics',   **self.validation_batch_params),
             'validation_progress':  MemoryTracker('validation_progress',  **self.validation_batch_params),
             'validation_callbacks': MemoryTracker('validation_callbacks', type='validation', level='epoch',  gpu=self.gpu),
+            # clustering information
+            'parameter_clustering':  MemoryTracker('parameter_clustering',  type='clustering', level='parameter', gpu=self.gpu),
+            'cluster_data':         MemoryTracker('cluster_data',         **self.clustering_batch_params),
+            'cluster_algorithm':    MemoryTracker('cluster_algorithm',    **self.clustering_batch_params),
+            'cluster_metrics':      MemoryTracker('cluster_metrics',      **self.clustering_batch_params),
+            'cluster_progress':     MemoryTracker('cluster_progress',     **self.clustering_batch_params),
+            'cluster_callbacks':    MemoryTracker('cluster_callbacks',    type='clustering', level='parameter', gpu=self.gpu),
         }
 
     def synchronize(self):

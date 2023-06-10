@@ -13,9 +13,10 @@ from datetime import datetime
 from blip.utils.logger import Logger
 from blip.utils.config import ConfigParser
 
-from blip.clustering.clusterer import Clusterer
+from blip.clusterer.clusterer import Clusterer
 from blip.dataset.wire_plane import WirePlanePointCloud
 from blip.dataset.blip import BlipDataset
+from blip.clustering_algorithms import ClusteringAlgorithmHandler
 from blip.utils.loader import Loader
 from blip.utils.sparse_loader import SparseLoader
 from blip.models import ModelHandler
@@ -42,7 +43,8 @@ class Module:
         self.logger.info(f"configuring module.")
 
         self.analysis = None
-        self.clustering = None
+        self.clusterer = None
+        self.clustering_algorithms = None
         self.dataset = None
         self.loader = None
         self.model = None
@@ -82,7 +84,8 @@ class Module:
         self.parse_metrics()
         self.parse_callbacks()
         self.parse_training()
-        self.parse_cluster()
+        self.parse_clustering_algorithms()
+        self.parse_clusterer()
 
         self.run_module()
 
@@ -92,6 +95,16 @@ class Module:
         if "dataset" not in self.config.keys():
             self.logger.error(f'"dataset" section not specified in config!')
         
+        dataset_config = self.config['dataset']
+
+        if dataset_config["consolidate_classes"] is not None:
+            for item in dataset_config["consolidate_classes"]:
+                if item not in dataset_config["classes"]:
+                    self.logger.error(
+                        f"(dataset config) specified class in 'dataset: consolidate_classes' [{item}]" + 
+                        f" not in 'dataset: consolidate_classes [{dataset_config['consolidate_classes']}]"
+                    )
+
         if self.config["module"]["module_type"] == "training":
             if "loader" not in self.config.keys():
                 self.logger.error(f'"loader" section not specified in config!')
@@ -119,15 +132,7 @@ class Module:
                         continue
                     self.config["metrics"][item]["consolidate_classes"] = dataset_config["consolidate_classes"]
         
-        dataset_config = self.config['dataset']
 
-        if dataset_config["consolidate_classes"] is not None:
-            for item in dataset_config["consolidate_classes"]:
-                if item not in dataset_config["classes"]:
-                    self.logger.error(
-                        f"(dataset config) specified class in 'dataset: consolidate_classes' [{item}]" + 
-                        f" not in 'dataset: consolidate_classes [{dataset_config['consolidate_classes']}]"
-                    )
         
     
     def parse_module(self):
@@ -237,7 +242,7 @@ class Module:
         self.logger.info("configuring model.")
         model_config = self.config["model"]
         self.model = ModelHandler(
-            "blip_model",
+            self.name,
             model_config,
             device=self.device
         )
@@ -252,7 +257,7 @@ class Module:
         criterion_config = self.config['criterion']
         # add in class weight numbers for loss functions
         self.criterion = LossHandler(
-            "blip",
+            self.name,
             criterion_config,
             device=self.device
         )
@@ -297,10 +302,14 @@ class Module:
             return
         self.logger.info("configuring callbacks.")
         callbacks_config = self.config['callbacks']
-        if "LossCallback" in callbacks_config.keys():
-            callbacks_config["LossCallback"] = {"criterion_list": self.criterion}
-        if "ConfusionMatrixCallback" in callbacks_config.keys():
-            callbacks_config["ConfusionMatrixCallback"]["metrics_list"] = self.metrics
+        if callbacks_config == None:
+            self.logger.warn("no callbacks specified.")
+        else:
+            for callback in callbacks_config.keys():
+                if callbacks_config[callback] == None:
+                    callbacks_config[callback] = {}
+                callbacks_config[callback]['criterion_list'] = self.criterion
+                callbacks_config[callback]['metrics_list'] = self.metrics
         self.callbacks = CallbackHandler(
             "blip_callbacks",
             callbacks_config,
@@ -326,16 +335,31 @@ class Module:
             seed=training_config['seed']
         )
 
-    def parse_cluster(self):
+    def parse_clustering_algorithms(self):
         """
         """
-        if "clustering" not in self.config.keys():
-            self.logger.warn("no clustering in config file.")
+        if "clustering_algorithms" not in self.config.keys():
+            self.logger.warn("no clustering_algorithms in config file.")
             return
-        self.logger.info("configuring clustering.")
-        cluster_config = self.config['clustering']
-        self.clustering = Clusterer(
-            self.name + "_cluster", 
+        self.logger.info("configuring clustering_algorithms.")
+        clustering_algorithm_config = self.config["clustering_algorithms"]
+        self.clustering_algorithms = ClusteringAlgorithmHandler(
+            self.name,
+            clustering_algorithm_config,
+        )
+
+    def parse_clusterer(self):
+        """
+        """
+        if "clusterer" not in self.config.keys():
+            self.logger.warn("no clusterer in config file.")
+            return
+        self.logger.info("configuring clusterer.")
+        cluster_config = self.config['clusterer']
+        self.clusterer = Clusterer(
+            self.name, 
+            clustering_algorithms=self.clustering_algorithms,
+            clustering_metrics=self.metrics,
             device=self.device,
             gpu=self.gpu,
             seed=cluster_config['seed']
@@ -363,10 +387,12 @@ class Module:
                 save_model(self.name, self.config_file)
                 
         elif self.module_type == 'clustering':
-            self.clustering.cluster(
+            self.clusterer.cluster(
                 self.loader,
-                progress_bar=self.config['clustering']['progress_bar'],
-                rewrite_bar=self.config['clustering']['rewrite_bar'],
-                save_predictions=self.config['clustering']['save_predictions'],
-                no_timing=self.config['clustering']['no_timing']
+                num_parameters=self.config['clusterer']['num_parameters'],
+                eps_range=self.config['clusterer']['eps_range'],
+                progress_bar=self.config['clusterer']['progress_bar'],
+                rewrite_bar=self.config['clusterer']['rewrite_bar'],
+                save_predictions=self.config['clusterer']['save_predictions'],
+                no_timing=self.config['clusterer']['no_timing']
             )

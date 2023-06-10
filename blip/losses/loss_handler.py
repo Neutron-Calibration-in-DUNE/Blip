@@ -19,7 +19,7 @@ class LossHandler:
         config:  dict={},
         losses:  list=[],
         use_sample_weights: bool=False,
-        device: str='cpu'
+        device:  str='cpu'
     ):
         self.name = name + '_loss_handler'
         self.use_sample_weights = use_sample_weights
@@ -147,7 +147,7 @@ class LossHandler:
     def add_loss(self,
         loss:   GenericLoss
     ):
-        if issubclass(loss, GenericLoss):
+        if issubclass(type(loss), GenericLoss):
             self.logger.info(f'added loss function "{loss}" to LossHandler.')
             self.losses[loss.name] = loss
         else:
@@ -165,6 +165,7 @@ class LossHandler:
         for name, loss in self.losses.items():
             temp_loss = loss.loss(outputs, data)
             self.batch_loss[name] = torch.cat(
-                (self.batch_loss[name], torch.tensor([[temp_loss]], device=self.device)), dim=0)
+                (self.batch_loss[name], torch.tensor([[temp_loss]], device=self.device)), dim=0
+            )
             batch_loss += temp_loss
         return batch_loss

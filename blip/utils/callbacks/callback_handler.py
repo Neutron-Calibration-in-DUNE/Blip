@@ -4,10 +4,9 @@ Container for generic callbacks
 import os
 import importlib
 import sys
+import inspect
 from blip.utils.logger import Logger
 from blip.utils.callbacks import GenericCallback
-from blip.utils.callbacks import LossCallback, MetricCallback
-from blip.utils.callbacks import EmbeddingCallback, ConfusionMatrixCallback
 from blip.utils.utils import get_method_arguments
 
 class CallbackHandler:
@@ -15,74 +14,112 @@ class CallbackHandler:
     """
 
     def __init__(self,
-        name:   str,
-        config:    dict={},
+        name:       str,
+        config:     dict={},
         callbacks:  list=[],
-        device: str='device'
+        device:     str='cpu'
     ):
         self.name = name
         self.logger = Logger(self.name, output="both", file_mode="w")
         self.device = device
 
         if bool(config) and len(callbacks) != 0:
-            self.logger.error(f"handler received both a config and a list of callbacks! The user should only provide one or the other!")
+            self.logger.error(
+                f"handler received both a config and a list of callbacks! " + 
+                f"The user should only provide one or the other!")
+        elif bool(config):
+            self.set_config(config)
         else:
-            if bool(config):
-                self.config = config
-                self.process_config()
-            else:
-                self.callbacks = {callback.name: callback for callback in callbacks}        
+            if len(callbacks) == 0:
+                self.logger.warn(f"handler received neither a config or callbacks!")
+            self.callbacks = {
+                callback.name: callback 
+                for callback in callbacks
+            }       
+        
+    def set_config(self, config):
+        self.config = config
+        self.process_config()
+    
+    def collect_callbacks(self):
+        self.available_callbacks = {}
+        self.callback_files = [
+            os.path.dirname(__file__) + '/' + file 
+            for file in os.listdir(path=os.path.dirname(__file__))
+        ]
+        for callback_file in self.callback_files:
+            if callback_file in ["__init__.py", "__pycache__.py", "generic_callback.py"]:
+                continue
+            try:
+                self.load_callback(callback_file)
+            except:
+                pass
+    
+    def load_callback(self,
+        callback_file: str
+    ):
+        spec = importlib.util.spec_from_file_location(
+            f'{callback_file.removesuffix(".py")}.name', 
+            callback_file
+        )
+        custom_callback_file = importlib.util.module_from_spec(spec)
+        sys.modules[f'{callback_file.removesuffix(".py")}.name'] = custom_callback_file
+        spec.loader.exec_module(custom_callback_file)
+        for name, obj in inspect.getmembers(sys.modules[f'{callback_file.removesuffix(".py")}.name']):
+            if inspect.isclass(obj):
+                custom_class = getattr(custom_callback_file, name)
+                if issubclass(custom_class, GenericCallback):
+                    self.available_callbacks[name] = custom_class
 
     def process_config(self):
-        # list of available callbacks
-        self.available_callbacks = {
-            'LossCallback':         LossCallback,
-            'MetricCallback':       MetricCallback,
-            'EmbeddingCallback':        EmbeddingCallback,
-            'ConfusionMatrixCallback':  ConfusionMatrixCallback,
-        }
+        # list of available criterions
+        self.collect_callbacks()
         # check config
         if "custom_callback_file" in self.config.keys():
             if os.path.isfile(self.config["custom_callback_file"]):
                 try:
-                    spec = importlib.util.spec_from_file_location(
-                        'custom_callback_module.name', self.config["custom_callback_file"]
-                    )
-                    custom_callback_file = importlib.util.module_from_spec(spec)
-                    sys.modules['custom_callback_module.name'] = custom_callback_file
-                    spec.loader.exec_module(custom_callback_file)
-                    custom_callback = getattr(custom_callback_file, self.config["custom_callback_name"])
-                    self.available_callbacks[self.config['custom_callback_name']] = custom_callback   
-                    self.logger.info(
-                        f'added custom callback from file {self.config["custom_callback_file"]}' + 
-                        f' with name {self.config["custom_callback_name"]}.'
-                    )
+                    self.load_callback(self.config["custom_callback_file"])
+                    self.logger.info(f'added custom callback function from file {self.config["custom_callback_file"]}.')
                 except:
                     self.logger.error(
-                        f'loading class {self.config["custom_callback_name"]}' +
-                        f' from file {self.config["custom_callback_file"]} failed!'
+                        f'loading classes from file {self.config["custom_callback_file"]} failed!'
                     )
             else:
                 self.logger.error(f'custom_callback_file {self.config["custom_callback_file"]} not found!')
+        # process callback functions
         for item in self.config.keys():
-            if item == 'classes' or item == 'class_weights' or item == 'custom_callback_file' or item == 'custom_callback_name':
+            if item == "custom_callback_file":
                 continue
+            # check that callback function exists
+            self.config[item]["device"] = self.device
             if item not in self.available_callbacks.keys():
-                self.logger.error(f"specified callback '{item}' is not an available type! Available types:\n{self.available_callbacks}")
+                self.logger.error(
+                    f"specified callback function '{item}' is not an available type! " + 
+                    f"Available types:\n{self.available_callbacks.keys()}"
+                )
+            # check that function arguments are provided
             argdict = get_method_arguments(self.available_callbacks[item])
             for value in self.config[item].keys():
                 if value not in argdict.keys():
-                    self.logger.error(f"specified callback value '{item}:{value}' not a constructor parameter for '{item}'! Constructor parameters:\n{argdict}")
+                    self.logger.error(
+                        f"specified callback value '{item}:{value}' " + 
+                        f"not a constructor parameter for '{item}'! " + 
+                        f"Constructor parameters:\n{argdict}"
+                    )
             for value in argdict.keys():
                 if argdict[value] == None:
                     if value not in self.config[item].keys():
-                        self.logger.error(f"required input parameters '{item}:{value}' not specified! Constructor parameters:\n{argdict}")
+                        self.logger.error(
+                            f"required input parameters '{item}:{value}' "+
+                            f"not specified! Constructor parameters:\n{argdict}"
+                        )
         self.callbacks = {}
         for item in self.config.keys():
-            if item == 'classes' or item == 'class_weights' or item == 'custom_callback_file' or item == 'custom_callback_name':
+            if item == "custom_callback_file":
                 continue
-            self.callbacks[item] = self.available_callbacks[item](**self.config[item], device=self.device)
-    
+            self.callbacks[item] = self.available_callbacks[item](**self.config[item])
+            self.logger.info(f'added callback function "{item}" to CallbackHandler.')
+
     def set_device(self,
         device
     ):  
@@ -94,7 +131,15 @@ class CallbackHandler:
     def add_callback(self,
         callback:   GenericCallback
     ):
-        self.callbacks[callback.name] = callback
+        if issubclass(type(callback), GenericCallback):
+            self.logger.info(f'added callback function "{callback}" to CallbackHandler.')
+            self.callbacks[callback.name] = callback
+        else:
+            self.logger.error(
+                f'specified callback {callback} is not a child of "GenericCallback"!' + 
+                f' Only callback functions which inherit from GenericCallback can' +
+                f' be used by the callbackHandler in BLIP.'
+            )
     
     def set_training_info(self,
         epochs: int,
@@ -113,7 +158,7 @@ class CallbackHandler:
     def evaluate_epoch(self,
         train_type='train',
     ):
-        if train_type not in ['training', 'validation', 'test']:
+        if train_type not in ['training', 'validation', 'test', 'cluster']:
             self.logger.error(f"specified train_type: '{train_type}' not allowed!")
         for name, callback in self.callbacks.items():
             callback.evaluate_epoch(train_type)
