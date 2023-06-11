@@ -159,7 +159,14 @@ class Clusterer:
             for ii, data in event_loop:
                 self.memory_trackers.memory_trackers['cluster_data'].end()
                 self.timers.timers['cluster_data'].end()
-
+                # change parameter values
+                """
+                """
+                self.timers.timers['parameter_change'].start()
+                self.memory_trackers.memory_trackers['parameter_change'].start()
+                
+                self.memory_trackers.memory_trackers['parameter_change'].end()
+                self.timers.timers['parameter_change'].end()
                 """
                 Send the event to the clustering algorithms to produce
                 clustering results.  
@@ -170,12 +177,14 @@ class Clusterer:
                 self.memory_trackers.memory_trackers['cluster_algorithm'].end()
                 self.timers.timers['cluster_algorithm'].end()
 
+                # update metrics
                 self.timers.timers['cluster_metrics'].start()
                 self.memory_trackers.memory_trackers['cluster_metrics'].start()
                 self.clustering_metrics.update(clustering, data)
                 self.memory_trackers.memory_trackers['cluster_metrics'].end()
                 self.timers.timers['cluster_metrics'].end()
 
+                # update progress bar
                 self.timers.timers['cluster_progress'].start()
                 self.memory_trackers.memory_trackers['cluster_progress'].start()
                 if (progress_bar):

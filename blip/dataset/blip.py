@@ -20,6 +20,7 @@ from torch_geometric.data import (
 from torch_geometric.io import read_txt_array
 
 from blip.utils.logger import Logger
+from blip.dataset.generic_dataset import GenericDataset
 
 blip_dataset_config = {
     "name":             "default",
@@ -51,7 +52,7 @@ blip_dataset_config = {
     "device":           "cpu",
 }
 
-class BlipDataset(InMemoryDataset):
+class BlipDataset(InMemoryDataset, GenericDataset):
     def __init__(self, 
         config: dict=blip_dataset_config,
     ):
@@ -79,7 +80,8 @@ class BlipDataset(InMemoryDataset):
         self.configure_weights()
         self.configure_transforms()
 
-        super().__init__(
+        GenericDataset.__init__(self)
+        InMemoryDataset.__init__(self,
             self.root, self.transform, 
             self.pre_transform, self.pre_filter, 
             log=False

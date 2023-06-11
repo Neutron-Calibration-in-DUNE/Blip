@@ -96,7 +96,8 @@ class Timers:
             'validation_progress':  Timer('validation_progress',  **self.validation_batch_params),
             'validation_callbacks': Timer('validation_callbacks', type='validation', level='epoch',  gpu=self.gpu),
             # clustering information
-            'parameter_clustering':  Timer('parameter_clustering',  type='clustering', level='parameter', gpu=self.gpu),
+            'parameter_clustering': Timer('parameter_clustering',  type='clustering', level='parameter', gpu=self.gpu),
+            'parameter_change':     Timer('parameter_change',         **self.clustering_batch_params),
             'cluster_data':         Timer('cluster_data',         **self.clustering_batch_params),
             'cluster_algorithm':    Timer('cluster_algorithm',    **self.clustering_batch_params),
             'cluster_metrics':      Timer('cluster_metrics',      **self.clustering_batch_params),
@@ -126,7 +127,8 @@ class Timers:
             'validation_progress':  Timer('validation_progress',  **self.validation_batch_params),
             'validation_callbacks': Timer('validation_callbacks', type='validation', level='epoch',  gpu=self.gpu),
             # clustering information
-            'parameter_clustering':  Timer('parameter_clustering',  type='clustering', level='parameter', gpu=self.gpu),
+            'parameter_clustering': Timer('parameter_clustering',  type='clustering', level='parameter', gpu=self.gpu),
+            'parameter_change':     Timer('parameter_change',         **self.clustering_batch_params),
             'cluster_data':         Timer('cluster_data',         **self.clustering_batch_params),
             'cluster_algorithm':    Timer('cluster_algorithm',    **self.clustering_batch_params),
             'cluster_metrics':      Timer('cluster_metrics',      **self.clustering_batch_params),

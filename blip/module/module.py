@@ -212,26 +212,11 @@ class Module:
             return
         self.logger.info("configuring loader.")
         loader_config = self.config['loader']
-        if loader_config["loader_type"] == "minkowski":
-            self.loader = SparseLoader(
-                self.dataset,
-                loader_config["batch_size"],
-                loader_config["test_split"],
-                loader_config["test_seed"],
-                loader_config["validation_split"],
-                loader_config["validation_seed"],
-                loader_config["num_workers"]
-            )
-        else:
-            self.loader = Loader(
-                self.dataset,
-                loader_config["batch_size"],
-                loader_config["test_split"],
-                loader_config["test_seed"],
-                loader_config["validation_split"],
-                loader_config["validation_seed"],
-                loader_config["num_workers"]
-            )
+        self.loader = Loader(
+            self.name,
+            self.dataset,
+            loader_config
+        )
         
     def parse_model(self):
         """

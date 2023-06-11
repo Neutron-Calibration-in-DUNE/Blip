@@ -95,7 +95,8 @@ class MemoryTrackers:
             'validation_progress':  MemoryTracker('validation_progress',  **self.validation_batch_params),
             'validation_callbacks': MemoryTracker('validation_callbacks', type='validation', level='epoch',  gpu=self.gpu),
             # clustering information
-            'parameter_clustering':  MemoryTracker('parameter_clustering',  type='clustering', level='parameter', gpu=self.gpu),
+            'parameter_clustering': MemoryTracker('parameter_clustering',  type='clustering', level='parameter', gpu=self.gpu),
+            'parameter_change':     MemoryTracker('parameter_change',         **self.clustering_batch_params),
             'cluster_data':         MemoryTracker('cluster_data',         **self.clustering_batch_params),
             'cluster_algorithm':    MemoryTracker('cluster_algorithm',    **self.clustering_batch_params),
             'cluster_metrics':      MemoryTracker('cluster_metrics',      **self.clustering_batch_params),
@@ -125,7 +126,8 @@ class MemoryTrackers:
             'validation_progress':  MemoryTracker('validation_progress',  **self.validation_batch_params),
             'validation_callbacks': MemoryTracker('validation_callbacks', type='validation', level='epoch',  gpu=self.gpu),
             # clustering information
-            'parameter_clustering':  MemoryTracker('parameter_clustering',  type='clustering', level='parameter', gpu=self.gpu),
+            'parameter_clustering': MemoryTracker('parameter_clustering',  type='clustering', level='parameter', gpu=self.gpu),
+            'parameter_change':     MemoryTracker('parameter_change',         **self.clustering_batch_params),
             'cluster_data':         MemoryTracker('cluster_data',         **self.clustering_batch_params),
             'cluster_algorithm':    MemoryTracker('cluster_algorithm',    **self.clustering_batch_params),
             'cluster_metrics':      MemoryTracker('cluster_metrics',      **self.clustering_batch_params),
