@@ -173,8 +173,8 @@ class Logger:
         return info
 
 # create global logger
-blip_logger = Logger(
-    "blip",
+default_logger = Logger(
+    "default",
     output="both",
     file_mode="w"
 )

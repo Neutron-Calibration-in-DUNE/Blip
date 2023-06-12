@@ -10,11 +10,11 @@ import torch.nn.functional as F
 from time import time
 from datetime import datetime
 
-from blip.utils.logger import Logger
+from blip.utils.logger import Logger, default_logger
 from blip.utils.config import ConfigParser
 
 from blip.clusterer.clusterer import Clusterer
-from blip.dataset.wire_plane import WirePlanePointCloud
+from blip.dataset.arrakis import Arrakis
 from blip.dataset.blip import BlipDataset
 from blip.clustering_algorithms import ClusteringAlgorithmHandler
 from blip.utils.loader import Loader
@@ -34,17 +34,12 @@ class Module:
     """
     """
     def __init__(self,
-        name:   str,
         config_file:    str="",
     ):
-        self.name = name
-        
-        self.logger = Logger(self.name, file_mode='w')
-        self.logger.info(f"configuring module.")
-
         self.analysis = None
         self.clusterer = None
         self.clustering_algorithms = None
+        self.parameter_set = None
         self.dataset = None
         self.loader = None
         self.model = None
@@ -57,11 +52,20 @@ class Module:
 
         self.config_file = config_file
         if config_file != "":
-            self.logger.info(f"parsing config file: {config_file}.")
             self.config = ConfigParser(config_file).data
-            self.parse_config()
+            if "module" not in self.config.keys():
+                self.name = "blip"
+            else:
+                if "module_name" not in self.config["module"].keys():
+                    self.config["module"]["module_name"] = "blip"
+                self.name = self.config["module"]["module_name"]
+            self.logger = Logger(self.name, output="both", file_mode='w')
+            self.logger.info(f"configuring module.")
         else:
-            self.logger.info(f"no config file specified for module at constructor.")
+            default_logger.error(f"no config file specified for module at constructor.")
+        
+        self.logger.info(f"parsing config file: {config_file}.")
+        self.parse_config()
 
     def set_config(self,
         config_file:    str
@@ -105,7 +109,7 @@ class Module:
                         f" not in 'dataset: consolidate_classes [{dataset_config['consolidate_classes']}]"
                     )
 
-        if self.config["module"]["module_type"] == "training":
+        if self.config["module"]["module_type"] == "ml":
             if "loader" not in self.config.keys():
                 self.logger.error(f'"loader" section not specified in config!')
             if "model" not in self.config.keys():
@@ -118,6 +122,8 @@ class Module:
                 self.logger.error(f'"metrics" section not specified in config!')
             if "callbacks" not in self.config.keys():
                 self.logger.error(f'"callbacks" section not specified in config!')
+            if "training" not in self.config.keys():
+                self.logger.error(f'"training" section not specified in config!')
         
             loader_config = self.config['loader']
             model_config = self.config['model']
@@ -132,14 +138,15 @@ class Module:
                         continue
                     self.config["metrics"][item]["consolidate_classes"] = dataset_config["consolidate_classes"]
         
-
-        
-    
     def parse_module(self):
-        # check for module type
         if "module_type" not in self.config["module"].keys():
             self.logger.error(f'"module_type" not specified in config!')
         self.module_type = self.config["module"]["module_type"]
+        self.logger.info(f'module_type set to "{self.module_type}"')
+        if "module_mode" not in self.config["module"].keys():
+            self.logger.error(f'"module_mode" not specified in config!')
+        self.module_mode = self.config["module"]["module_mode"]
+        self.logger.info(f'module_mode set to "{self.module_mode}"')
         # check for devices
         if "gpu" not in self.config["module"].keys():
             self.logger.warn(f'"gpu" not specified in config!')
@@ -190,16 +197,11 @@ class Module:
         dataset_config = self.config['dataset']
 
         # check for processing simulation files
-        if "simulation_files" in dataset_config and dataset_config["process_simulation"]:
-            for ii, simulation_file in enumerate(dataset_config["simulation_files"]):
-                if "simulation_folder" in dataset_config:
-                    simulation_file = dataset_config["simulation_folder"] + simulation_file
-                self.logger.info(f"processing simulation file: {simulation_file}.")
-                wire_plane_dataset = WirePlanePointCloud(
-                    f"{self.name}_simulation_{ii}",
-                    simulation_file
-                )
-                wire_plane_dataset.generate_training_data()
+        if "process_simulation" in dataset_config:
+            arrakis_dataset = Arrakis(
+                self.name,
+                dataset_config
+            )
         dataset_config["name"] = f"{self.name}_dataset"
         dataset_config["device"] = self.device
         self.dataset = BlipDataset(dataset_config)
@@ -354,16 +356,23 @@ class Module:
         """
         Once everything is configured, we run the module here.
         """
-        if self.module_type == 'training':
-            self.trainer.train(
-                self.loader,
-                epochs=self.config['training']['epochs'],
-                checkpoint=self.config['training']['checkpoint'],
-                progress_bar=self.config['training']['progress_bar'],
-                rewrite_bar=self.config['training']['rewrite_bar'],
-                save_predictions=self.config['training']['save_predictions'],
-                no_timing=self.config['training']['no_timing']
-            )
+        if self.module_type == 'ml':
+            if self.module_mode == 'training':
+                self.trainer.train(
+                    self.loader,
+                    epochs=self.config['training']['epochs'],
+                    checkpoint=self.config['training']['checkpoint'],
+                    progress_bar=self.config['training']['progress_bar'],
+                    rewrite_bar=self.config['training']['rewrite_bar'],
+                    save_predictions=self.config['training']['save_predictions'],
+                    no_timing=self.config['training']['no_timing']
+                )
+            elif self.module_mode == 'inference':
+                self.trainer.inference(
+                    self.loader,
+                    progress_bar=self.config['training']['progress_bar'],
+                    rewrite_bar=self.config['training']['rewrite_bar']
+                )
 
             # save model/data/config
             if 'run_name' in self.config['training'].keys():

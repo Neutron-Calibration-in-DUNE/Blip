@@ -8,6 +8,17 @@ Blip can be used in three different ways,
    - II.  With the event display through a browser or jupyter notebook.
    - III. Within your own code by importing/using blip modules.
 
+#### Modules
+There are several programs that will run different tasks such as; training a neural network, running a TDA or clustering algorithm, performing some analysis, etc.  Each of these tasks are specified by a *module_type* and a corresponding *module_mode*.  For example, to train a neural network one would set in the configuration file:
+```yaml
+# example module section
+module:
+  module_name:  'training_test'
+  module_type:  'ml'            # ml, clustering, tda, analysis, ...
+  module_mode:  'training'      # training, inference, parameter_scan, ...
+  gpu:          True
+  gpu_device:   0
+```
 #### Command line
 
 
