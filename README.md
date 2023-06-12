@@ -1,5 +1,23 @@
+# Blip
+
+Blip is a collection of machine learning tools for reconstructing, classifying and analyzing low energy (< MeV) interactions in liquid argon time projection chambers (LArTPCs).  These interactions leave small point like signals (commonly referred to as "blips", hence the name). Blip is a python package which can be installed locally, or on the Wilson cluster, by following the directions below (eventually Blip will be available on the Wilson cluster without the need to install).
+
+### Usage
+Blip can be used in three different ways, 
+   - I.   By running a set of pre-defined programs with a config file.
+   - II.  With the event display through a browser or jupyter notebook.
+   - III. Within your own code by importing/using blip modules.
+
+#### Command line
+
+
+##### Creating and using your own code
+Many of the classes in Blip are built from an abstract class with the prefix 'Generic'.  Any user can inherit from these classes and making sure to override the required functions.  These custom classes can then be loaded to Blip at runtime by specifying the python files in their appropriate config section.
+
+
+#### Event Display
+
 ### Installation
-----------------
 
 <!-- #### Conda/Pip
 Assuming you have CUDA >= 11.8 installed, the easiest way to start from scratch is to use anaconda together with pip.  First, create a new anaconda environment using python version 3.9
