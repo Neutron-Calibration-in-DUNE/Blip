@@ -1,5 +1,13 @@
 # Blip
 
+[![Join the chat at https://gitter.im/Neutron-Calibration-in-DUNE/Blip](https://badges.gitter.im/Join%20Chat.svg)]([https://gitter.im/NESTCollaboration/nestpy?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge](https://matrix.to/#/#neutron-calibration-in-dune.blip:gitter.im))
+<!-- [![Pytest](https://github.com/NESTCollaboration/nestpy/actions/workflows/test_package.yml/badge.svg?branch=master)](https://github.com/NESTCollaboration/nestpy/actions/workflows/test_package.yml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1345595.svg)](https://doi.org/10.5281/zenodo.1345595) -->
+[![PyPi version](https://pypip.in/v/duneblip/badge.png)](https://pypi.org/project/duneblip/)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
+<!-- [![Python Versions](https://img.shields.io/pypi/pyversions/nestpy.svg)](https://pypi.python.org/pypi/nestpy)
+[![PyPI downloads](https://img.shields.io/pypi/dm/nestpy.svg)](https://pypistats.org/packages/nestpy) -->
+
 Blip is a collection of machine learning tools for reconstructing, classifying and analyzing low energy (< MeV) interactions in liquid argon time projection chambers (LArTPCs).  These interactions leave small point like signals (commonly referred to as "blips", hence the name). Blip is a python package which can be installed locally, or on the Wilson cluster, by following the directions below (eventually Blip will be available on the Wilson cluster without the need to install).
 
 ### Usage
@@ -172,41 +180,15 @@ conda install openblas
 pip install -U git+https://github.com/NVIDIA/MinkowskiEngine -v --no-deps --install-option="--blas_include_dirs=${CONDA_PREFIX}/include" --install-option="--blas=openblas" --install-option="--force_cuda"
 ```
 
-### Basic Usage
----------------
 
+### Support
 
-### Datasets
-------------
+* Bugs: Please report bugs to the [issue tracker on Github](https://github.com/Neutron-Calibration-in-DUNE/Blip/issues) such that we can keep track of them and eventually fix them.  Please explain how to reproduce the issue (including code) and which system you are running on.
+* Help: Help can be provided also via the issue tracker by tagging your issue with 'question'
+* Contributing:  Please fork this repository then make a pull request.  In this pull request, explain the details of your change and include tests.
+   
+See AUTHORS.md for information on the developers.
 
-  <!-- One immediate way of addressing this is to come up with a common format for expressing datasets.  We can do this by imposing a set of constraints on how a dataset should be expressed in memory, which for now is done by creating a compressed numpy file (.npz) with the following minimal set of arrays:
+## Citation
 
-```python
-
-events = np.random.normal(0,1,1000) # random array of values
-classes = np.ones((1000,1))
-weights = np.ones((1000,1))
-class_weights = np.ones((1000,1))
-
-# dictionary containing meta data
-event_meta = {
-    "who_created":  "none",
-    "when_created": "end_of_time",
-    "where_created":"the_void",
-    "num_events":   len(events), 
-    "features":     {"x": 0},
-    "classes":      {"y": 0},
-    "sample_weights":{"w": 0},
-    "class_weights":{"c": 0},
-}
-
-np.savez(
-    "compressed_file.npz",
-    meta=event_meta,
-    event_features=features,
-    event_classes=classes,
-    event_sample_weights=weights,
-    event_class_weights=class_weights,
-)
-```
-Here we have a set of arrays containing **features** (events), **classes** (classes), **sample_weights** (weights) and **class_weights** (class_weights), as well as a dictionary **meta** which contains information about who/when/where the dataset was created, as well as the number of events and a set of dictionaries describing the various items in the arrays.  Everything but the **sample_weights** and **class_weights** items are required in the meta dictionary, which will be checked whenever a dataset is loaded from an .npz file. -->
+When you use `blip`, please say so in your slides or publications (for publications, see Zenodo link above).  This is important for us being able to get funding to support this project.
