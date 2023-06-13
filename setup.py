@@ -9,9 +9,9 @@ setup(
     name='blip',
 
     # current version
-    #   MAJOR VERSION:  1
-    #   MINOR VERSION:  0
-    #   Maintenance:    0
+    #   MAJOR VERSION:  00
+    #   MINOR VERSION:  01
+    #   Maintenance:    00
     version='00.01.00',
 
     # descriptions

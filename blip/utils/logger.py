@@ -123,6 +123,12 @@ class Logger:
         """ Output to the standard logger "debug" """
         return self.logger.debug(message)
 
+    def warn(self,
+        message:    str,
+    ):
+        """ Output to the standard logger "warning" """
+        return self.logger.warning(message)
+
     def warning(self,
         message:    str,
         warning_type:str='user',
@@ -167,8 +173,8 @@ class Logger:
         return info
 
 # create global logger
-blip_logger = Logger(
-    "blip",
+default_logger = Logger(
+    "default",
     output="both",
     file_mode="w"
 )

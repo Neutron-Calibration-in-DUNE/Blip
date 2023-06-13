@@ -20,7 +20,7 @@ class ModelHandler:
         use_sample_weights: bool=False,
         device: str='cpu'
     ):
-        self.name = name
+        self.name = name + "_model_handler"
         self.use_sample_weights = use_sample_weights
         self.logger = Logger(self.name, output="both", file_mode="w")
         self.device = device

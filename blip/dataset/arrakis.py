@@ -10,22 +10,29 @@ from datetime import datetime
 from blip.utils.logger import Logger
 from blip.dataset.common import *
 
-class WirePlanePointCloud:
+class Arrakis:
     def __init__(self,
-        name:       str="wire_plane",
-        input_file: str=""
+        name:       str="arrakis",
+        config:     dict={}
     ):
-        self.name = name
+        self.name = name + "_arrakis"
         self.logger = Logger(self.name, output='both', file_mode='w')
-        self.logger.info(f"constructing wire_plane dataset.")
-        self.input_file = input_file
-        self.uproot_file = uproot.open(self.input_file)
-        self.point_cloud_data = self.uproot_file['ana/wire_plane_point_cloud'].arrays(library="np")
+        self.logger.info(f"constructing arrakis dataset.")
 
-        if not os.path.isdir(f"data/{self.name}"):
-            os.makedirs(f"data/{self.name}")
+        self.simulation_files = []
+        self.output_folders = {}
+        self.config = config
         
-        self.protodune_tpc_channels = {
+        """
+        ProtoDUNE channel mappings for different
+        TPCs.  Only some of the view2 TPCs are
+        part of the active volume, the rest are cryostat
+        wall facing.
+        """
+        self.protodune_active_tpcs_view2 = [
+            "tpc1", "tpc2", "tpc5", "tpc6", "tpc9", "tpc10"
+        ]
+        self.protodune_tpc_wire_channels = {
             "tpc0": [[0,799],[800,1599],[1600,2079]],
             "tpc1": [[0,799],[800,1599],[2080,2559]],
             "tpc2": [[2560,3359],[3360,4159],[4160,4639]],
@@ -40,30 +47,113 @@ class WirePlanePointCloud:
             "tpc11": [[12800,13599],[13600,14399],[14880,15359]],
         }
 
+        self.parse_config()
+
+    def parse_config(self):
+        if "simulation_folder" not in self.config.keys():
+            self.logger.warn(f'simulation_folder not specified in config! Setting to "./".')
+            self.config['simulation_folder'] = './'
+        self.simulation_folder = self.config['simulation_folder']
+        if "simulation_files" not in self.config.keys():
+            self.logger.warn(f'simulation_files not specified in config!')
+            self.config['simulation_files'] = []
+        self.simulation_files = self.config['simulation_files']
+        self.output_folders = {
+            simulation_file: simulation_file.replace('.root','') 
+            for simulation_file in self.simulation_files
+        }
+        for output_folder in self.output_folders.values():
+            if not os.path.isdir(f"data/{output_folder}"):
+                os.makedirs(f"data/{output_folder}")
+        if "process_type" not in self.config.keys():
+            self.logger.warn(f'process_type not specified in config! Setting to "all".')
+            self.config["process_type"] = "all"
+        self.process_type = self.config["process_type"]
+        if "process_simulation" in self.config.keys():
+            if self.config["process_simulation"]:
+                for ii, input_file in enumerate(self.simulation_files):
+                    self.load_arrays(self.simulation_folder, input_file)
+                    self.generate_training_data(self.process_type, input_file)
+
+    def load_arrays(self,
+        input_folder:   str='',
+        input_file:    str=''
+    ):
+        try:
+            self.uproot_file = uproot.open(input_folder + input_file)
+        except:
+            self.logger.error(
+                f'error while atttempting to load input file {input_folder + input_file}'
+            )
+        
+        self.energy_deposit_point_cloud = None
+        self.wire_plane_point_cloud = None
+        self.op_det_point_cloud = None
+        for key in self.uproot_file.keys():
+            if 'energy_deposit_point_cloud' in key:
+                self.energy_deposit_point_cloud = self.uproot_file[key].arrays(library="np")
+            elif 'wire_plane_point_cloud' in key:
+                self.wire_plane_point_cloud = self.uproot_file[key].arrays(library="np")
+            elif 'op_det_point_cloud' in key:
+                self.op_det_point_cloud = self.uproot_file[key].arrays(library="np")
+
     def generate_training_data(self,
-        plot_group_statistics:  bool=True
+        process_type:   str='all',
+        input_file:     str=''
+    ):
+        if process_type == 'energy_deposit_point_cloud':
+            self.generate_energy_deposit_point_cloud(input_file)
+        elif process_type == 'view_tpc_point_cloud':
+            self.generate_view_tpc_point_cloud(input_file)
+        elif process_type == 'op_det_point_cloud':
+            self.generate_op_det_point_cloud(input_file)
+        elif process_type == 'all':
+            self.generate_energy_deposit_point_cloud(input_file)
+            self.generate_view_tpc_point_cloud(input_file)
+            self.generate_op_det_point_cloud(input_file)
+        
+    def generate_energy_deposit_point_cloud(self,
+        input_file: str=''
+    ):
+        """
+        """
+        if self.energy_deposit_point_cloud == None:
+            self.logger.warn(f'no energy_deposit_point_cloud data in file {input_file}!')
+            return
+        self.logger.info(
+            f"generating 'energy_deposit_point_cloud' training data from file: {input_file}"
+        )
+
+    def generate_view_tpc_point_cloud(self,
+        input_file: str=''
     ):
         """
         We iterate over each view (wire plane) and collect all
-        (tdc,channel,adc) points for each point cloud into a position
-        array, together with (group_label,group_name,label,name) as
-        the categorical information.
+        (channel, tdc, adc) points for each point cloud into a features
+        array, together with (source, shape, particle) as
+        the categorical information and (shape, particle) as clustering
+        information.
         """
-        self.logger.info(f"generating training data from file: {self.input_file}")
-        view = self.point_cloud_data['view']
-        channel = self.point_cloud_data['channel']
-        tdc = self.point_cloud_data['tdc']
-        energy = self.point_cloud_data['energy'] * 10e5
-        adc = self.point_cloud_data['adc']
-        # construct ids and names for source, shape and particle labels
-        source_label = self.point_cloud_data['source_label']
-        shape_label = self.point_cloud_data['shape_label']
-        particle_label = self.point_cloud_data['particle_label']
-        unique_shape_label = self.point_cloud_data['unique_shape']
-        unique_particle_label = self.point_cloud_data['unique_particle']
+        if self.wire_plane_point_cloud == None:
+            self.logger.warn(f'no wire_plane_point_cloud data in file {input_file}!')
+            return
+        self.logger.info(
+            f"generating 'view_tpc_point_cloud' training data from file: {input_file}"
+        )
+        
+        channel = self.wire_plane_point_cloud['channel']
+        tdc = self.wire_plane_point_cloud['tdc']
+        energy = self.wire_plane_point_cloud['energy'] * 10e5
+        adc = self.wire_plane_point_cloud['adc']
 
-        #for v in np.unique(np.concatenate(view)):
-        for tpc, tpc_ranges in self.protodune_tpc_channels.items():
+        # construct ids and names for source, shape and particle labels
+        source_label = self.wire_plane_point_cloud['source_label']
+        shape_label = self.wire_plane_point_cloud['shape_label']
+        particle_label = self.wire_plane_point_cloud['particle_label']
+        unique_shape_label = self.wire_plane_point_cloud['unique_shape']
+        unique_particle_label = self.wire_plane_point_cloud['unique_particle']
+
+        for tpc, tpc_ranges in self.protodune_tpc_wire_channels.items():
             for v, tpc_view in enumerate(tpc_ranges):
                 """
                 For each point cloud, we want to normalize adc against
@@ -140,6 +230,9 @@ class WirePlanePointCloud:
                     "classes": {
                         "source": 0, "shape": 1, "particle": 2
                     },
+                    "clusters": {
+                        "shape":  0, "particle": 1
+                    },
                     "source_labels": {
                         key: value
                         for key, value in classification_labels["source"].items()
@@ -169,36 +262,21 @@ class WirePlanePointCloud:
                 }
                     
                 np.savez(
-                    f"data/{self.name}/view{v}_{tpc}.npz",
+                    f"data/{self.output_folders[input_file]}/view{v}_{tpc}.npz",
                     features=features,
                     classes=classes,
                     clusters=clusters,
                     meta=meta
                 )
-
-            # source_label_hist, _ = np.histogram(np.concatenate(labels), bins=len(unique_source_labels))
-            # source_label_hist = np.divide(source_label_hist, np.sum(source_label_hist, dtype=float), dtype=float)
-
-            # if plot_group_statistics:
-            #     adc_view = np.concatenate(adc_view)
-            #     source_label_view = np.concatenate(source_label_view)
-            #     fig, axs = plt.subplots(figsize=(10,6))
-            #     for label in unique_source_labels:
-            #         source_adc = adc_view[(source_label_view == label)]
-            #         axs.hist(
-            #             source_adc, 
-            #             bins=100, 
-            #             range=[np.min(source_adc),np.max(source_adc)], 
-            #             histtype='step',
-            #             stacked=True,
-            #             density=True,
-            #             label=f"{source_label_map[label]}",
-            #             log=True
-            #         )
-            #     axs.set_xlabel("Summed ADC [counts]")
-            #     axs.set_ylabel("Point Clouds")
-            #     axs.set_title(f"Summed ADC Distribution for View {v}")
-            #     axs.ticklabel_format(axis='x', style='sci')
-            #     plt.legend()
-            #     plt.tight_layout()
-            #     plt.savefig(self.wire_plane_dir + f"source_adc_view{v}.png")
+    
+    def generate_op_det_point_cloud(self,
+        input_file: str=''
+    ):
+        """
+        """
+        if self.op_det_point_cloud == None:
+            self.logger.warn(f'no op_det_point_cloud data in file {input_file}!')
+            return
+        self.logger.info(
+            f"generating 'op_det_point_cloud' training data from file: {input_file}"
+        )
