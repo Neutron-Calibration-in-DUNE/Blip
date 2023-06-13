@@ -23,7 +23,7 @@ class Clusterer:
         name:   str,
         clustering_algorithms:  ClusteringAlgorithmHandler=None,
         clustering_metrics:     MetricHandler=None,
-        callbacks:              CallbackHandler=None,
+        clustering_callbacks:   CallbackHandler=None,
         device:     str='cpu',
         gpu:        bool=False,
         seed:       int=0,
@@ -59,20 +59,20 @@ class Clusterer:
         self.gpu = gpu
         self.seed = seed
         
-        if callbacks == None:
-            # add generic callbacks
-            self.callbacks = CallbackHandler(
+        if clustering_callbacks == None:
+            # add generic clustering_callbacks
+            self.clustering_callbacks = CallbackHandler(
                 name="default"
             )
         else:
-            self.callbacks = callbacks
+            self.clustering_callbacks = clustering_callbacks
         # add timing info
         self.timers = Timers(gpu=self.gpu)
         self.timer_callback = TimingCallback(
             self.timing_dir,
             self.timers
         )
-        self.callbacks.add_callback(self.timer_callback)
+        self.clustering_callbacks.add_callback(self.timer_callback)
 
         # add memory info
         self.memory_trackers = MemoryTrackers(gpu=self.gpu)
@@ -80,7 +80,7 @@ class Clusterer:
             self.memory_dir,
             self.memory_trackers
         )
-        self.callbacks.add_callback(self.memory_callback)
+        self.clustering_callbacks.add_callback(self.memory_callback)
     
     def cluster(self,
         dataset_loader,             # dataset_loader to pass in
@@ -98,9 +98,9 @@ class Clusterer:
         # self.logger.info(f"running consistency check...")
 
         # setting values in callbacks
-        self.callbacks.set_device(self.device)
-        self.callbacks.set_training_info(
-            0,
+        self.clustering_callbacks.set_device(self.device)
+        self.clustering_callbacks.set_training_info(
+            num_parameters,
             dataset_loader.num_train_batches,
             dataset_loader.num_validation_batches,
             dataset_loader.num_test_batches
@@ -139,7 +139,10 @@ class Clusterer:
     ):
         """
         """
+        eps_steps = np.linspace(eps_range[0], eps_range[1], num_parameters)
+        parameter_values = []
         for kk in range(num_parameters):
+            
             if (progress_bar):
                 event_loop = tqdm(
                     enumerate(dataset_loader.all_loader, 0), 
@@ -149,31 +152,35 @@ class Clusterer:
                 )
             else:
                 event_loop = enumerate(dataset_loader.all_loader, 0)
+            
             """            
             Setup timing/memory information for epoch.
             """
             self.timers.timers['parameter_clustering'].start()
             self.memory_trackers.memory_trackers['parameter_clustering'].start()
+
+            self.timers.timers['parameter_change'].start()
+            self.memory_trackers.memory_trackers['parameter_change'].start()
+            # replace this with a call to parameter set that will
+            # generate a set of parameters to use for this scan.
+            parameters = {'eps': eps_steps[kk]}
+            parameter_values.append(parameters['eps'])
+            self.memory_trackers.memory_trackers['parameter_change'].end()
+            self.timers.timers['parameter_change'].end()
+
             self.timers.timers['cluster_data'].start()
             self.memory_trackers.memory_trackers['cluster_data'].start()
             for ii, data in event_loop:
                 self.memory_trackers.memory_trackers['cluster_data'].end()
                 self.timers.timers['cluster_data'].end()
-                # change parameter values
-                """
-                """
-                self.timers.timers['parameter_change'].start()
-                self.memory_trackers.memory_trackers['parameter_change'].start()
                 
-                self.memory_trackers.memory_trackers['parameter_change'].end()
-                self.timers.timers['parameter_change'].end()
                 """
                 Send the event to the clustering algorithms to produce
                 clustering results.  
                 """
                 self.timers.timers['cluster_algorithm'].start()
                 self.memory_trackers.memory_trackers['cluster_algorithm'].start()
-                clustering = self.clustering_algorithms.cluster(data)
+                clustering = self.clustering_algorithms.cluster(parameters, data)
                 self.memory_trackers.memory_trackers['cluster_algorithm'].end()
                 self.timers.timers['cluster_algorithm'].end()
 
@@ -202,9 +209,21 @@ class Clusterer:
             # evaluate callbacks
             self.timers.timers['cluster_callbacks'].start()
             self.memory_trackers.memory_trackers['cluster_callbacks'].start()
-            self.callbacks.evaluate_epoch(train_type='cluster')
+            self.clustering_callbacks.evaluate_epoch(train_type='cluster')
             self.memory_trackers.memory_trackers['cluster_callbacks'].end()
             self.timers.timers['cluster_callbacks'].end()
+
+        # for now, just save the arrays to a numpy file,
+        # later we will do something more intelligent with them.
+        self.clustering_callbacks.callbacks['AdjustedRandIndexCallback'].parameter_values = eps_steps
+        self.clustering_callbacks.evaluate_clustering()
+        if save_predictions:
+            np.savez(
+                'data/cluster_results.npz',
+                parameter_values=parameter_values,
+                **self.clustering_callbacks.callbacks['AdjustedRandIndexCallback'].adjusted_rand_index,
+                **self.clustering_callbacks.callbacks['AdjustedRandIndexCallback'].adjusted_rand_index_individual['DBSCAN']
+            )
 
 
     

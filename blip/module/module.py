@@ -276,7 +276,7 @@ class Module:
         self.logger.info("configuring metrics.")
         metrics_config = self.config['metrics']
         self.metrics = MetricHandler(
-            "blip_metrics",
+            self.name,
             metrics_config,
             device=self.device
         )
@@ -298,7 +298,7 @@ class Module:
                 callbacks_config[callback]['criterion_list'] = self.criterion
                 callbacks_config[callback]['metrics_list'] = self.metrics
         self.callbacks = CallbackHandler(
-            "blip_callbacks",
+            self.name,
             callbacks_config,
             device=self.device
         )
@@ -347,6 +347,7 @@ class Module:
             self.name, 
             clustering_algorithms=self.clustering_algorithms,
             clustering_metrics=self.metrics,
+            clustering_callbacks=self.callbacks,
             device=self.device,
             gpu=self.gpu,
             seed=cluster_config['seed']

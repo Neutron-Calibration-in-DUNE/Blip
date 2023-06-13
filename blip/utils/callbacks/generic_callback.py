@@ -52,3 +52,6 @@ class GenericCallback:
 
     def evaluate_inference(self):
         pass
+
+    def evaluate_clustering(self):
+        pass

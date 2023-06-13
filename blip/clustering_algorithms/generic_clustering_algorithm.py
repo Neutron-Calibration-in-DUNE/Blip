@@ -22,6 +22,7 @@ class GenericClusteringAlgorithm:
         self.device = device
     
     def cluster(self,
+        parameters,
         data,
     ):
         pass

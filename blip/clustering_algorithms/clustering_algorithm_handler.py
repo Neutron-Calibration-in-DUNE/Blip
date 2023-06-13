@@ -149,9 +149,10 @@ class ClusteringAlgorithmHandler:
             )
 
     def cluster(self,
+        parameters,
         data,
     ):
         clustering = {}
         for name, clustering_algorithm in self.clustering_algorithms.items():
-            clustering[name] = clustering_algorithm.cluster(data)
+            clustering[name] = clustering_algorithm.cluster(parameters, data)
         return clustering

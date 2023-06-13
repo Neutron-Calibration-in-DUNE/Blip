@@ -19,7 +19,7 @@ class CallbackHandler:
         callbacks:  list=[],
         device:     str='cpu'
     ):
-        self.name = name
+        self.name = name + "_callback_handler"
         self.logger = Logger(self.name, output="both", file_mode="w")
         self.device = device
 
@@ -174,3 +174,7 @@ class CallbackHandler:
     def evaluate_inference(self):
         for name, callback in self.callbacks.items():
             callback.evaluate_inference()
+    
+    def evaluate_clustering(self):
+        for name, callback in self.callbacks.items():
+            callback.evaluate_clustering()

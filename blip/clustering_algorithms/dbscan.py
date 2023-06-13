@@ -25,7 +25,9 @@ class DBSCAN(GenericClusteringAlgorithm):
         )
 
     def cluster(self,
+        parameters,
         data,
     ):
+        self.dbscan.set_params(**parameters)
         labels = self.dbscan.fit(data.pos.to(self.device)).labels_
         return labels

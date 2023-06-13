@@ -20,7 +20,7 @@ class MetricHandler:
         labels: list=[],
         device: str='cpu'
     ):
-        self.name = name
+        self.name = name + "_metric_handler"
         self.logger = Logger(self.name, output="both", file_mode="w")
         self.device = device
         self.labels = labels
