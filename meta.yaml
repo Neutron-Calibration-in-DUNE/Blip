@@ -1,10 +1,10 @@
 package:
   name: blip
-  version: 0.1.0
+  version: 00.01.00
 
 source:
   git_url: https://github.com/Neutron-Calibration-in-DUNE/Blip
-  git_rev: 0.1.0
+  git_rev: 00.01.00
 
 build:
   number: 0

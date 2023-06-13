@@ -12,7 +12,7 @@ setup(
     #   MAJOR VERSION:  1
     #   MINOR VERSION:  0
     #   Maintenance:    0
-    version='1.0.0',
+    version='00.01.00',
 
     # descriptions
     description='Blobs and Low-energy Interaction Pointnet.',
