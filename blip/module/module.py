@@ -196,12 +196,42 @@ class Module:
         self.logger.info("configuring dataset.")
         dataset_config = self.config['dataset']
 
+        # default to what's in the configuration file. May decide to deprecate in the future
+        if ("simulation_folder" in dataset_config):
+            simulation_folder = dataset_config["simulation_folder"]
+            self.logger.info(
+                    f"Set simulation file folder from configuration. " +
+                    f" simulation_folder : {simulation_folder}"
+                    )
+        elif ( 'BLIP_SIMULATION_PATH' in os.environ ):
+            self.logger.debug(f'Found BLIP_SIMULATION_PATH in environment')
+            simulation_folder = os.environ['BLIP_SIMULATION_PATH']
+            self.logger.info(
+                    f"Setting simulation path from Enviroment." +
+                    f" BLIP_SIMULATION_PATH = {simulation_folder}"
+                    )
+        else:
+            self.logger.error(f'No dataset_folder specified in environment or configuration file!')
+
         # check for processing simulation files
+
+        if "simulation_files" in dataset_config and dataset_config["process_simulation"]:
+            for ii, simulation_file in enumerate(dataset_config["simulation_files"]):
+                if ( simulation_folder ):
+                    simulation_file = simulation_folder + simulation_file
+                self.logger.info(f"processing simulation file: {simulation_file}.")
+                wire_plane_dataset = WirePlanePointCloud(
+                    f"{self.name}_simulation_{ii}",
+                    simulation_file
+                )
+                wire_plane_dataset.generate_training_data()
+
         if "process_simulation" in dataset_config:
             arrakis_dataset = Arrakis(
                 self.name,
                 dataset_config
             )
+
         dataset_config["name"] = f"{self.name}_dataset"
         dataset_config["device"] = self.device
         self.dataset = BlipDataset(dataset_config)

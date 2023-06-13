@@ -172,10 +172,22 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             self.position_type = torch.float
         self.logger.info(f"setting 'dataset_type: {self.dataset_type}.")
 
-        if "dataset_folder" not in self.config.keys():
-            self.logger.error(f'no dataset_folder specified in config!')
-        self.dataset_folder = self.config["dataset_folder"]
-        self.logger.info(f"setting 'dataset_folder: {self.dataset_folder}.")
+        # default to what's in the configuration file. May decide to deprecate in the future
+        if ( "dataset_folder" in self.config.keys() ) :
+            self.dataset_folder = self.config["dataset_folder"]
+            self.logger.info(
+                    f"Set dataset path from Configuration." +
+                    f" dataset_folder: {self.dataset_folder}"
+                    )
+        elif ( 'BLIP_DATASET_PATH' in os.environ ):
+            self.logger.debug(f'Found BLIP_DATASET_PATH in environment')
+            self.dataset_folder = os.environ['BLIP_DATASET_PATH']
+            self.logger.info(
+                    f"Setting dataset path from Enviroment." +
+                    f" BLIP_DATASET_PATH = {self.dataset_folder}"
+                    )
+        else :
+            self.logger.error(f'No dataset_folder specified in environment or configuration file!')
 
         if "dataset_files" not in self.config.keys():
             self.logger.error(f'no dataset_files specified in config!')
@@ -491,4 +503,4 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 raw_path,
                 **loaded_arrays
             )
-            
+
