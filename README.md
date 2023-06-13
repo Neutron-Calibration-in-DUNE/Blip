@@ -33,6 +33,7 @@ Blip is a collection of machine learning tools for reconstructing, classifying a
 8. [ Contact (Authors) ](#contact)
 9. [ Citation ](#citation)
 10. [ License ](#license)
+11. [ Support ](#support)
 
 <a name="get"></a>
 ## Getting the Repository
@@ -216,12 +217,18 @@ Many of the classes in Blip are built from an abstract class with the prefix 'Ge
    
 <a name="versions"></a>
 ## Versioning
+For the versions available, see the [tags on this repository](https://github.com/Neutron-Calibration-in-DUNE/Blip/tags). 
    
 <a name="contact"></a>
 ## Contact (Authors)
+If you have questions, please contact Nicholas Carrara, nmcarrara@ucdavis.edu.
+
+See also the list of [contributors](https://github.com/orgs/Neutron-Calibration-in-DUNE/people) who participate in this project.
+
 See AUTHORS.md for information on the developers.
-   
-### Support
+
+<a name="support"></a>
+## Support
 
 * Bugs: Please report bugs to the [issue tracker on Github](https://github.com/Neutron-Calibration-in-DUNE/Blip/issues) such that we can keep track of them and eventually fix them.  Please explain how to reproduce the issue (including code) and which system you are running on.
 * Help: Help can be provided also via the issue tracker by tagging your issue with 'question'
