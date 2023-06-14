@@ -1,6 +1,7 @@
 from ctypes import sizeof
 import uproot
 import os
+import getpass
 import numpy as np
 import socket
 import matplotlib.pyplot as plt
@@ -219,7 +220,7 @@ class Arrakis:
                 )
 
                 meta = {
-                    "who_created":      "me",
+                    "who_created":      getpass.getuser(),
                     "when_created":     datetime.now().strftime("%m-%d-%Y-%H:%M:%S"),
                     "where_created":    socket.gethostname(),
                     "num_events":       len(features),

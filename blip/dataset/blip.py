@@ -53,6 +53,34 @@ blip_dataset_config = {
 }
 
 class BlipDataset(InMemoryDataset, GenericDataset):
+    """
+    Blip datasets are constructed with Data objects from torch geometric.
+    Each example, or entry, in the dataset corresponds to a LArTPC event.
+    Each of these events has a corresponding 'Data' object from pyg.
+    The Data objects have the following set of attributes:
+
+        x - a 'n x d_f' array of node features.
+        pos - a 'n x d_p' array of node positions.
+        y - a 'n x d_c' array of class labels.
+        edge_index - a '2 x n_e' array of edge indices.
+        edge_attr - a 'n_e x d_e' array of edge_features.
+
+    We add an additional array of cluster labels which we call 'clusters', which has
+    a shape of 'n x d_cl', where 'd_cl' is the dimension (number of classes)
+    for clusters.
+
+    The Arrakis datasets prepared in .npz format contain a 'features' array, which
+    is a 'n x d_f' array, a classes array, which is 'n x d_c', and a clusters array
+    which is 'n x d_cl'.  It is then straightforward to assign 'features' to both
+    'x' and 'pos' by providing the config parameters 'positions' and 'features'
+    which should list the names of the features to be assigned to either 'x' or 'pos'.
+
+    The same goes for 'classes' and 'clusters', which the user can specify at run 
+    time.  There are also options for masking each of these arrays by providing one of
+
+        'class_mask' - a list of classes to apply masks too
+
+    """
     def __init__(self, 
         config: dict=blip_dataset_config,
     ):
@@ -120,7 +148,6 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             label: self.meta[0][f"{label}_labels"]
             for label in self.meta[0]["clusters"].keys()
         }
-        
         self.number_classes = {
             label: len(self.class_labels[label])
             for label in self.meta[0]["classes"].keys()
@@ -133,6 +160,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         self.class_label_names = [
             label for label in self.meta[0]["classes"].keys()
         ]
+
         self.class_label_index = {
             label: ii
             for ii, label in enumerate(self.meta[0]["classes"].keys())
@@ -141,6 +169,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             label: {key: ii for ii, key in enumerate(self.class_labels[label].keys())}
             for label in self.class_labels.keys()
         }
+
         self.cluster_labels_by_name = {
             label: {val: key for key, val in self.cluster_labels[label].items()}
             for label in self.cluster_labels.keys()
@@ -148,6 +177,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         self.cluster_label_names = [
             label for label in self.meta[0]["clusters"].keys()
         ]
+
         self.cluster_label_index = {
             label: ii
             for ii, label in enumerate(self.meta[0]["clusters"].keys())
@@ -156,6 +186,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             label: {key: ii for ii, key in enumerate(self.cluster_labels[label].keys())}
             for label in self.cluster_labels.keys()
         }
+
         if "class_mask" in self.config:
             self.class_mask_index = self.class_label_index[self.class_mask]
         if "label_mask" in self.config:
@@ -326,7 +357,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
     @property
     def processed_file_names(self):
         return [f'data_{ii}.pt' for ii in range(self.number_of_events)]
-        ...
+        ... 
 
     def len(self):
         return len(self.processed_file_names)
@@ -349,6 +380,10 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             raw_path: []
             for raw_path in self.dataset_files
         }
+        # self.cluster_labels = {
+        #     raw_path: {f'{self.dbscan_eps}_{self.dbscan_min_samples}_cluster_labels': []}
+        #     for raw_path in self.dataset_files
+        # }
         if self.skip_processing:
             self.logger.info(f'skipping processing of data.')
             return
@@ -403,6 +438,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         cluster_labels = self.dbscan.fit(cluster_positions).labels_
         unique_labels = np.unique(cluster_labels)
 
+        # self.cluster_labels[raw_path][f'{self.dbscan_eps}_{self.dbscan_min_samples}_cluster_labels'].append(cluster_labels)
         # for each unique cluster label, create a separate
         # dataset.
         for kk in unique_labels:
@@ -423,7 +459,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             event = Data(
                 pos=torch.tensor(temp_positions).type(self.position_type),
                 x=temp_features,
-                category=torch.tensor(temp_classes).type(torch.long)
+                category=torch.tensor(temp_classes).type(torch.long),
+                cluster_id=kk
             )
             if self.pre_filter is not None:
                 event = self.pre_filter(event)
@@ -479,14 +516,19 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 for key in loaded_file.files
             }
             events = [ii for ii in list(indices) if ii in self.input_events[raw_path]]
+            classes_prefix = ""
+            if self.dataset_type == "cluster":
+                classes_prefix = f"{self.dbscan_eps}_{self.dbscan_min_samples}_"
             output = {
-                classes: input_dict[classes][events]
+                f"{classes_prefix}{classes}": input_dict[classes][events]
                 for classes in input_dict.keys()
             }
-            output['cluster_events'] = self.cluster_events[raw_path]
-            output['cluster_indices'] = self.cluster_indicies[raw_path]
+            if self.dataset_type == "cluster":
+                output[f'{self.dbscan_eps}_{self.dbscan_min_samples}_cluster_events'] = self.cluster_events[raw_path]
+                output[f'{self.dbscan_eps}_{self.dbscan_min_samples}_cluster_indices'] = self.cluster_indicies[raw_path]
             # otherwise add the array and save
             loaded_arrays.update(output)
+            # loaded_arrays.update(self.cluster_labels[raw_path])
             np.savez(
                 raw_path,
                 **loaded_arrays
