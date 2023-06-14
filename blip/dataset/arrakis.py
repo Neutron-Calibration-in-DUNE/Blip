@@ -225,6 +225,7 @@ class Arrakis:
                     "where_created":    socket.gethostname(),
                     "num_events":       len(features),
                     "view":             v,
+                    "mc_maps":          {},
                     "features": {
                         "channel": 0, "tdc": 1, "adc": 2
                     },

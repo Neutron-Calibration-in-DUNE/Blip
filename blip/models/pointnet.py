@@ -143,7 +143,7 @@ class PointNet(GenericModel):
                 linear_output = self.reduction_dict['linear_layer'](linear_input)
                 linear_pool = global_max_pool(linear_output, batch)
                 for jj, classification in enumerate(self.classification_dict.keys()):
-                    classifications[jj].append(self.classification_dict[classification](linear_pool))
+                    classifications[jj].append(self.softmax(self.classification_dict[classification](linear_pool)))
                 reductions.append(linear_pool)
             outputs = {
                 classification: torch.cat(classifications[jj])
@@ -162,7 +162,7 @@ class PointNet(GenericModel):
             linear_output = self.reduction_dict['linear_layer'](linear_input)
             linear_pool = global_max_pool(linear_output, batch)
             outputs = {
-                classifications: self.classification_dict[classifications](linear_pool)
+                classifications: self.softmax(self.classification_dict[classifications](linear_pool))
                 for classifications in self.classification_dict.keys()
             }
             outputs['reductions'] = linear_pool

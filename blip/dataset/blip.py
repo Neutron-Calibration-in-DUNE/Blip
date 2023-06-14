@@ -392,10 +392,11 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             raw_path: []
             for raw_path in self.dataset_files
         }
-        # self.cluster_labels = {
-        #     raw_path: {f'{self.dbscan_eps}_{self.dbscan_min_samples}_cluster_labels': []}
-        #     for raw_path in self.dataset_files
-        # }
+        self.cluster_ids = {
+            raw_path: []
+            for raw_path in self.dataset_files
+        }
+
         if self.skip_processing:
             self.logger.info(f'skipping processing of data.')
             return
@@ -450,9 +451,12 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         cluster_labels = self.dbscan.fit(cluster_positions).labels_
         unique_labels = np.unique(cluster_labels)
 
-        # self.cluster_labels[raw_path][f'{self.dbscan_eps}_{self.dbscan_min_samples}_cluster_labels'].append(cluster_labels)
-        # for each unique cluster label, create a separate
-        # dataset.
+        self.cluster_ids[raw_path].append(cluster_labels)
+        input_events = []
+        cluster_indices = []
+
+        # for each unique cluster label, 
+        # create a separate dataset.
         for kk in unique_labels:
             if kk == -1:
                 continue
@@ -480,9 +484,11 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 event = self.pre_transform(event)
 
             torch.save(event, osp.join(self.processed_dir, f'data_{self.index}.pt'))
-            self.input_events[raw_path].append(self.index)
-            self.cluster_indicies[raw_path].append(np.where(temp_mask))
+            cluster_indices.append(self.index)
+            input_events.append(self.index)
             self.index += 1
+        self.input_events[raw_path].append(input_events)
+        self.cluster_indicies[raw_path].append(cluster_indices)
                            
     def process_voxel(self,
         event_features,
@@ -513,7 +519,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             event = self.pre_transform(event)
 
         torch.save(event, osp.join(self.processed_dir, f'data_{self.index}.pt'))
-        self.input_events[raw_path].append(self.index)
+        self.input_events[raw_path].append([self.index])
         self.index += 1
     
     def append_dataset_files(self,
@@ -527,16 +533,19 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 key: loaded_file[key] 
                 for key in loaded_file.files
             }
-            events = [ii for ii in list(indices) if ii in self.input_events[raw_path]]
+            events = [
+                [ii for ii in list(indices) if ii in self.input_events[raw_path][jj]] 
+                for jj in range(len(self.input_events[raw_path]))
+            ]
             classes_prefix = ""
             if self.dataset_type == "cluster":
                 classes_prefix = f"{self.dbscan_eps}_{self.dbscan_min_samples}_"
             output = {
-                f"{classes_prefix}{classes}": input_dict[classes][events]
+                f"{classes_prefix}{classes}": [input_dict[classes][event] for event in events]
                 for classes in input_dict.keys()
             }
             if self.dataset_type == "cluster":
-                output[f'{self.dbscan_eps}_{self.dbscan_min_samples}_cluster_events'] = self.cluster_events[raw_path]
+                output[f'{self.dbscan_eps}_{self.dbscan_min_samples}_cluster_ids'] = self.cluster_ids[raw_path]
                 output[f'{self.dbscan_eps}_{self.dbscan_min_samples}_cluster_indices'] = self.cluster_indicies[raw_path]
             # otherwise add the array and save
             loaded_arrays.update(output)
