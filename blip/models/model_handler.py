@@ -4,6 +4,7 @@ Container for models
 import os 
 import importlib.util
 import sys
+import inspect
 from blip.utils.logger import Logger
 from blip.models import GenericModel, PointNetPlusPlus
 from blip.models import PointNet, VietorisRipsNet
@@ -25,67 +26,142 @@ class ModelHandler:
         self.logger = Logger(self.name, output="both", file_mode="w")
         self.device = device
 
+        self.model_type = None
+        self.single_model_name = ''
+        self.models = {}
+
         if bool(config) and len(models) != 0:
             self.logger.error(
-                f"handler received both a config and a list of models!" + 
-                "The user should only provide one or the other!"
-            )
+                f"handler received both a config and a list of models! " + 
+                f"The user should only provide one or the other!")
+        elif bool(config):
+            self.set_config(config)
         else:
-            if bool(config):
-                self.config = config
-                self.process_config()
-            else:
-                self.models = {model.name: model for model in models}
+            if len(models) == 0:
+                self.logger.error(f"handler received neither a config or models!")
+            self.models = {
+                model.name: model 
+                for model in models
+            }
+        
+    def set_config(self, config):
+        self.config = config
+        self.process_config()
+
+    def collect_models(self):
+        self.available_models = {}
+        self.model_files = [
+            os.path.dirname(__file__) + '/' + file 
+            for file in os.listdir(path=os.path.dirname(__file__))
+        ]
+        for model_file in self.model_files:
+            if model_file in ["__init__.py", "__pycache__.py", "generic_loss.py"]:
+                continue
+            try:
+                self.load_model(model_file)
+            except:
+                pass
+    
+    def load_model(self,
+        model_file: str
+    ):
+        spec = importlib.util.spec_from_file_location(
+            f'{model_file.removesuffix(".py")}.name', 
+            model_file
+        )
+        custom_model_file = importlib.util.module_from_spec(spec)
+        sys.modules[f'{model_file.removesuffix(".py")}.name'] = custom_model_file
+        spec.loader.exec_module(custom_model_file)
+        for name, obj in inspect.getmembers(sys.modules[f'{model_file.removesuffix(".py")}.name']):
+            if inspect.isclass(obj):
+                custom_class = getattr(custom_model_file, name)
+                if issubclass(custom_class, GenericModel):
+                    self.available_models[name] = custom_class
 
     def process_config(self):
-        # list of available models
-        # TODO: Make this automatic
-        self.available_models = {
-            "PointNet":         PointNet,
-            'PointNet++':       PointNetPlusPlus,
-            'VietorisRipsNet':  VietorisRipsNet,
-            'SparseUNet':       SparseUNet,
-            'SparseUResNet':    SparseUResNet,
-            'SparseUResNeXt':   SparseUResNeXt
-        }
+        # list of available criterions
+        self.collect_models()
+        # check config
         if "custom_model_file" in self.config.keys():
             if os.path.isfile(self.config["custom_model_file"]):
                 try:
-                    spec = importlib.util.spec_from_file_location(
-                        'custom_model_module.name', self.config["custom_model_file"]
-                    )
-                    custom_model_file = importlib.util.module_from_spec(spec)
-                    sys.modules['custom_model_module.name'] = custom_model_file
-                    spec.loader.exec_module(custom_model_file)
-                    custom_model = getattr(custom_model_file, self.config["custom_model_name"])
-                    self.available_models[self.config['custom_model_name']] = custom_model   
-                    self.logger.info(
-                        f'added custom model from file {self.config["custom_model_file"]}' + 
-                        f' with name {self.config["custom_model_name"]}.'
-                    )
+                    self.load_model(self.config["custom_model_file"])
+                    self.logger.info(f'added custom model from file {self.config["custom_model_file"]}.')
                 except:
                     self.logger.error(
-                        f'loading class {self.config["custom_model_name"]}' +
-                        f' from file {self.config["custom_model_file"]} failed!'
+                        f'loading classes from file {self.config["custom_model_file"]} failed!'
                     )
             else:
                 self.logger.error(f'custom_model_file {self.config["custom_model_file"]} not found!')
-        # check config
-        if self.config["model_type"] not in self.available_models.keys():
-            self.logger.error(
-                f"specified callback '{self.config['model_type']}'" +
-                f"is not an available type! Available types:\n{self.available_models}"
+        if "model_type" not in self.config.keys():
+            self.logger.warn(f'model_type not specified in config! Setting to "single"!')
+            self.model_type = 'single'
+        # process models
+        for item in self.config.keys():
+            if item == "custom_model_file" or item == "load_model":
+                continue
+            if item == "model_type":
+                self.model_type = self.config[item]
+                continue
+            # check that model exists
+            if item not in self.available_models.keys():
+                self.logger.error(
+                    f"specified model '{item}' is not an available type! " + 
+                    f"Available types:\n{self.available_models.keys()}"
+                )
+            # # check that arguments are provided
+            # argdict = get_method_arguments(self.available_models[item])
+            # for value in self.config[item].keys():
+            #     if value not in argdict.keys():
+            #         self.logger.error(
+            #             f"specified model value '{item}:{value}' " + 
+            #             f"not a constructor parameter for '{item}'! " + 
+            #             f"Constructor parameters:\n{argdict}"
+            #         )
+            # for value in argdict.keys():
+            #     if argdict[value] == None:
+            #         if value not in self.config[item].keys():
+            #             self.logger.error(
+            #                 f"required input parameters '{item}:{value}' "+
+            #                 f"not specified! Constructor parameters:\n{argdict}"
+            #             )
+            self.config[item]["device"] = self.device
+        self.models = {}
+        self.batch_model = {}
+        for item in self.config.keys():
+            if item == "custom_model_file" or item == "load_model" or item == "model_type":
+                continue
+            self.models[item] = self.available_models[item](
+                item, self.config[item]
             )
-        self.model = self.available_models[self.config['model_type']](
-            "blip_model", self.config, device=self.device
-        )
-        if 'load_model' in self.config.keys():
-            self.model.load_model(self.config['load_model'])
+            self.logger.info(f'added model "{item}" to ModelHandler.')
+        if self.model_type == 'single':
+            if len(self.models.keys()) > 1:
+                self.logger.error(f'model_type set to "single", but multiple models have been registered!')
+            else:
+                self.model = list(self.models.values())[0]
 
     def set_device(self,
         device
     ):  
+        self.logger.info(f'setting device to "{device}".')
         for name, model in self.models.items():
             model.set_device(device)
-            model.reset_batch()
         self.device = device
+
+    def add_model(self,
+        model:   GenericModel
+    ):
+        if issubclass(type(model), GenericModel):
+            self.logger.info(f'added model function "{model}" to ModelHandler.')
+            self.models[model.name] = model
+        else:
+            self.logger.error(
+                f'specified model {model} is not a child of "GenericModel"!' + 
+                f' Only models which inherit from GenericModel can' +
+                f' be used by the ModelHandler in BLIP.'
+            )
+    
+    def __call__(self, inputs):
+        if self.model_type == "single":
+            return self.models[self.single_model_name](inputs)
