@@ -1,6 +1,7 @@
 # Blip
 
 [![Join the chat at https://gitter.im/Neutron-Calibration-in-DUNE/Blip](https://badges.gitter.im/Join%20Chat.svg)]([https://gitter.im/NESTCollaboration/nestpy?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge](https://matrix.to/#/#neutron-calibration-in-dune.blip:gitter.im))
+[![CodeFactor](https://www.codefactor.io/repository/github/neutron-calibration-in-dune/blip/badge)](https://www.codefactor.io/repository/github/neutron-calibration-in-dune/blip)
 <!-- [![Pytest](https://github.com/NESTCollaboration/nestpy/actions/workflows/test_package.yml/badge.svg?branch=master)](https://github.com/NESTCollaboration/nestpy/actions/workflows/test_package.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1345595.svg)](https://doi.org/10.5281/zenodo.1345595) -->
 [![PyPi version](https://pypip.in/v/duneblip/badge.png)](https://pypi.org/project/duneblip/)
