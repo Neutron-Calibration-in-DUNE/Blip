@@ -24,9 +24,9 @@ class Clusterer:
         clustering_algorithms:  ClusteringAlgorithmHandler=None,
         clustering_metrics:     MetricHandler=None,
         clustering_callbacks:   CallbackHandler=None,
-        device:     str='cpu',
-        gpu:        bool=False,
-        seed:       int=0,
+        device: str='cpu',
+        gpu:    bool=False,
+        seed:   int=0,
     ):
         """
         """
@@ -37,8 +37,8 @@ class Clusterer:
 
         # define directories
         self.predictions_dir = f'predictions/{self.name}/'
-        self.timing_dir    = f'plots/{self.name}/timing/'
-        self.memory_dir    = f'plots/{self.name}/memory/'
+        self.timing_dir = f'plots/{self.name}/timing/'
+        self.memory_dir = f'plots/{self.name}/memory/'
 
         # create directories
         if not os.path.isdir(self.predictions_dir):
