@@ -18,7 +18,7 @@ class Arrakis:
     ):
         self.name = name + "_arrakis"
         self.logger = Logger(self.name, output='both', file_mode='w')
-        self.logger.info(f"constructing arrakis dataset.")
+        self.logger.info("constructing arrakis dataset.")
 
         self.simulation_files = []
         self.output_folders = {}
@@ -60,7 +60,7 @@ class Arrakis:
             self.config['simulation_files'] = []
         self.simulation_files = self.config['simulation_files']
         self.output_folders = {
-            simulation_file: simulation_file.replace('.root','') 
+            self.simulation_folder + simulation_file: simulation_file.replace('.root','') 
             for simulation_file in self.simulation_files
         }
         for output_folder in self.output_folders.values():
@@ -74,7 +74,7 @@ class Arrakis:
             if self.config["process_simulation"]:
                 for ii, input_file in enumerate(self.simulation_files):
                     self.load_arrays(self.simulation_folder, input_file)
-                    self.generate_training_data(self.process_type, input_file)
+                    self.generate_training_data(self.process_type, self.simulation_folder + input_file)
 
     def load_arrays(self,
         input_folder:   str='',
@@ -93,14 +93,14 @@ class Arrakis:
         for key in self.uproot_file.keys():
             if 'energy_deposit_point_cloud' in key:
                 self.energy_deposit_point_cloud = self.uproot_file[key].arrays(library="np")
-            elif 'wire_plane_point_cloud' in key:
+            elif 'mc_wire_plane_point_cloud' in key:
                 self.wire_plane_point_cloud = self.uproot_file[key].arrays(library="np")
-            elif 'op_det_point_cloud' in key:
+            elif 'mc_op_det_point_cloud' in key:
                 self.op_det_point_cloud = self.uproot_file[key].arrays(library="np")
 
     def generate_training_data(self,
         process_type:   str='all',
-        input_file:     str=''
+        input_file:    str=''
     ):
         if process_type == 'energy_deposit_point_cloud':
             self.generate_energy_deposit_point_cloud(input_file)

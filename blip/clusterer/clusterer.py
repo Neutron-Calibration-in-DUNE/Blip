@@ -20,19 +20,19 @@ class Clusterer:
     This class is ... 
     """
     def __init__(self,
-        name:   str,
-        clustering_algorithms:  ClusteringAlgorithmHandler=None,
-        clustering_metrics:     MetricHandler=None,
-        clustering_callbacks:   CallbackHandler=None,
+        name: str,
+        clustering_algorithms: ClusteringAlgorithmHandler=None,
+        clustering_metrics: MetricHandler=None,
+        clustering_callbacks: CallbackHandler=None,
         device: str='cpu',
-        gpu:    bool=False,
-        seed:   int=0,
+        gpu: bool=False,
+        seed: int=0,
     ):
         """
         """
         self.name = name + "_clusterer"
         self.logger = Logger(self.name, output='both', file_mode='w')
-        self.logger.info(f"constructing clusterer.")
+        self.logger.info("constructing clusterer.")
         # Check for compatability with parameters
 
         # define directories
@@ -59,7 +59,7 @@ class Clusterer:
         self.gpu = gpu
         self.seed = seed
         
-        if clustering_callbacks == None:
+        if clustering_callbacks is None:
             # add generic clustering_callbacks
             self.clustering_callbacks = CallbackHandler(
                 name="default"
@@ -85,18 +85,19 @@ class Clusterer:
     def cluster(self,
         dataset_loader,             # dataset_loader to pass in
         num_parameters: int=10,
-        eps_range:      list=[1.0, 100.0],
-        progress_bar:   bool=True,  # progress bar from tqdm
-        rewrite_bar:    bool=False, # wether to leave the bars after each epoch
-        save_predictions:bool=True, # wether to save network outputs for all events to original file
-        no_timing:      bool=False,     # wether to keep the bare minimum timing info as a callback          
+        eps_range: list=None,
+        progress_bar: bool=True,  # progress bar from tqdm
+        rewrite_bar: bool=False, # wether to leave the bars after each epoch
+        save_predictions: bool=True, # wether to save network outputs for all events to original file
+        no_timing: bool=False,     # wether to keep the bare minimum timing info as a callback          
     ):
         """
         Main clustering loop.  First, we see if the user wants to omit timing information.
         """
         # run consistency check
         # self.logger.info(f"running consistency check...")
-
+        if eps_range is None:
+            eps_range = [1.0, 100.0]
         # setting values in callbacks
         self.clustering_callbacks.set_device(self.device)
         self.clustering_callbacks.set_training_info(
@@ -152,10 +153,8 @@ class Clusterer:
                 )
             else:
                 event_loop = enumerate(dataset_loader.all_loader, 0)
-            
-            """            
-            Setup timing/memory information for epoch.
-            """
+                       
+            #Setup timing/memory information for epoch.
             self.timers.timers['parameter_clustering'].start()
             self.memory_trackers.memory_trackers['parameter_clustering'].start()
 
@@ -174,10 +173,9 @@ class Clusterer:
                 self.memory_trackers.memory_trackers['cluster_data'].end()
                 self.timers.timers['cluster_data'].end()
                 
-                """
-                Send the event to the clustering algorithms to produce
-                clustering results.  
-                """
+                
+                # Send the event to the clustering algorithms to produce
+                # clustering results.  
                 self.timers.timers['cluster_algorithm'].start()
                 self.memory_trackers.memory_trackers['cluster_algorithm'].start()
                 clustering = self.clustering_algorithms.cluster(parameters, data)
