@@ -215,22 +215,23 @@ class Module:
 
         # check for processing simulation files
 
-        if "simulation_files" in dataset_config and dataset_config["process_simulation"]:
-            for ii, simulation_file in enumerate(dataset_config["simulation_files"]):
-                if ( simulation_folder ):
-                    simulation_file = simulation_folder + simulation_file
-                self.logger.info(f"processing simulation file: {simulation_file}.")
-                wire_plane_dataset = WirePlanePointCloud(
-                    f"{self.name}_simulation_{ii}",
-                    simulation_file
-                )
-                wire_plane_dataset.generate_training_data()
+        # if "simulation_files" in dataset_config and dataset_config["process_simulation"]:
+        #     for ii, simulation_file in enumerate(dataset_config["simulation_files"]):
+        #         if (simulation_folder):
+        #             simulation_file = simulation_folder + simulation_file
+        #         self.logger.info(f"processing simulation file: {simulation_file}.")
+        #         arrakis_dataset = Arrakis(
+        #             f"{self.name}_simulation_{ii}",
+        #             simulation_file
+        #         )
+        #         arrakis_dataset.generate_training_data()
 
-        if "process_simulation" in dataset_config:
+        if "simulation_files" in dataset_config and dataset_config["process_simulation"]:
             arrakis_dataset = Arrakis(
                 self.name,
                 dataset_config
             )
+            #arrakis_dataset.generate_training_data()
 
         dataset_config["name"] = f"{self.name}_dataset"
         dataset_config["device"] = self.device
