@@ -20,6 +20,7 @@ from blip.clustering_algorithms import ClusteringAlgorithmHandler
 from blip.utils.loader import Loader
 from blip.utils.sparse_loader import SparseLoader
 from blip.models import ModelHandler
+from blip.module.common import *
 from blip.losses import LossHandler
 from blip.optimizers import Optimizer
 from blip.metrics import MetricHandler
@@ -32,6 +33,11 @@ from blip.utils.utils import get_files, save_model
 
 class Module:
     """
+    The module class helps to organize meta data and objects related to different tasks
+    and execute those tasks based on a configuration file.  The spirit of the 'Module' class
+    is to mimic some of the functionality of LArSoft, e.g. where you can specify a chain
+    of tasks to be completed, the ability to have nested config files where default parameters
+    can be overwritten.
     """
     def __init__(self,
         config_file:    str="",
@@ -60,11 +66,15 @@ class Module:
                     self.config["module"]["module_name"] = "blip"
                 self.name = self.config["module"]["module_name"]
             self.logger = Logger(self.name, output="both", file_mode='w')
+            system_info = self.logger.get_system_info()
+            for key, value in system_info.items():
+                self.logger.info(f"system_info - {key}: {value}")
             self.logger.info(f"configuring module.")
         else:
             default_logger.error(f"no config file specified for module at constructor.")
         
         self.logger.info(f"parsing config file: {config_file}.")
+        self.meta = {}
         self.parse_config()
 
     def set_config(self,
@@ -139,14 +149,43 @@ class Module:
                     self.config["metrics"][item]["consolidate_classes"] = dataset_config["consolidate_classes"]
         
     def parse_module(self):
+        # First we check the "module_type" to make sure it conforms to our 
+        # internal specification.
         if "module_type" not in self.config["module"].keys():
             self.logger.error(f'"module_type" not specified in config!')
+        if not isinstance(self.config["module"]["module_type"], str) and not isinstance(self.config["module"]["module_type"], list):
+            self.logger.error(f'"module_type" must be either a list or a str, but got {type(self.config["module"]["module_type"])}!')
+        if isinstance(self.config["module"]["module_type"], str):
+            self.config["module"]["module_type"] = [self.config["module"]["module_type"]]
         self.module_type = self.config["module"]["module_type"]
+        for ii, module in enumerate(self.module_type):
+            if not isinstance(module, str):
+                self.logger.error(f'"module_type" "{module}" at index {ii} is not of type str!')
+            if module not in module_types.keys():
+                self.logger.error(f'"module_type" {module} at index {ii} is not an allowed type!')
         self.logger.info(f'module_type set to "{self.module_type}"')
+        
+        # next we check the module_mode associated to each type.
         if "module_mode" not in self.config["module"].keys():
             self.logger.error(f'"module_mode" not specified in config!')
+        if not isinstance(self.config["module"]["module_mode"], str) and not isinstance(self.config["module"]["module_mode"], list):
+            self.logger.error(f'"module_mode" must be either a list or a string!')
+        if isinstance(self.config["module"]["module_mode"], str):
+            self.config["module"]["module_mode"] = [self.config["module"]["module_mode"]]
         self.module_mode = self.config["module"]["module_mode"]
+        for ii, module in enumerate(self.module_mode):
+            if not isinstance(module, str):
+                self.logger.error(f'"module_mode" "{module}" at index {ii} is not of mode str!')
+            if module not in module_types[self.module_type[ii]]:
+                self.logger.error(f'"module_mode" {module} at index {ii} is not an allowed mode for type {self.module_type[ii]}!')
         self.logger.info(f'module_mode set to "{self.module_mode}"')
+        
+        if len(self.module_type) != len(self.module_mode):
+            self.logger.error(f'module_type and module_mode must have the same number of entries!')
+        
+        # Eventually we will want to check that the order of the modules makes sense,
+        # and that the data products are compatible and available for the different modes.
+
         # check for devices
         if "gpu" not in self.config["module"].keys():
             self.logger.warn(f'"gpu" not specified in config!')
@@ -214,28 +253,16 @@ class Module:
             self.logger.error(f'No dataset_folder specified in environment or configuration file!')
 
         # check for processing simulation files
-
-        # if "simulation_files" in dataset_config and dataset_config["process_simulation"]:
-        #     for ii, simulation_file in enumerate(dataset_config["simulation_files"]):
-        #         if (simulation_folder):
-        #             simulation_file = simulation_folder + simulation_file
-        #         self.logger.info(f"processing simulation file: {simulation_file}.")
-        #         arrakis_dataset = Arrakis(
-        #             f"{self.name}_simulation_{ii}",
-        #             simulation_file
-        #         )
-        #         arrakis_dataset.generate_training_data()
-
         if "simulation_files" in dataset_config and dataset_config["process_simulation"]:
             arrakis_dataset = Arrakis(
                 self.name,
                 dataset_config
             )
-            #arrakis_dataset.generate_training_data()
 
         dataset_config["name"] = f"{self.name}_dataset"
         dataset_config["device"] = self.device
         self.dataset = BlipDataset(dataset_config)
+        self.meta['dataset'] = self.dataset
 
     def parse_loader(self):
         """
@@ -250,6 +277,7 @@ class Module:
             self.dataset,
             loader_config
         )
+        self.meta['loader'] = self.loader
         
     def parse_model(self):
         """
@@ -388,31 +416,18 @@ class Module:
         """
         Once everything is configured, we run the module here.
         """
-        if self.module_type == 'ml':
-            if self.module_mode == 'training':
-                self.trainer.train(
-                    self.loader,
-                    epochs=self.config['training']['epochs'],
-                    checkpoint=self.config['training']['checkpoint'],
-                    progress_bar=self.config['training']['progress_bar'],
-                    rewrite_bar=self.config['training']['rewrite_bar'],
-                    save_predictions=self.config['training']['save_predictions'],
-                    no_timing=self.config['training']['no_timing']
-                )
-            elif self.module_mode == 'inference':
-                self.trainer.inference(
-                    self.loader,
-                    progress_bar=self.config['training']['progress_bar'],
-                    rewrite_bar=self.config['training']['rewrite_bar']
-                )
-
-            # save model/data/config
-            if 'run_name' in self.config['training'].keys():
-                save_model(self.config['training']['run_name'], self.config_file)
-            else:
-                save_model(self.name, self.config_file)
-                
-        elif self.module_type == 'clustering':
+        for ii, module_type in enumerate(self.module_type):
+            if module_type == "clustering":
+                self.run_clustering_module(self.module_mode[ii])
+            elif module_type == "ml":
+                self.run_ml_module(self.module_mode[ii])
+            elif module_type == "tda":
+                self.run_tda_module(self.module_mode[ii])
+    
+    def run_clustering_module(self,
+        clustering_mode
+    ):
+        if clustering_mode == "parameter_scan":
             self.clusterer.cluster(
                 self.loader,
                 num_parameters=self.config['clusterer']['num_parameters'],
@@ -422,3 +437,29 @@ class Module:
                 save_predictions=self.config['clusterer']['save_predictions'],
                 no_timing=self.config['clusterer']['no_timing']
             )
+    
+    def run_ml_module(self,
+        ml_mode
+    ):
+        if ml_mode == 'training':
+            self.trainer.train(
+                self.loader,
+                epochs=self.config['training']['epochs'],
+                checkpoint=self.config['training']['checkpoint'],
+                progress_bar=self.config['training']['progress_bar'],
+                rewrite_bar=self.config['training']['rewrite_bar'],
+                save_predictions=self.config['training']['save_predictions'],
+                no_timing=self.config['training']['no_timing']
+            )
+        elif ml_mode == 'inference':
+            self.trainer.inference(
+                self.loader,
+                progress_bar=self.config['training']['progress_bar'],
+                rewrite_bar=self.config['training']['rewrite_bar']
+            )
+
+        # save model/data/config
+        if 'run_name' in self.config['training'].keys():
+            save_model(self.config['training']['run_name'], self.config_file)
+        else:
+            save_model(self.name, self.config_file)

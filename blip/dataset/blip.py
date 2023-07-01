@@ -21,6 +21,7 @@ from torch_geometric.io import read_txt_array
 
 from blip.utils.logger import Logger
 from blip.dataset.generic_dataset import GenericDataset
+from blip.dataset.common import *
 
 blip_dataset_config = {
     "name":             "default",
@@ -186,11 +187,17 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             label: {key: ii for ii, key in enumerate(self.cluster_labels[label].keys())}
             for label in self.cluster_labels.keys()
         }
-
         if "class_mask" in self.config:
             self.class_mask_index = self.class_label_index[self.class_mask]
+            self.logger.info(f"setting 'class_mask': {self.class_mask}")
         if "label_mask" in self.config:
             self.label_mask_value = self.class_labels_by_name[self.class_mask][self.label_mask]
+            self.logger.info(f"setting 'label_mask': {self.label_mask}")
+        if "labels" in self.config.keys() and len(self.config["labels"]) > 0:
+            self.label_values = [
+                key for key in classification_labels['particle'] 
+                if classification_labels['particle'][key] in self.config["labels"]
+            ]
 
     def configure_dataset(self):
         # set dataset type
@@ -245,6 +252,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         self.positions = self.config["positions"]
         self.features = self.config["features"]
         self.classes = self.config["classes"]
+        self.labels = self.config["labels"]
         if "clusters" in self.config:
             self.clusters = self.config["clusters"]
             self.logger.info(f"setting 'clusters':      {self.clusters}")
@@ -447,6 +455,11 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         # create clusters using DBSCAN
         cluster_positions = event_features[:, self.cluster_position_indices]
         cluster_classes = event_classes[:, self.class_indices]
+
+        if "labels" in self.config.keys() and len(self.config["labels"]) > 0:
+            label_mask = np.isin(cluster_classes, self.label_values).flatten()
+            cluster_positions = cluster_positions[label_mask]
+            cluster_classes = cluster_classes[label_mask]
         
         cluster_labels = self.dbscan.fit(cluster_positions).labels_
         unique_labels = np.unique(cluster_labels)

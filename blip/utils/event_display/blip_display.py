@@ -16,7 +16,7 @@ from bokeh.models import CategoricalColorMapper, Toggle
 from bokeh.models import CheckboxButtonGroup, CustomJS
 from bokeh.models import Paragraph, PreText, Dropdown
 from bokeh.models import ColumnDataSource, RadioGroup
-from bokeh.palettes import Turbo256, Category20, Category20b
+from bokeh.palettes import Turbo256, Category20, Category20b, TolRainbow, Magma256
 from bokeh.transform import linear_cmap
 from bokeh.transform import factor_cmap, factor_mark
 from bokeh.server.server import Server
@@ -421,7 +421,8 @@ class BlipDisplay:
             label_vals = self.meta[f"{self.first_figure_label}_labels"]
             self.first_scatter = {}
             self.first_scatter_colors = {
-                val: Category20[len(label_vals)][ii]
+                #val: Magma256[len(label_vals)][ii]
+                val: Magma256[int(ii*256/len(label_vals))]
                 for ii, val in enumerate(label_vals.values())
             }
             for key, val in label_vals.items():   
@@ -455,7 +456,8 @@ class BlipDisplay:
             label_vals = self.meta[f"{self.second_figure_label}_labels"]
             self.second_scatter = {}
             self.second_scatter_colors = {
-                val: Category20[len(label_vals)][ii]
+                #val: Magma256[len(label_vals)][ii]
+                val: Magma256[int(ii*256/len(label_vals))]
                 for ii, val in enumerate(label_vals.values())
             }
             for key, val in label_vals.items():   

@@ -1,15 +1,72 @@
 # Test config file for Blip
+module:
+  module_name:  'blank_config'
+  module_type:  []
+  module_mode:  []
+  gpu:          True
+  gpu_device:   0
+
 dataset:
+  # ---- Arrakis ----
+  # This section defines the 'arrakis.py' submodule which takes in
+  # outputs from different Arrakis iterations and constructs a common dataset format
+  # in .npz or .hdf5 files.
   # If this is the first time processing the simulation output
   process_simulation: False
+  simulation_folder:  ""
   simulation_files:   []
 
-  # Otherwise, we want to just load the resulting data
+  # ---- Blip ----
   dataset_type:   ""
+  dataset_folder: ""
   dataset_files:  []
+  root:           "."
+  skip_processing:  False
+  transform:        null
+  pre_transform:    null
+  pre_filter:       null
+  # ---- variables ----
+  # The following variables are enough to describe a general set of tasks.  In tasks involving
+  # semantic segmentation or point clouds networks, there should be a distinction between 
+  # 'positions' and 'features', the former of which defines the grid/point cloud geometry,
+  # while the later refers to discriminating variables.
   positions:      []
   features:       []
   classes:        []
+  labels:         []
+  clusters:       []
+  # ---- normalization ----
+  # Normalization parameters for positions and features.  Typically we want to normalize
+  # input features depending on the type of task, or to unbias certain simulation parameters,
+  # e.g. by normalizaing ADC over an event sample we remove the overall scale of the detector
+  # response.
+  position_normalization:   []
+  features_normalization:   []
+  # ---- weights ----
+  # Class and sample weights are used for imbalanced datasets.
+  class_weights:  []
+  sample_weights: []
+  # ---- clustering ----
+  # Clustering parameters are used for creating cluster datasets, i.e. datasets where each
+  # sample is a cluster, rather than an entire event. The current clustering method is DBSCAN, 
+  # but this will likely change in the future to accomidate other approaches.  If cluster_class
+  # is specified, then only types 'cluster_class:cluster_label' will be turned into cluster
+  # datasets.  The 'cluster_variables' are the variables to be considered in the clustering.
+  dbscan_min_samples: 1
+  dbscan_eps:         0.1
+  cluster_class:      ""
+  cluster_label:      ""
+  cluster_variables:  []
+  # ---- masks ----
+  # Masks are used to pick out points/events which
+  # are only of type 'class_mask:label_mask'.
+  class_mask:   ""
+  label_mask:   ""
+  # we can regroup classes to reduce their number,
+  # e.g., say we want to train so that there are
+  # only two important shapes, "blip" and "not-blip",
+  # then we would consolidate like below:
+  consolidate_classes:  
 
 loader:
   loader_type:      ""
@@ -32,13 +89,11 @@ training:
   seed:         0
 
 model:
-  # uncomment the line below and specify the model
-  # to load from a checkpoint.
+  # uncomment the line below and specify the model to load from a checkpoint.
   # load_model:   ".checkpoints/checkpoint_200.ckpt"
 
   # multiple options for model_type: 
-  # [ "SparseUNet", "PointNet", "UNet", ... ]
-  # or a Composite.
+  # [ "single", "composite", ... ]
   model_type:       ""  
 
 criterion:
