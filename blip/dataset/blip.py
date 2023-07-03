@@ -198,6 +198,14 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 key for key in classification_labels['particle'] 
                 if classification_labels['particle'][key] in self.config["labels"]
             ]
+            self.label_map = {
+                ii: self.label_values[ii]
+                for ii in range(len(self.label_values))
+            }
+            self.inverse_label_map = {
+                self.label_values[ii]: ii
+                for ii in range(len(self.label_values))
+            }
 
     def configure_dataset(self):
         # set dataset type
@@ -456,10 +464,10 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         cluster_positions = event_features[:, self.cluster_position_indices]
         cluster_classes = event_classes[:, self.class_indices]
 
-        if "labels" in self.config.keys() and len(self.config["labels"]) > 0:
-            label_mask = np.isin(cluster_classes, self.label_values).flatten()
-            cluster_positions = cluster_positions[label_mask]
-            cluster_classes = cluster_classes[label_mask]
+        # if "labels" in self.config.keys() and len(self.config["labels"]) > 0:
+        #     label_mask = np.isin(cluster_classes, self.label_values).flatten()
+        #     cluster_positions = cluster_positions[label_mask]
+        #     cluster_classes = cluster_classes[label_mask]
         
         cluster_labels = self.dbscan.fit(cluster_positions).labels_
         unique_labels = np.unique(cluster_labels)
@@ -481,6 +489,10 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             scale[(scale == 0)] = max_positions[(scale == 0)]
             temp_positions = 2 * (temp_positions - min_positions) / scale - 1
             temp_classes = cluster_classes[temp_mask]
+
+            if "labels" in self.config.keys() and len(self.config["labels"]) > 0:
+                temp_classes = np.vectorize(self.inverse_label_map.get)(temp_classes)
+
             if len(self.feature_indices) != 0:
                 temp_features = torch.tensor(event_features[:, self.feature_indices][temp_mask]).type(torch.float)
             else:
@@ -518,11 +530,12 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             temp_clusters = torch.tensor(event_clusters[:, self.cluster_indices]).type(torch.long)
         else:
             temp_clusters = None
-        
+        if "labels" in self.config.keys() and len(self.config["labels"]) > 0:
+                event_classes = np.vectorize(self.inverse_label_map.get)(event_classes[:, self.class_indices])
         event = Data(
             pos=torch.tensor(event_features[:, self.position_indices]).type(self.position_type),
             x=temp_features,
-            category=torch.tensor(event_classes[:, self.class_indices]).type(torch.long),
+            category=torch.tensor(event_classes).type(torch.long),
             clusters=temp_clusters,
         )
         if self.pre_filter is not None:
@@ -557,6 +570,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 f"{classes_prefix}{classes}": [input_dict[classes][event] for event in events]
                 for classes in input_dict.keys()
             }
+            if "labels" in self.config.keys() and len(self.config["labels"]) > 0:
+                output['label_map'] = self.label_map
             if self.dataset_type == "cluster":
                 output[f'{self.dbscan_eps}_{self.dbscan_min_samples}_cluster_ids'] = self.cluster_ids[raw_path]
                 output[f'{self.dbscan_eps}_{self.dbscan_min_samples}_cluster_indices'] = self.cluster_indicies[raw_path]

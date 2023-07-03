@@ -92,14 +92,16 @@ class Module:
         self.parse_module()
         self.parse_dataset()
         self.parse_loader()
-        self.parse_model()
-        self.parse_loss()
-        self.parse_optimizer()
-        self.parse_metrics()
-        self.parse_callbacks()
-        self.parse_training()
-        self.parse_clustering_algorithms()
-        self.parse_clusterer()
+        if "training" in self.config["module"]["module_mode"]:
+            self.parse_model()
+            self.parse_loss()
+            self.parse_optimizer()
+            self.parse_metrics()
+            self.parse_callbacks()
+            self.parse_training()
+        if "parameter_scan" in self.config["module"]["module_mode"]:
+            self.parse_clustering_algorithms()
+            self.parse_clusterer()
 
         self.run_module()
 
@@ -122,6 +124,8 @@ class Module:
         if self.config["module"]["module_type"] == "ml":
             if "loader" not in self.config.keys():
                 self.logger.error(f'"loader" section not specified in config!')
+            if self.config["module"]["module_mode"] == "dataprep":
+                return
             if "model" not in self.config.keys():
                 self.logger.error(f'"model" section not specified in config!')
             if "criterion" not in self.config.keys():
@@ -261,6 +265,8 @@ class Module:
 
         dataset_config["name"] = f"{self.name}_dataset"
         dataset_config["device"] = self.device
+        if self.config["module"]["module_mode"] == "dataprep":
+            return
         self.dataset = BlipDataset(dataset_config)
         self.meta['dataset'] = self.dataset
 
@@ -441,6 +447,8 @@ class Module:
     def run_ml_module(self,
         ml_mode
     ):
+        if ml_mode == 'dataprep':
+            return
         if ml_mode == 'training':
             self.trainer.train(
                 self.loader,
