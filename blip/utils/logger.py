@@ -61,7 +61,7 @@ class Logger:
         self.level = logging_level[level]
         self.output = output
         if output_file == '':
-            self.output_file = name
+            self.output_file = 'log'
         else:
             self.output_file = output_file
         self.file_mode = file_mode
@@ -106,7 +106,7 @@ class Logger:
             self.console.setFormatter(self.console_formatter)
             self.logger.addHandler(self.console)
         if self.output == 'file' or self.output == 'both':
-            self.file = logging.FileHandler('.logs/'+self.output_file+'.log', mode=self.file_mode)
+            self.file = logging.FileHandler('.logs/'+self.output_file+'.log', mode='a')
             self.file.setLevel(self.level)
             self.file.setFormatter(self.file_formatter)
             self.logger.addHandler(self.file)

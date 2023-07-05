@@ -45,7 +45,24 @@ class ConfusionMatrixMetric(GenericMetric):
             if consolidate_classes is not None:
                 self.labels[input] = consolidate_classes[input]
             else:
-                self.labels[input] = classification_labels[input].values()
+                #self.labels[input] = classification_labels[input].values()
+                self.labels['particle'] = [
+                    "capture_gamma", 
+                    "capture_gamma_474", 
+                    "capture_gamma_336",
+                    "capture_gamma_256",
+                    "capture_gamma_118",
+                    "capture_gamma_083",
+                    "capture_gamma_051",
+                    "capture_gamma_016",
+                    "capture_gamma_other",
+                    "ar39",
+                    "ar42",
+                    "kr85",
+                    "rn222",
+                    "nuclear_recoil",
+                    "electron_recoil"
+                ]
     #         if self.mode == "voxel":
     #             self.batch_predictions[input] = torch.empty(
     #                 size=(0, self.number_of_classes[ii] + 1),
@@ -105,7 +122,7 @@ class ConfusionMatrixMetric(GenericMetric):
                 #     dim=0
                 # )
                 self.metrics[input].update(
-                    outputs[input], data.category[:,ii].to(self.device)
+                    softmax, data.category[:,ii].to(self.device)
                 )
             elif self.mode == "cluster":
                 # convert categories to probabilities.
@@ -125,7 +142,7 @@ class ConfusionMatrixMetric(GenericMetric):
                 #     dim=0
                 # )
                 self.metrics[input].update(
-                    softmax, answer
+                    softmax, torch.argmax(answer, axis=1)
                 )
 
     # def compute(self):

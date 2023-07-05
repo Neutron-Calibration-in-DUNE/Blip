@@ -16,7 +16,7 @@ from bokeh.models import CategoricalColorMapper, Toggle
 from bokeh.models import CheckboxButtonGroup, CustomJS
 from bokeh.models import Paragraph, PreText, Dropdown
 from bokeh.models import ColumnDataSource, RadioGroup
-from bokeh.palettes import Turbo256, Category20, Category20b
+from bokeh.palettes import Turbo256, Category20, Category20b, TolRainbow, Magma256
 from bokeh.transform import linear_cmap
 from bokeh.transform import factor_cmap, factor_mark
 from bokeh.server.server import Server
@@ -58,13 +58,14 @@ class BlipDisplay:
         self.update_meta_string()
         self.features = []
         self.classes = []
+        self.clusters = []
         self.predictions = {}
 
         self.plot_options = ["Truth", "Predictions"]
 
         # parameters for first plot
         self.available_truth_labels = [
-            'adc', 'source', 'shape', 'particle'
+            'adc', 'source', 'shape', 'particle', 'cluster_shape', 'cluster_particle'
         ]
         self.first_figure_label = 'adc'
         self.first_scatter = {}
@@ -375,6 +376,8 @@ class BlipDisplay:
             self.features = input_file['features']
         if 'classes' in input_file.files:
             self.classes = input_file['classes']
+        if 'clusters' in input_file.files:
+            self.clusters = input_file['clusters']
         if 'source' in input_file.files:
             self.predictions['source'] = input_file['source']
             self.available_prediction_labels.append('source')
@@ -403,6 +406,7 @@ class BlipDisplay:
         if str(self.event) in self.available_events:
             self.event_features = self.features[self.event]
             self.event_classes = self.classes[self.event]
+            self.event_clusters = self.clusters[self.event]
             self.event_predictions = {
                 key: val[self.event][0]
                 for key, val in self.predictions.items()
@@ -416,30 +420,57 @@ class BlipDisplay:
         if self.first_figure_label == 'adc':
             pass
         else:
-
-            label_index = self.meta['classes'][self.first_figure_label]
-            label_vals = self.meta[f"{self.first_figure_label}_labels"]
-            self.first_scatter = {}
-            self.first_scatter_colors = {
-                val: Category20[len(label_vals)][ii]
-                for ii, val in enumerate(label_vals.values())
-            }
-            for key, val in label_vals.items():   
-                if self.first_figure_plot_type == "Truth": 
-                    mask = (self.event_classes[:, label_index] == key)
-                else:
-                    if self.first_figure_label not in self.available_prediction_labels:
+            if 'cluster' in self.first_figure_label:
+                label_index = self.meta['clusters'][self.first_figure_label.replace('cluster_','')]
+                label_vals = np.unique(self.event_clusters[:, label_index])
+                self.first_scatter = {}
+                self.first_scatter_colors = {
+                    #val: Magma256[len(label_vals)][ii]
+                    val: Magma256[int(ii % 256)]
+                    for ii, val in enumerate(label_vals)
+                }
+                print(label_vals)
+                for val in label_vals:   
+                    if self.first_figure_plot_type == "Truth": 
+                        mask = (self.event_clusters[:, label_index] == val)
+                    else:
+                        if self.first_figure_label not in self.available_prediction_labels:
+                            continue
+                        labels = np.argmax(self.event_predictions[self.first_figure_label], axis=1)
+                        mask = (labels == val)
+                    if np.sum(mask) == 0:
                         continue
-                    labels = np.argmax(self.event_predictions[self.first_figure_label], axis=1)
-                    mask = (labels == key)
-                if np.sum(mask) == 0:
-                    continue
-                self.first_scatter[val] = self.first_figure.circle(
-                    self.event_features[:,0][mask],
-                    self.event_features[:,1][mask],
-                    legend_label=val,
-                    color=self.first_scatter_colors[val]
-                )
+                    self.first_scatter[val] = self.first_figure.circle(
+                        self.event_features[:,0][mask],
+                        self.event_features[:,1][mask],
+                        legend_label=str(val),
+                        color=self.first_scatter_colors[val]
+                    )
+            else:
+                label_index = self.meta['classes'][self.first_figure_label]
+                label_vals = self.meta[f"{self.first_figure_label}_labels"]
+                self.first_scatter = {}
+                self.first_scatter_colors = {
+                    #val: Magma256[len(label_vals)][ii]
+                    val: Magma256[int(ii*256/len(label_vals))]
+                    for ii, val in enumerate(label_vals.values())
+                }
+                for key, val in label_vals.items():   
+                    if self.first_figure_plot_type == "Truth": 
+                        mask = (self.event_classes[:, label_index] == key)
+                    else:
+                        if self.first_figure_label not in self.available_prediction_labels:
+                            continue
+                        labels = np.argmax(self.event_predictions[self.first_figure_label], axis=1)
+                        mask = (labels == key)
+                    if np.sum(mask) == 0:
+                        continue
+                    self.first_scatter[val] = self.first_figure.circle(
+                        self.event_features[:,0][mask],
+                        self.event_features[:,1][mask],
+                        legend_label=val,
+                        color=self.first_scatter_colors[val]
+                    )
         self.first_figure.legend.click_policy="hide"
         self.first_figure.xaxis[0].axis_label = "Channel [n]"
         self.first_figure.yaxis[0].axis_label = "TDC [10ns]"
@@ -455,7 +486,8 @@ class BlipDisplay:
             label_vals = self.meta[f"{self.second_figure_label}_labels"]
             self.second_scatter = {}
             self.second_scatter_colors = {
-                val: Category20[len(label_vals)][ii]
+                #val: Magma256[len(label_vals)][ii]
+                val: Magma256[int(ii*256/len(label_vals))]
                 for ii, val in enumerate(label_vals.values())
             }
             for key, val in label_vals.items():   

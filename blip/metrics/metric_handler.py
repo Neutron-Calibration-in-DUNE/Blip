@@ -24,6 +24,7 @@ class MetricHandler:
         self.logger = Logger(self.name, output="both", file_mode="w")
         self.device = device
         self.labels = labels
+        
 
         if bool(config) and len(metrics) != 0:
             self.logger.error(

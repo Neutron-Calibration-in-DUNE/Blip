@@ -104,7 +104,7 @@ class AdjustedRandIndexCallback(GenericCallback):
                     means,
                     yerr=[means.numpy() - lo_error.numpy(), hi_error.numpy() - means.numpy()],
                     capsize=2,
-                    label=f'{classification_labels["particle"][jj]}'
+                    label=f'{self.metric.labels["particle"][jj]}'
                 )
             axs_total.set_xlabel('eps')
             axs_total.set_ylabel('Adjusted Rand Index')
@@ -125,10 +125,10 @@ class AdjustedRandIndexCallback(GenericCallback):
                     means,
                     yerr=[means.numpy() - lo_error.numpy(), hi_error.numpy() - means.numpy()],
                     capsize=2,
-                    label=f'{classification_labels["particle"][jj]}'
+                    label=f'{self.metric.labels["particle"][jj]}'
                 )
                 axs_total.set_xlabel('eps')
                 axs_total.set_ylabel('Adjusted Rand Index')
                 plt.legend()
                 plt.tight_layout()
-                plt.savefig(f'plots/adjust_rand_index/{input}_{classification_labels["particle"][jj]}.png')
+                plt.savefig(f'plots/adjust_rand_index/{input}_{self.metric.labels["particle"][jj]}.png')
