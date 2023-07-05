@@ -270,6 +270,7 @@ class Module:
                 self.name,
                 dataset_config
             )
+            #arrakis_dataset.generate_training_data()
 
         dataset_config["name"] = f"{self.name}_dataset"
         dataset_config["device"] = self.device
