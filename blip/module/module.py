@@ -101,8 +101,10 @@ class Module:
             self.parse_training()
         if "parameter_scan" in self.config["module"]["module_mode"]:
             self.parse_clustering_algorithms()
+            self.parse_metrics()
+            self.parse_callbacks()
             self.parse_clusterer()
-
+            
         self.run_module()
 
     def check_config(self):
@@ -151,6 +153,12 @@ class Module:
                     if item == "custom_metric_file" or item == "custom_metric_name":
                         continue
                     self.config["metrics"][item]["consolidate_classes"] = dataset_config["consolidate_classes"]
+
+        if self.config["module"]["module_type"] == "clustering":
+            if "metrics" not in self.config.keys():
+                self.logger.error(f'"metrics" section not specified in config!')
+            if "callbacks" not in self.config.keys():
+                self.logger.error(f'"callbacks" section not specified in config!')
         
     def parse_module(self):
         # First we check the "module_type" to make sure it conforms to our 

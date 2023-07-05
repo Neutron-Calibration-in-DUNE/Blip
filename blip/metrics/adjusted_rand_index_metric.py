@@ -23,6 +23,24 @@ class AdjustedRandIndexMetric(GenericMetric):
         self.classes = classes
         self.batch_metric = {}
         self.batch_metric_individual = {}
+        self.labels = {}
+        self.labels['particle'] = [
+            "capture_gamma", 
+            "capture_gamma_474", 
+            "capture_gamma_336",
+            "capture_gamma_256",
+            "capture_gamma_118",
+            "capture_gamma_083",
+            "capture_gamma_051",
+            "capture_gamma_016",
+            "capture_gamma_other",
+            "ar39",
+            "ar42",
+            "kr85",
+            # "rn222",
+            "nuclear_recoil",
+            "electron_recoil"
+        ]
         self.reset_batch()
 
     def reset_batch(self):
