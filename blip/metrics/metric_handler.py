@@ -18,11 +18,13 @@ class MetricHandler:
         config: dict={},
         metrics:list=[],
         labels: list=[],
-        device: str='cpu'
+        meta:   dict={}
     ):
         self.name = name + "_metric_handler"
         self.logger = Logger(self.name, output="both", file_mode="w")
-        self.device = device
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
         self.labels = labels
         
 

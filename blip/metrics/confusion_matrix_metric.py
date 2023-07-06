@@ -47,21 +47,21 @@ class ConfusionMatrixMetric(GenericMetric):
             else:
                 #self.labels[input] = classification_labels[input].values()
                 self.labels['particle'] = [
-                    "capture_gamma", 
+                   # "capture_gamma", 
                     "capture_gamma_474", 
                     "capture_gamma_336",
                     "capture_gamma_256",
-                    "capture_gamma_118",
+                    #"capture_gamma_118",
                     "capture_gamma_083",
-                    "capture_gamma_051",
-                    "capture_gamma_016",
-                    "capture_gamma_other",
-                    "ar39",
-                    "ar42",
-                    "kr85",
-                    "rn222",
-                    "nuclear_recoil",
-                    "electron_recoil"
+                    # "capture_gamma_051",
+                    # "capture_gamma_016",
+                    # "capture_gamma_other",
+                    # "ar39",
+                    # "ar42",
+                    # "kr85",
+                    # "rn222",
+                    # "nuclear_recoil",
+                    # "electron_recoil"
                 ]
     #         if self.mode == "voxel":
     #             self.batch_predictions[input] = torch.empty(

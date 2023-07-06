@@ -19,12 +19,14 @@ class LossHandler:
         config:  dict={},
         losses:  list=[],
         use_sample_weights: bool=False,
-        device:  str='cpu'
+        meta:    dict={}
     ):
         self.name = name + '_loss_handler'
         self.use_sample_weights = use_sample_weights
         self.logger = Logger(self.name, output="both", file_mode="w")
-        self.device = device
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
         self.losses = {}
         self.batch_loss = {}
 

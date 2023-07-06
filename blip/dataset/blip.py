@@ -610,6 +610,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         #     event_classes = classes[ii]
 
         # create clusters using DBSCAN
+        if np.sum(mask) == 0:
+            return
         cluster_labels = self.dbscan.fit(
             event_positions[:, self.meta['cluster_position_indices']]
         ).labels_

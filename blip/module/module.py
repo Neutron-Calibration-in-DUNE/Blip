@@ -225,7 +225,7 @@ class Module:
                 if self.gpu_device >= torch.cuda.device_count() or self.gpu_device < 0:
                     self.logger.warn(f"desired gpu_device '{self.gpu_device}' not available, using device '0'")
                     self.gpu_device = 0
-                self.device = torch.device(f"cuda:{self.gpu_device}")
+                self.meta['device'] = torch.device(f"cuda:{self.gpu_device}")
                 self.logger.info(
                     f"CUDA is available, using device {self.gpu_device}" + 
                     f": {torch.cuda.get_device_name(self.gpu_device)}"
@@ -233,10 +233,10 @@ class Module:
             else:
                 self.gpu == False
                 self.logger.warn(f"CUDA not available! Using the cpu")
-                self.device = torch.device("cpu")
+                self.meta['device'] = torch.device("cpu")
         else:
             self.logger.info(f"using cpu as device")
-            self.device = torch.device("cpu")
+            self.meta['device'] = torch.device("cpu")
 
     def parse_dataset(self):
         """
@@ -270,10 +270,9 @@ class Module:
                 self.name,
                 dataset_config
             )
-            #arrakis_dataset.generate_training_data()
 
         dataset_config["name"] = f"{self.name}_dataset"
-        dataset_config["device"] = self.device
+        dataset_config["device"] = self.meta['device']
         if self.config["module"]["module_mode"] == "dataprep":
             return
         self.dataset = BlipDataset(dataset_config)
@@ -305,7 +304,7 @@ class Module:
         self.model = ModelHandler(
             self.name,
             model_config,
-            device=self.device
+            meta=self.meta
         )
 
     def parse_loss(self):
@@ -320,7 +319,7 @@ class Module:
         self.criterion = LossHandler(
             self.name,
             criterion_config,
-            device=self.device
+            meta=self.meta
         )
 
     def parse_optimizer(self):
@@ -352,7 +351,7 @@ class Module:
         self.metrics = MetricHandler(
             self.name,
             metrics_config,
-            device=self.device
+            meta=self.meta
         )
     
     def parse_callbacks(self):
@@ -374,7 +373,7 @@ class Module:
         self.callbacks = CallbackHandler(
             self.name,
             callbacks_config,
-            device=self.device
+            meta=self.meta
         )
     
     def parse_training(self):
@@ -391,7 +390,7 @@ class Module:
             self.optimizer,
             self.metrics,
             self.callbacks,
-            device=self.device,
+            meta=self.meta,
             gpu=self.gpu,
             seed=training_config['seed']
         )
@@ -407,6 +406,7 @@ class Module:
         self.clustering_algorithms = ClusteringAlgorithmHandler(
             self.name,
             clustering_algorithm_config,
+            meta=self.meta
         )
 
     def parse_clusterer(self):
@@ -422,7 +422,7 @@ class Module:
             clustering_algorithms=self.clustering_algorithms,
             clustering_metrics=self.metrics,
             clustering_callbacks=self.callbacks,
-            device=self.device,
+            meta=self.meta,
             gpu=self.gpu,
             seed=cluster_config['seed']
         )

@@ -202,7 +202,9 @@ class Arrakis:
 
                 adc_view_sum = np.array([sum(a) for a in adc_view])
                 adc_view_normalized = adc_view / adc_view_sum
-                
+
+                if len(channel_view.flatten()) == 0:
+                    continue
                 features = np.array([
                     np.vstack((channel_view[ii], tdc_view[ii], adc_view_normalized[ii])).T
                     for ii in range(len(channel_view))],

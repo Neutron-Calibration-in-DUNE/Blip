@@ -33,13 +33,16 @@ class Trainer:
         optimizer,
         metrics:    MetricHandler=None,
         callbacks:  CallbackHandler=None,
-        device:     str='cpu',
-        gpu:        bool=False,
-        seed:       int=0,
+        meta:   dict={},
+        gpu:    bool=False,
+        seed:   int=0,
     ): 
         self.name = model.name + "_trainer"
         self.logger = Logger(self.name, output='both', file_mode='w')
         self.logger.info(f"constructing model trainer.")
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
         # Check for compatability with parameters
 
         # define directories
@@ -67,7 +70,6 @@ class Trainer:
             os.makedirs(self.memory_dir)
 
         # check for devices
-        self.device = device
         self.gpu = gpu
         self.seed = seed
         

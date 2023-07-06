@@ -17,11 +17,13 @@ class CallbackHandler:
         name:       str,
         config:     dict={},
         callbacks:  list=[],
-        device:     str='cpu'
+        meta:       dict={}
     ):
         self.name = name + "_callback_handler"
         self.logger = Logger(self.name, output="both", file_mode="w")
-        self.device = device
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
 
         if bool(config) and len(callbacks) != 0:
             self.logger.error(
