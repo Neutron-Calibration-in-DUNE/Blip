@@ -122,7 +122,7 @@ class ConfusionMatrixMetric(GenericMetric):
                 #     dim=0
                 # )
                 self.metrics[input].update(
-                    softmax, data.category[:,ii].to(self.device)
+                    softmax, data.category.to(self.device)
                 )
             elif self.mode == "cluster":
                 # convert categories to probabilities.

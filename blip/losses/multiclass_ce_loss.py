@@ -43,5 +43,9 @@ class MultiClassCrossEntropyLoss(GenericLoss):
         """Computes and returns/saves loss information"""
         loss = 0
         for ii, classes in enumerate(self.classes):
-            loss += self.cross_entropy_loss[classes](outputs[classes], data.category[:,ii].to(self.device))
+            augmented_labels = torch.cat([
+                data.category.to(self.device) 
+                for ii in range(int(len(outputs['reductions'])/len(data.category)))
+            ])
+            loss += self.cross_entropy_loss[classes](outputs[classes], augmented_labels)
         return self.alpha * loss

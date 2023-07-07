@@ -438,6 +438,10 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         self.dbscan_min_samples = self.config["dbscan_min_samples"]
         self.dbscan_eps = self.config["dbscan_eps"]
         self.meta['clustering_positions'] = self.config["cluster_positions"]
+        if 'cluster_category_type' in self.config.keys():
+            self.meta['cluster_category_type'] = self.config['cluster_category_type']
+        else:
+            self.meta['cluster_category_type'] = 'segmentation'
         self.meta['cluster_position_indices'] = [
             self.meta['blip_positions_indices_by_name'][position] 
             for position in self.meta['clustering_positions']
@@ -632,6 +636,11 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             cluster_features = event_features[cluster_mask]
             cluster_classes = event_classes[cluster_mask]
             cluster_clusters = event_clusters[cluster_mask]
+            if self.meta['cluster_category_type'] == 'classification':
+                cluster_classes = [
+                    np.bincount(cluster_classes[:, ll]).argmax()
+                    for ll in range(len(self.meta['blip_classes_indices']))
+                ]
 
             # Normalize cluster
             min_positions = np.min(cluster_positions, axis=0)
