@@ -93,7 +93,6 @@ class CallbackHandler:
             if item == "custom_callback_file":
                 continue
             # check that callback function exists
-            self.config[item]["device"] = self.device
             if item not in self.available_callbacks.keys():
                 self.logger.error(
                     f"specified callback function '{item}' is not an available type! " + 
@@ -119,7 +118,7 @@ class CallbackHandler:
         for item in self.config.keys():
             if item == "custom_callback_file":
                 continue
-            self.callbacks[item] = self.available_callbacks[item](**self.config[item])
+            self.callbacks[item] = self.available_callbacks[item](**self.config[item], meta=self.meta)
             self.logger.info(f'added callback function "{item}" to CallbackHandler.')
 
     def set_device(self,

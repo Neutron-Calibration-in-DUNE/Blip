@@ -15,9 +15,9 @@ class MultiClassProbabilityLoss(GenericLoss):
         classes:    list=[],
         reduction:  str='mean',
         class_weights:  dict={},
-        device:     str='cpu'
+        meta:   dict={}
     ):
-        super(MultiClassProbabilityLoss, self).__init__(name, device)
+        super(MultiClassProbabilityLoss, self).__init__(name, meta)
         self.alpha = alpha
         self.reduction = reduction
         self.classes = classes

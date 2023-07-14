@@ -17,9 +17,9 @@ class NTXEntropyLoss(GenericLoss):
         classes:    list=[],
         reduction:  str='mean',
         class_weights:  dict={},
-        device:     str='cpu'
+        meta:   dict={}
     ):
-        super(NTXEntropyLoss, self).__init__(name, device)
+        super(NTXEntropyLoss, self).__init__(name, meta)
         self.alpha = alpha
         self.temperature = temperature
         self.reduction = reduction

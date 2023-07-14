@@ -38,9 +38,9 @@ class SetAbstraction(GenericModel):
     def __init__(self,
         name:   str='set_abstraction',
         config: dict=set_abstraction_config,
-        device: str='cpu'
+        meta:   dict={}
     ):
-        super(SetAbstraction, self).__init__(name, config, device)
+        super(SetAbstraction, self).__init__(name, config, meta)
         self.config = config
 
         # construct the model

@@ -148,12 +148,6 @@ class Module:
             metrics_config = self.config['metrics']
             callbacks_config = self.config['callbacks']
 
-            if metrics_config:
-                for item in metrics_config.keys():
-                    if item == "custom_metric_file" or item == "custom_metric_name":
-                        continue
-                    self.config["metrics"][item]["consolidate_classes"] = dataset_config["consolidate_classes"]
-
         if self.config["module"]["module_type"] == "clustering":
             if "metrics" not in self.config.keys():
                 self.logger.error(f'"metrics" section not specified in config!')
@@ -254,7 +248,7 @@ class Module:
                     f"Set simulation file folder from configuration. " +
                     f" simulation_folder : {simulation_folder}"
                     )
-        elif ( 'BLIP_SIMULATION_PATH' in os.environ ):
+        elif ('BLIP_SIMULATION_PATH' in os.environ ):
             self.logger.debug(f'Found BLIP_SIMULATION_PATH in environment')
             simulation_folder = os.environ['BLIP_SIMULATION_PATH']
             self.logger.info(
@@ -368,8 +362,8 @@ class Module:
             for callback in callbacks_config.keys():
                 if callbacks_config[callback] == None:
                     callbacks_config[callback] = {}
-                callbacks_config[callback]['criterion_list'] = self.criterion
-                callbacks_config[callback]['metrics_list'] = self.metrics
+                callbacks_config[callback]['criterion_handler'] = self.criterion
+                callbacks_config[callback]['metrics_handler'] = self.metrics
         self.callbacks = CallbackHandler(
             self.name,
             callbacks_config,

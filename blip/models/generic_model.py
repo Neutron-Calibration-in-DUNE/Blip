@@ -23,7 +23,7 @@ class GenericModel(nn.Module):
     def __init__(self,
         name:   str,
         config: dict=generic_config,
-        device: str='cpu'
+        meta:   dict={}
     ):
         super(GenericModel, self).__init__()
         self.name = name
@@ -36,7 +36,9 @@ class GenericModel(nn.Module):
         self.input_shape = None
         self.output_shape = None
         # device for the model
-        self.device = device
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device'] 
         self.to(self.device)
 
     def set_device(self,

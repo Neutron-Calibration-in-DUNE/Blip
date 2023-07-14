@@ -632,6 +632,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             if kk == -1:
                 continue
             cluster_mask = (cluster_labels == kk)
+            if np.sum(cluster_mask) == 0:
+                continue
             cluster_positions = event_positions[cluster_mask]
             cluster_features = event_features[cluster_mask]
             cluster_classes = event_classes[cluster_mask]
@@ -647,13 +649,15 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             max_positions = np.max(cluster_positions, axis=0)
             scale = max_positions - min_positions
             scale[(scale == 0)] = max_positions[(scale == 0)]
+            summed_adc = np.sum(cluster_positions[:,2])
             cluster_positions = 2 * (cluster_positions - min_positions) / scale - 1
-            
+
             event = Data(
                 pos=torch.tensor(cluster_positions).type(self.meta['position_type']),
                 x=torch.tensor(cluster_features).type(self.meta['feature_type']),
                 category=torch.tensor(cluster_classes).type(self.meta['class_type']),
                 clusters = torch.tensor(cluster_clusters).type(self.meta['cluster_type']),
+                summed_adc = torch.tensor(summed_adc).type(torch.float),
                 # Cluster ID is unique to clustering events
                 cluster_id=kk
             )

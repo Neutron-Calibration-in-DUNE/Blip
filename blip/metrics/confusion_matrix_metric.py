@@ -15,83 +15,75 @@ class ConfusionMatrixMetric(GenericMetric):
         name:       str='confusion_matrix',
         mode:       str="voxel",
         inputs:             list=[],
-        number_of_classes:  list=[],
         when_to_compute:    str="all",
-        consolidate_classes:   dict=None,
-        device: str='cpu'
+        meta:   dict={}
     ):
         """
         """
         super(ConfusionMatrixMetric, self).__init__(
-            name, inputs, when_to_compute, device
+            name, inputs, when_to_compute, meta
         )
         self.mode = mode
         self.inputs = inputs
-        self.number_of_classes = number_of_classes
 
         self.metrics = {}
-        self.batch_predictions = {}
+        self.batch_probabilities = {}
         self.batch_summed_adc = {}
-        if consolidate_classes is not None:
-            self.consolidate_classes = True
-        else:
-            self.consolidate_classes = False
+        self.num_classes = []
+        self.consolidate_classes = False
         self.labels = {}
 
         for ii, input in enumerate(self.inputs):
+            # setup confusion matrix with number of classes
+            self.num_classes.append(len(self.meta['dataset'].meta['blip_labels'][ii]))
             self.metrics[input] = MulticlassConfusionMatrix(
-                num_classes=self.number_of_classes[ii]
+                num_classes=len(self.meta['dataset'].meta['blip_labels'][ii])
             )
-            if consolidate_classes is not None:
-                self.labels[input] = consolidate_classes[input]
+            # set label names
+            if self.meta['dataset'].meta['consolidate_classes'] is not None:
+                self.consolidate_classes = True
+                self.labels[input] = self.meta['dataset'].meta['consolidate_classes'][input]
             else:
-                #self.labels[input] = classification_labels[input].values()
-                self.labels['particle'] = [
-                   # "capture_gamma", 
-                    "capture_gamma_474", 
-                    "capture_gamma_336",
-                    "capture_gamma_256",
-                    "capture_gamma_118",
-                    "capture_gamma_083",
-                    "capture_gamma_051",
-                    # "capture_gamma_016",
-                    # "capture_gamma_other",
-                    # "ar39",
-                    # "ar42",
-                    # "kr85",
-                    # "rn222",
-                    # "nuclear_recoil",
-                    # "electron_recoil"
-                ]
-    #         if self.mode == "voxel":
-    #             self.batch_predictions[input] = torch.empty(
-    #                 size=(0, self.number_of_classes[ii] + 1),
-    #                 dtype=torch.float, device=self.device
-    #             )
-    #         elif self.mode == "cluster":
-    #             self.batch_predictions[input] = torch.empty(
-    #                 size=(0, self.number_of_classes[ii] * 2),
-    #                 dtype=torch.float, device=self.device
-    #             )
+                self.labels[input] = self.meta['dataset'].meta['blip_labels'][ii]
 
-    # def reset_probabilities(self):
-    #     for ii, input in enumerate(self.inputs):
-    #         if self.mode == "voxel":
-    #             self.batch_predictions[input] = torch.empty(
-    #                 size=(0, self.number_of_classes[ii] + 1),
-    #                 dtype=torch.float, device=self.device
-    #             )
-    #         elif self.mode == "cluster":
-    #             self.batch_predictions[input] = torch.empty(
-    #                 size=(0, self.number_of_classes[ii] * 2),
-    #                 dtype=torch.float, device=self.device
-    #             )
+            if self.mode == "voxel":
+                self.batch_probabilities[input] = torch.empty(
+                    size=(0, self.num_classes[ii] + 1),
+                    dtype=torch.float, device=self.device
+                )
+                
+            elif self.mode == "cluster":
+                self.batch_probabilities[input] = torch.empty(
+                    size=(0, self.num_classes[ii] * 2),
+                    dtype=torch.float, device=self.device
+                )
+        self.batch_summed_adc = torch.empty(
+            size=(0, 1),
+            dtype=torch.float, device=self.device
+        )
+
+    def reset_probabilities(self):
+        for ii, input in enumerate(self.inputs):
+            if self.mode == "voxel":
+                self.batch_probabilities[input] = torch.empty(
+                    size=(0, self.num_classes[ii] + 1),
+                    dtype=torch.float, device=self.device
+                )
+            elif self.mode == "cluster":
+                self.batch_probabilities[input] = torch.empty(
+                    size=(0, self.num_classes[ii] * 2),
+                    dtype=torch.float, device=self.device
+                )
+        self.batch_summed_adc = torch.empty(
+            size=(0, 1),
+            dtype=torch.float, device=self.device
+        )
     
-    # def reset(self,
-    # ):
-    #     for ii, input in enumerate(self.inputs):
-    #         self.metrics[input].reset()
-    #     self.reset_probabilities()
+    def reset(self,
+    ):
+        for ii, input in enumerate(self.inputs):
+            self.metrics[input].reset()
+        # self.reset_probabilities()
 
     # def set_device(self,
     #     device
@@ -113,16 +105,21 @@ class ConfusionMatrixMetric(GenericMetric):
                 dim=1, dtype=torch.float
             )
             if self.mode == "voxel":
-                # predictions = torch.cat(
-                #     (softmax, data.category[:, ii].unsqueeze(1).to(self.device)),
-                #     dim=1
-                # ).to(self.device)
-                # self.batch_predictions[input] = torch.cat(
-                #     (self.batch_predictions[input], predictions),
-                #     dim=0
-                # )
+                predictions = torch.cat(
+                    (softmax, data.category.unsqueeze(1)),
+                    dim=1
+                ).to(self.device)
+
+                self.batch_probabilities[input] = torch.cat(
+                    (self.batch_probabilities[input], predictions),
+                    dim=0
+                )
                 self.metrics[input].update(
                     softmax, data.category.to(self.device)
+                )
+                self.batch_summed_adc = torch.cat(
+                    (self.batch_summed_adc, data.summed_adc.unsqueeze(1).to(self.device)),
+                    dim=0
                 )
             elif self.mode == "cluster":
                 # convert categories to probabilities.
@@ -133,14 +130,15 @@ class ConfusionMatrixMetric(GenericMetric):
                     )
                     for kk, label in enumerate(labels):
                         answer[jj][label] = counts[kk] / len(data.category[(batch == batches), ii])
-                # predictions = torch.cat(
-                #     (softmax, answer),
-                #     dim=1
-                # ).to(self.device)
-                # self.batch_predictions[input] = torch.cat(
-                #     (self.batch_predictions[input], predictions),
-                #     dim=0
-                # )
+                predictions = torch.cat(
+                    (softmax, data.category.unsqueeze(1)),
+                    dim=1
+                ).to(self.device)
+
+                self.batch_probabilities[input] = torch.cat(
+                    (self.batch_probabilities[input], predictions),
+                    dim=0
+                )
                 self.metrics[input].update(
                     softmax, torch.argmax(answer, axis=1)
                 )

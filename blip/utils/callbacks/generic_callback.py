@@ -6,9 +6,9 @@ class GenericCallback:
     """
     """
     def __init__(self,
-        criterion_list: list=[],
-        metrics_list: list=[],
-        device: str='cpu'
+        criterion_handler: list=[],
+        metrics_handler: list=[],
+        meta:   dict={}
     ):
         self.epochs = None
         self.num_training_batches = None
@@ -16,9 +16,11 @@ class GenericCallback:
         self.num_test_batches = None
         self.plot_colors = ['b','g','r','c','m','y']
 
-        self.criterion_list = criterion_list
-        self.metrics_list = metrics_list
-        self.device = device
+        self.criterion_handler = criterion_handler
+        self.metrics_handler = metrics_handler
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
 
     def set_device(self,
         device

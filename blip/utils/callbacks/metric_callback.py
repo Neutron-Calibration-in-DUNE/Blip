@@ -12,19 +12,19 @@ class MetricCallback(GenericCallback):
     """
     """
     def __init__(self,
-        criterion_list: list=[],
-        metrics_list: list=[],
-        device: str='cpu'
+        criterion_handler: list=[],
+        metrics_handler: list=[],
+        meta:   dict={}
     ):  
         super(MetricCallback, self).__init__(
-            criterion_list,
-            metrics_list, 
-            device
+            criterion_handler,
+            metrics_handler, 
+            meta
         )
-        self.metrics_list = metrics_list
-        if metrics_list != None:
+        self.metrics_handler = metrics_handler
+        if metrics_handler != None:
             self.metric_names = [
-                name for name, metric in self.metrics_list.metrics.items()
+                name for name, metric in self.metrics_handler.metrics.items()
                 if not sum([
                     isinstance(metric, AUROCMetric),
                     isinstance(metric, ConfusionMatrixMetric),
@@ -32,7 +32,7 @@ class MetricCallback(GenericCallback):
             ]
 
         # containers for training metrics
-        if metrics_list != None:
+        if metrics_handler != None:
             # containers for training metric
             self.training_metrics = torch.empty(
                 size=(0,len(self.metric_names)), 
@@ -70,7 +70,7 @@ class MetricCallback(GenericCallback):
         )
         for name in self.metric_names:
             temp_metric = torch.tensor(
-                [[self.metrics_list.metrics[name].compute()]], 
+                [[self.metrics_handler.metrics[name].compute()]], 
                 device=self.device
             )
             temp_metrics = torch.cat(
@@ -99,7 +99,7 @@ class MetricCallback(GenericCallback):
 
     def evaluate_testing(self):  
         # evaluate metrics from training and validation
-        if self.metrics_list == None:
+        if self.metrics_handler == None:
             return
         epoch_ticks = np.arange(1,self.epochs+1)
         # training plot

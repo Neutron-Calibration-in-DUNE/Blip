@@ -111,14 +111,13 @@ class ModelHandler:
                     f"specified model '{item}' is not an available type! " + 
                     f"Available types:\n{self.available_models.keys()}"
                 )
-            self.config[item]["device"] = self.device
         self.models = {}
         self.batch_model = {}
         for item in self.config.keys():
             if item == "custom_model_file" or item == "load_model" or item == "model_type":
                 continue
             self.models[item] = self.available_models[item](
-                item, self.config[item]
+                item, self.config[item], self.meta
             )
             self.logger.info(f'added model "{item}" to ModelHandler.')
         if self.model_type == 'single':
