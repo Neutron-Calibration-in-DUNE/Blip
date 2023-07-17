@@ -24,6 +24,12 @@ class CallbackHandler:
         self.meta = meta
         if "device" in self.meta:
             self.device = self.meta['device']
+        else:
+            self.device = 'cpu'
+        if meta['verbose']:
+            self.logger = Logger(name, output="both", file_mode="w")
+        else:
+            self.logger = Logger(name, file_mode="w")
 
         if bool(config) and len(callbacks) != 0:
             self.logger.error(

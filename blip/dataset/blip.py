@@ -80,17 +80,25 @@ class BlipDataset(InMemoryDataset, GenericDataset):
 
     """
     def __init__(self, 
+        name:   str="",
         config: dict=blip_dataset_config,
+        meta:   dict={}
     ):
+        self.name = name + '_dataset'
         self.config = config
-        # setup name and logger for this dataset
-        self.name = config["name"]
-        self.logger = Logger(self.name, output="both", file_mode='w')
-        self.logger.info(f"constructing dataset.")
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
+        else:
+            self.device = 'cpu'
+        if meta['verbose']:
+            self.logger = Logger(name, output="both", file_mode="w")
+        else:
+            self.logger = Logger(name, file_mode="w")
+        self.logger.info(f"constructing blip dataset.")
 
         self.number_of_events = 0
         self.root = self.config["root"]
-        self.device = self.config["device"]
         self.skip_processing = self.config["skip_processing"]
         if self.skip_processing:
             if os.path.isdir('processed/'):
@@ -308,13 +316,13 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         self.logger.info(f"setting 'dataset_type: {self.dataset_type}.")
 
         # default to what's in the configuration file. May decide to deprecate in the future
-        if ( "dataset_folder" in self.config.keys() ) :
+        if ("dataset_folder" in self.config.keys()) :
             self.dataset_folder = self.config["dataset_folder"]
             self.logger.info(
                     f"Set dataset path from Configuration." +
                     f" dataset_folder: {self.dataset_folder}"
                     )
-        elif ( 'BLIP_DATASET_PATH' in os.environ ):
+        elif ('BLIP_DATASET_PATH' in os.environ):
             self.logger.debug(f'Found BLIP_DATASET_PATH in environment')
             self.dataset_folder = os.environ['BLIP_DATASET_PATH']
             self.logger.info(

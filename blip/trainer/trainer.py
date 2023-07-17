@@ -43,6 +43,12 @@ class Trainer:
         self.meta = meta
         if "device" in self.meta:
             self.device = self.meta['device']
+        else:
+            self.device = 'cpu'
+        if meta['verbose']:
+            self.logger = Logger(self.name, output="both", file_mode="w")
+        else:
+            self.logger = Logger(self.name, file_mode="w")
         # Check for compatability with parameters
 
         # define directories

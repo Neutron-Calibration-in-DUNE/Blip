@@ -5,6 +5,7 @@ module:
   module_mode:  []
   gpu:          True
   gpu_device:   0
+  verbose:      False
 
 dataset:
   # ---- Arrakis ----
@@ -20,6 +21,7 @@ dataset:
   dataset_type:   ""
   dataset_folder: ""
   dataset_files:  []
+  normalized:     False
   root:           "."
   skip_processing:  False
   transform:        null

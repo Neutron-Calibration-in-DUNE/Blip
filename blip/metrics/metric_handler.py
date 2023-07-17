@@ -25,6 +25,12 @@ class MetricHandler:
         self.meta = meta
         if "device" in self.meta:
             self.device = self.meta['device']
+        else:
+            self.device = 'cpu'
+        if meta['verbose']:
+            self.logger = Logger(name, output="both", file_mode="w")
+        else:
+            self.logger = Logger(name, file_mode="w")
         self.labels = labels
         
 
