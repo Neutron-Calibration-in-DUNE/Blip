@@ -64,40 +64,6 @@ def run():
         meta["verbose"] = config["module"]["verbose"]
     else:
         meta["verbose"] = False
-
-    # Check for module type and module mode.
-    if "module_type" not in config["module"].keys():
-        logger.error(f'"module:module_type" not specified in config!')
-    if not isinstance(config["module"]["module_type"], str) and not isinstance(config["module"]["module_type"], list):
-        logger.error(f'"module:module_type" must be either a list or a str, but got {type(config["module"]["module_type"])}!')
-    if isinstance(config["module"]["module_type"], str):
-        config["module"]["module_type"] = [config["module"]["module_type"]]
-    module_type = config["module"]["module_type"]
-    for ii, module in enumerate(module_type):
-        if not isinstance(module, str):
-            logger.error(f'"module:module_type" "{module}" at index {ii} is not of type str!')
-        if module not in module_types.keys():
-            logger.error(f'"module:module_type" {module} at index {ii} is not an allowed type!')
-    logger.info(f'module:module_type set to "{module_type}"')
-    
-    # next we check the module_mode associated to each type.
-    if "module_mode" not in config["module"].keys():
-        logger.error(f'"module:module_mode" not specified in config!')
-    if not isinstance(config["module"]["module_mode"], str) and not isinstance(config["module"]["module_mode"], list):
-        logger.error(f'"module:module_mode" must be either a list or a string!')
-    if isinstance(config["module"]["module_mode"], str):
-        config["module"]["module_mode"] = [config["module"]["module_mode"]]
-    module_mode = config["module"]["module_mode"]
-    for ii, module in enumerate(module_mode):
-        if not isinstance(module, str):
-            logger.error(f'"module:module_mode" "{module}" at index {ii} is not of mode str!')
-        if module not in module_types[module_type[ii]]:
-            logger.error(f'"module:module_mode" {module} at index {ii} is not an allowed mode for type {module_type[ii]}!')
-    logger.info(f'module:module_mode set to "{module_mode}"')
-    
-    if len(module_type) != len(module_mode):
-        logger.error(f'module:module_type and module:module_mode must have the same number of entries!')
-
     
     # Eventually we will want to check that the order of the modules makes sense,
     # and that the data products are compatible and available for the different modes.
