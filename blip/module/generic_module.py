@@ -23,11 +23,13 @@ class GenericModule(nn.Module):
     def __init__(self,
         name:   str,
         config: dict=generic_config,
+        mode:   str='',
         meta:   dict={}
     ):
         super(GenericModule, self).__init__()
         self.name = name
         self.config = config
+        self.mode = mode
         self.meta = meta
         if "device" in self.meta:
             self.device = self.meta['device']

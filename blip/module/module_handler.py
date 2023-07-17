@@ -7,6 +7,7 @@ import inspect
 from tqdm import tqdm
 from blip.utils.logger import Logger
 from blip.module import GenericModule
+from blip.module.common import *
 from blip.utils.utils import get_method_arguments
 
 class ModuleHandler:
@@ -83,48 +84,42 @@ class ModuleHandler:
         # list of available 
         self.collect_modules()
         # check config
-        if "custom_module_file" in self.config.keys():
-            if os.path.isfile(self.config["custom_module_file"]):
+        if "custom_module_file" in self.config["module"].keys():
+            if os.path.isfile(self.config["module"]["custom_module_file"]):
                 try:
-                    self.load_module(self.config["custom_module_file"])
-                    self.logger.info(f'added custom module from file {self.config["custom_module_file"]}.')
+                    self.load_module(self.config["module"]["custom_module_file"])
+                    self.logger.info(f'added custom module from file {self.config["module"]["custom_module_file"]}.')
                 except:
                     self.logger.error(
-                        f'loading classes from file {self.config["custom_module_file"]} failed!'
+                        f'loading classes from file {self.config["module"]["custom_module_file"]} failed!'
                     )
             else:
-                self.logger.error(f'custom_module_file {self.config["custom_module_file"]} not found!')
-        if "module_type" not in self.config.keys():
-            self.logger.warn(f'module_type not specified in config! Setting to "single"!')
-            self.module_type = 'single'
+                self.logger.error(f'custom_module_file {self.config["module"]["custom_module_file"]} not found!')
+        if "module_type" not in self.config["module"].keys():
+            self.logger.error(f'module_type not specified in config!')
+        if "module_mode" not in self.config["module"].keys():
+            self.logger.error(f'module_mode not specified in config!')
+        self.module_type = self.config["module"]["module_type"]
+        self.module_mode = self.config["module"]["module_mode"]
+        
         # process modules
-        for item in self.config.keys():
-            if item == "custom_module_file" or item == "load_module":
-                continue
-            if item == "module_type":
-                self.module_type = self.config[item]
-                continue
+        for ii, item in enumerate(self.module_type):
+            if item in module_aliases.keys():
+                self.logger.info(f"converting module alias '{item}' to '{module_aliases[item]}'")
+                self.module_type[ii] = module_aliases[item]
             # check that module exists
-            if item not in self.available_modules.keys():
+            if self.module_type[ii] not in self.available_modules.keys():
                 self.logger.error(
                     f"specified module '{item}' is not an available type! " + 
                     f"Available types:\n{self.available_modules.keys()}"
                 )
         self.modules = {}
-        self.batch_module = {}
-        for item in self.config.keys():
-            if item == "custom_module_file" or item == "load_module" or item == "module_type":
-                continue
+        for ii, item in enumerate(self.module_type):
             self.modules[item] = self.available_modules[item](
-                item, self.config[item], self.meta
+                item, self.config, self.module_mode[ii], self.meta
             )
             self.modules[item].parse_config()
             self.logger.info(f'added module "{item}" to ModuleHandler.')
-        if self.module_type == 'single':
-            if len(self.modules.keys()) > 1:
-                self.logger.error(f'module_type set to "single", but multiple modules have been registered!')
-            else:
-                self.module = list(self.modules.values())[0]
 
     def set_device(self,
         device
@@ -154,9 +149,9 @@ class ModuleHandler:
         module_loop = tqdm(
             enumerate(self.modules, 0), 
             total=len(self.modules), 
-            leave=True,
-            colour='purple'
+            leave=False,
+            colour='white'
         )
         for ii, module in module_loop:
-            module_loop.set_description(f"Running module: {module.name} [{ii+1}/{len(ii)}]")
-            module.run_module()
+            module_loop.set_description(f"Running module: {self.modules[module].name} [{ii+1}/{len(self.modules)}]")
+            self.modules[module].run_module()

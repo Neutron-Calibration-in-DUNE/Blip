@@ -31,8 +31,9 @@ setup(
     install_reqs = [],
 
     # packages
+    # package_dir={'':'blip'},
     packages=find_packages(
-        #where='pointnet',
+        # 'blip',
         exclude=['tests'],
     ),
     include_package_data=True,
@@ -50,6 +51,8 @@ setup(
 
     # possible entry point
     entry_points={
-        'console_scripts': [],
+        'console_scripts': [
+            'blip = blip.programs.run_blip:run'
+        ],
     },
 )

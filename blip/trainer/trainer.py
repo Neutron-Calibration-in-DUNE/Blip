@@ -34,7 +34,6 @@ class Trainer:
         metrics:    MetricHandler=None,
         callbacks:  CallbackHandler=None,
         meta:   dict={},
-        gpu:    bool=False,
         seed:   int=0,
     ): 
         self.name = model.name + "_trainer"
@@ -76,7 +75,7 @@ class Trainer:
             os.makedirs(self.memory_dir)
 
         # check for devices
-        self.gpu = gpu
+        self.gpu = self.meta['gpu']
         self.seed = seed
         
         # assign objects
@@ -115,8 +114,16 @@ class Trainer:
         )
         self.callbacks.add_callback(self.memory_callback)
 
+        # run consistency check
+        self.logger.info(f"running consistency check...")
+        self.shapes = self.model_checker.run_consistency_check(
+            dataset_loader=self.meta['loader'],
+            model=self.model,
+            criterion=self.criterion,
+            metrics=self.metrics
+        )
+
     def train(self,
-        dataset_loader,             # dataset_loader to pass in
         epochs:     int=100,        # number of epochs to train
         checkpoint: int=10,         # epochs inbetween weight saving
         progress_bar:   str='all',  # progress bar from tqdm
@@ -131,29 +138,21 @@ class Trainer:
             self.logger.error(f"device: '{self.device}' and model device: '{self.model.device}' are different!")
         if (self.criterion.device != self.device):
             self.logger.error(f"device: '{self.device}' and model device: '{self.criterion.device}' are different!")
-        # run consistency check
-        self.logger.info(f"running consistency check...")
-        self.shapes = self.model_checker.run_consistency_check(
-            dataset_loader=dataset_loader,
-            model=self.model,
-            criterion=self.criterion,
-            metrics=self.metrics
-        )
+        
         self.model.save_model(flag='init')
         # setting values in callbacks
         self.callbacks.set_device(self.device)
         self.callbacks.set_training_info(
             epochs,
-            dataset_loader.num_train_batches,
-            dataset_loader.num_validation_batches,
-            dataset_loader.num_test_batches
+            self.meta['loader'].num_train_batches,
+            self.meta['loader'].num_validation_batches,
+            self.meta['loader'].num_test_batches
         )
         # Training
-        self.logger.info(f"training dataset '{dataset_loader.dataset.name}' for {epochs} epochs.")
+        self.logger.info(f"training dataset '{self.meta['dataset'].name}' for {epochs} epochs.")
         if no_timing:
             # TODO: Need to fix this so that memory and timing callbacks aren't called.
             self.__train_no_timing(
-                dataset_loader,
                 epochs,
                 checkpoint,
                 progress_bar,
@@ -162,7 +161,6 @@ class Trainer:
             )
         else:
             self.__train_with_timing(
-                dataset_loader,
                 epochs,
                 checkpoint,
                 progress_bar,
@@ -171,7 +169,6 @@ class Trainer:
             )
 
     def __train_with_timing(self,
-        dataset_loader,             # dataset_loader to pass in
         epochs:     int=100,        # number of epochs to train
         checkpoint: int=10,         # epochs inbetween weight saving
         progress_bar:   str='all',  # progress bar from tqdm
@@ -195,13 +192,13 @@ class Trainer:
             """
             if (progress_bar == 'all' or progress_bar == 'train'):
                 training_loop = tqdm(
-                    enumerate(dataset_loader.train_loader, 0), 
-                    total=len(dataset_loader.train_loader), 
+                    enumerate(self.meta['loader'].train_loader, 0), 
+                    total=len(self.meta['loader'].train_loader), 
                     leave=rewrite_bar,
                     colour='green'
                 )
             else:
-                training_loop = enumerate(dataset_loader.train_loader, 0)
+                training_loop = enumerate(self.meta['loader'].train_loader, 0)
 
             # make sure to set model to train() during training!
             self.model.train()
@@ -289,13 +286,13 @@ class Trainer:
                 if self.metrics != None:
                     if (progress_bar == 'all' or progress_bar == 'train'):
                         metrics_training_loop = tqdm(
-                            enumerate(dataset_loader.train_loader, 0), 
-                            total=len(dataset_loader.train_loader), 
+                            enumerate(self.meta['loader'].train_loader, 0), 
+                            total=len(self.meta['loader'].train_loader), 
                             leave=rewrite_bar,
                             colour='green'
                         )
                     else:
-                        metrics_training_loop = enumerate(dataset_loader.train_loader, 0)
+                        metrics_training_loop = enumerate(self.meta['loader'].train_loader, 0)
                     self.metrics.reset_batch()
                     for ii, data in metrics_training_loop:
                         # update metrics
@@ -321,13 +318,13 @@ class Trainer:
             """
             if (progress_bar == 'all' or progress_bar == 'validation'):
                 validation_loop = tqdm(
-                    enumerate(dataset_loader.validation_loader, 0), 
-                    total=len(dataset_loader.validation_loader), 
+                    enumerate(self.meta['loader'].validation_loader, 0), 
+                    total=len(self.meta['loader'].validation_loader), 
                     leave=rewrite_bar,
                     colour='blue'
                 )
             else:
-                validation_loop = enumerate(dataset_loader.validation_loader, 0)
+                validation_loop = enumerate(self.meta['loader'].validation_loader, 0)
             # make sure to set model to eval() during validation!
             self.model.eval()
             with torch.no_grad():
@@ -376,13 +373,13 @@ class Trainer:
                 if self.metrics != None:
                     if (progress_bar == 'all' or progress_bar == 'validation'):
                         metrics_validation_loop = tqdm(
-                            enumerate(dataset_loader.validation_loader, 0), 
-                            total=len(dataset_loader.validation_loader), 
+                            enumerate(self.meta['loader'].validation_loader, 0), 
+                            total=len(self.meta['loader'].validation_loader), 
                             leave=rewrite_bar,
                             colour='blue'
                         )
                     else:
-                        metrics_validation_loop = enumerate(dataset_loader.validation_loader, 0)
+                        metrics_validation_loop = enumerate(self.meta['loader'].validation_loader, 0)
                     self.metrics.reset_batch()
                     for ii, data in metrics_validation_loop:
                         # update metrics
@@ -424,13 +421,13 @@ class Trainer:
         """
         if (progress_bar == 'all' or progress_bar == 'test'):
             test_loop = tqdm(
-                enumerate(dataset_loader.test_loader, 0), 
-                total=len(dataset_loader.test_loader), 
+                enumerate(self.meta['loader'].test_loader, 0), 
+                total=len(self.meta['loader'].test_loader), 
                 leave=rewrite_bar,
                 colour='red'
             )
         else:
-            test_loop = enumerate(dataset_loader.test_loader, 0)
+            test_loop = enumerate(self.meta['loader'].test_loader, 0)
         # make sure to set model to eval() during validation!
         self.model.eval()
         if self.metrics != None:
@@ -449,7 +446,7 @@ class Trainer:
 
                 # update progress bar
                 if (progress_bar == 'all' or progress_bar == 'test'):
-                    test_loop.set_description(f"Testing: Batch [{ii+1}/{dataset_loader.num_test_batches}]")
+                    test_loop.set_description(f"Testing: Batch [{ii+1}/{self.meta['loader'].num_test_batches}]")
                     test_loop.set_postfix_str(f"loss={loss.item():.2e}")
 
             # evaluate callbacks
@@ -462,13 +459,11 @@ class Trainer:
         if save_predictions:
             self.logger.info(f"Running inference to save predictions.")
             self.inference(
-                dataset_loader,
                 dataset_type='all',
                 save_predictions=True,
             )
     
     def __train_no_timing(self,
-        dataset_loader,             # dataset_loader to pass in
         epochs:     int=100,        # number of epochs to train
         checkpoint: int=10,         # epochs inbetween weight saving
         progress_bar:   str='all',  # progress bar from tqdm
@@ -482,13 +477,13 @@ class Trainer:
         for epoch in range(epochs):
             if (progress_bar == 'all' or progress_bar == 'train'):
                 training_loop = tqdm(
-                    enumerate(dataset_loader.train_loader, 0), 
-                    total=len(dataset_loader.train_loader), 
+                    enumerate(self.meta['loader'].train_loader, 0), 
+                    total=len(self.meta['loader'].train_loader), 
                     leave=rewrite_bar,
                     colour='green'
                 )
             else:
-                training_loop = enumerate(dataset_loader.train_loader, 0)
+                training_loop = enumerate(self.meta['loader'].train_loader, 0)
             self.model.train()
             for ii, data in training_loop:
                 for param in self.model.parameters():
@@ -503,13 +498,13 @@ class Trainer:
             if self.metrics != None:
                 if (progress_bar == 'all' or progress_bar == 'train'):
                     metrics_training_loop = tqdm(
-                        enumerate(dataset_loader.train_loader, 0), 
-                        total=len(dataset_loader.train_loader), 
+                        enumerate(self.meta['loader'].train_loader, 0), 
+                        total=len(self.meta['loader'].train_loader), 
                         leave=rewrite_bar,
                         colour='green'
                     )
                 else:
-                    metrics_training_loop = enumerate(dataset_loader.train_loader, 0)
+                    metrics_training_loop = enumerate(self.meta['loader'].train_loader, 0)
                 self.metrics.reset_batch()
                 for ii, data in metrics_training_loop:
                     outputs = self.model(data)
@@ -519,13 +514,13 @@ class Trainer:
             self.callbacks.evaluate_epoch(train_type='training')
             if (progress_bar == 'all' or progress_bar == 'validation'):
                 validation_loop = tqdm(
-                    enumerate(dataset_loader.validation_loader, 0), 
-                    total=len(dataset_loader.validation_loader), 
+                    enumerate(self.meta['loader'].validation_loader, 0), 
+                    total=len(self.meta['loader'].validation_loader), 
                     leave=rewrite_bar,
                     colour='blue'
                 )
             else:
-                validation_loop = enumerate(dataset_loader.validation_loader, 0)
+                validation_loop = enumerate(self.meta['loader'].validation_loader, 0)
             self.model.eval()
             with torch.no_grad():
                 for ii, data in validation_loop:
@@ -537,13 +532,13 @@ class Trainer:
                 if self.metrics != None:
                     if (progress_bar == 'all' or progress_bar == 'validation'):
                         metrics_validation_loop = tqdm(
-                            enumerate(dataset_loader.validation_loader, 0), 
-                            total=len(dataset_loader.validation_loader), 
+                            enumerate(self.meta['loader'].validation_loader, 0), 
+                            total=len(self.meta['loader'].validation_loader), 
                             leave=rewrite_bar,
                             colour='blue'
                         )
                     else:
-                        metrics_validation_loop = enumerate(dataset_loader.validation_loader, 0)
+                        metrics_validation_loop = enumerate(self.meta['loader'].validation_loader, 0)
                     self.metrics.reset_batch()
                     for ii, data in metrics_validation_loop:
                         outputs = self.model(data)
@@ -562,13 +557,13 @@ class Trainer:
         self.logger.info(f"training finished.")
         if (progress_bar == 'all' or progress_bar == 'test'):
             test_loop = tqdm(
-                enumerate(dataset_loader.test_loader, 0), 
-                total=len(dataset_loader.test_loader), 
+                enumerate(self.meta['loader'].test_loader, 0), 
+                total=len(self.meta['loader'].test_loader), 
                 leave=rewrite_bar,
                 colour='red'
             )
         else:
-            test_loop = enumerate(dataset_loader.test_loader, 0)
+            test_loop = enumerate(self.meta['loader'].test_loader, 0)
         self.model.eval()
         with torch.no_grad():
             for ii, data in test_loop:
@@ -578,7 +573,7 @@ class Trainer:
                     self.metrics.reset_batch()
                     self.metrics.update(outputs, data, train_type="test")
                 if (progress_bar == 'all' or progress_bar == 'test'):
-                    test_loop.set_description(f"Testing: Batch [{ii+1}/{dataset_loader.num_test_batches}]")
+                    test_loop.set_description(f"Testing: Batch [{ii+1}/{self.meta['loader'].num_test_batches}]")
                     test_loop.set_postfix_str(f"loss={loss.item():.2e}")
             self.callbacks.evaluate_epoch(train_type='test')
         self.callbacks.evaluate_testing()
@@ -586,13 +581,12 @@ class Trainer:
         if save_predictions:
             self.logger.info(f"Running inference to save predictions.")
             self.inference(
-                dataset_loader,
+                self.meta['loader'],
                 dataset_type='all',
                 save_predictions=True,
             )
 
     def inference(self,
-        dataset_loader,             # dataset_loader to pass in
         dataset_type:   str='all',  # which dataset to use for inference
         save_predictions:bool=True, # wether to save the predictions
         progress_bar:   bool=True,  # progress bar from tqdm
@@ -611,21 +605,21 @@ class Trainer:
 
         # determine loader
         if dataset_type == 'train':
-            inference_loader = dataset_loader.train_loader
-            num_batches = dataset_loader.num_training_batches
-            inference_indices = dataset_loader.train_indices
+            inference_loader = self.meta['loader'].train_loader
+            num_batches = self.meta['loader'].num_training_batches
+            inference_indices = self.meta['loader'].train_indices
         elif dataset_type == 'validation':
-            inference_loader = dataset_loader.validation_loader
-            num_batches = dataset_loader.num_validation_batches
-            inference_indices = dataset_loader.validation_indices
+            inference_loader = self.meta['loader'].validation_loader
+            num_batches = self.meta['loader'].num_validation_batches
+            inference_indices = self.meta['loader'].validation_indices
         elif dataset_type == 'test':
-            inference_loader = dataset_loader.test_loader
-            num_batches = dataset_loader.num_test_batches
-            inference_indices = dataset_loader.test_indices
+            inference_loader = self.meta['loader'].test_loader
+            num_batches = self.meta['loader'].num_test_batches
+            inference_indices = self.meta['loader'].test_indices
         else:
-            inference_loader = dataset_loader.all_loader
-            num_batches = dataset_loader.num_all_batches
-            inference_indices = dataset_loader.all_indices
+            inference_loader = self.meta['loader'].all_loader
+            num_batches = self.meta['loader'].num_all_batches
+            inference_indices = self.meta['loader'].all_indices
 
         """
         Set up progress bar.
@@ -646,7 +640,7 @@ class Trainer:
             for classes in self.shapes["output"].keys()
         }
 
-        self.logger.info(f"running inference on dataset '{dataset_loader.dataset.name}'.")
+        self.logger.info(f"running inference on dataset '{self.meta['dataset'].name}'.")
         # make sure to set model to eval() during validation!
         self.model.eval()
         with torch.no_grad():
@@ -673,7 +667,7 @@ class Trainer:
             predictions[key] = np.vstack(np.array(predictions[key], dtype=object))
         # save predictions if wanted
         if save_predictions:
-            dataset_loader.dataset.append_dataset_files(
+            self.meta['dataset'].append_dataset_files(
                 self.model.name + "_predictions",
                 predictions,
                 inference_indices

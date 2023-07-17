@@ -1,8 +1,8 @@
 # Test config file for Blip
 module:
   module_name:  'blank_config'
-  module_type:  []
-  module_mode:  []
+  module_type:  ['ml']
+  module_mode:  ['training']
   gpu:          True
   gpu_device:   0
   verbose:      False
@@ -14,6 +14,7 @@ dataset:
   # in .npz or .hdf5 files.
   # If this is the first time processing the simulation output
   process_simulation: False
+  simulation_type:    'LArSoft'
   simulation_folder:  ""
   simulation_files:   []
 
@@ -86,8 +87,6 @@ training:
   rewrite_bar:      False # wether to leave bars after each epoch
   save_predictions: True  # wether to save network outputs in original file
   no_timing:    False     # wether to keep timing/memory info in callback
-  gpu:          True
-  gpu_device:   0
   seed:         0
 
 model:

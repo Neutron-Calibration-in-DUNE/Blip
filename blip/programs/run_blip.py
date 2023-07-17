@@ -21,7 +21,8 @@ from blip.utils.loader import Loader
 from blip.module import ModuleHandler
 from blip.module.common import module_types
 
-if __name__ == "__main__":
+
+def run():
     """
     BLIP main program.
     """
@@ -55,7 +56,9 @@ if __name__ == "__main__":
     system_info = logger.get_system_info()
     for key, value in system_info.items():
         logger.info(f"system_info - {key}: {value}")
-    meta = {}
+    meta = {
+        'config_file':  args.config_file
+    }
     if "verbose" in config["module"]:
         if not isinstance(config["module"]["verbose"], bool):
             logger.error(f'"module:verbose" must be of type bool, but got {type(config["module"]["verbose"])}!')
@@ -76,7 +79,7 @@ if __name__ == "__main__":
             logger.error(f'"module:module_type" "{module}" at index {ii} is not of type str!')
         if module not in module_types.keys():
             logger.error(f'"module:module_type" {module} at index {ii} is not an allowed type!')
-    logger.info(f'module_type set to "{module_type}"')
+    logger.info(f'module:module_type set to "{module_type}"')
     
     # next we check the module_mode associated to each type.
     if "module_mode" not in config["module"].keys():
@@ -139,6 +142,7 @@ if __name__ == "__main__":
     else:
         logger.info(f"using cpu as device")
         meta['device'] = torch.device("cpu")
+    meta['gpu'] = gpu
     
     # Configure the dataset
     logger.info("configuring dataset.")
@@ -206,3 +210,6 @@ if __name__ == "__main__":
         meta=meta
     )
     module_handler.run_modules()
+
+if __name__ == "__main__":
+    run()

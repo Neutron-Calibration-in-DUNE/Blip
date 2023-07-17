@@ -41,11 +41,12 @@ class MachineLearningModule(GenericModule):
     def __init__(self,
         name:   str,
         config: dict={},
+        mode:   str='',
         meta:   dict={}
     ):
         self.name = name + "_ml_module"
         super(MachineLearningModule, self).__init__(
-            self.name, config, meta
+            self.name, config, mode, meta
         )
     
     def parse_config(self):
@@ -171,16 +172,12 @@ class MachineLearningModule(GenericModule):
             self.metrics,
             self.callbacks,
             meta=self.meta,
-            gpu=self.gpu,
             seed=training_config['seed']
         )
     
-    def run_module(self,
-        ml_mode
-    ):
-        if ml_mode == 'training':
+    def run_module(self):
+        if self.mode == 'training':
             self.trainer.train(
-                self.meta["loader"],
                 epochs=self.config['training']['epochs'],
                 checkpoint=self.config['training']['checkpoint'],
                 progress_bar=self.config['training']['progress_bar'],
@@ -188,15 +185,14 @@ class MachineLearningModule(GenericModule):
                 save_predictions=self.config['training']['save_predictions'],
                 no_timing=self.config['training']['no_timing']
             )
-        elif ml_mode == 'inference':
+        elif self.mode == 'inference':
             self.trainer.inference(
-                self.meta["loader"],
                 progress_bar=self.config['training']['progress_bar'],
                 rewrite_bar=self.config['training']['rewrite_bar']
             )
 
         # save model/data/config
         if 'run_name' in self.config['training'].keys():
-            save_model(self.config['training']['run_name'], self.config_file)
+            save_model(self.config['training']['run_name'], self.meta['config_file'])
         else:
-            save_model(self.name, self.config_file)
+            save_model(self.name, self.meta['config_file'])
