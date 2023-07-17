@@ -184,7 +184,7 @@ class Arrakis:
                     view_mask = (
                         (channel[event] >= tpc_view[0]) & 
                         (channel[event] < tpc_view[1]) & 
-                        (source_label[event] >= 0) &        # we don't want 'undefined' points in our dataset.
+                        #(source_label[event] >= 0) &        # we don't want 'undefined' points in our dataset.
                         (shape_label[event] >= 0) &         # i.e., things with a label == -1
                         (particle_label[event] >= 0)
                     )

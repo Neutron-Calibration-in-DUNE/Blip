@@ -101,6 +101,8 @@ class ModuleHandler:
             self.logger.error(f'module_mode not specified in config!')
         self.module_type = self.config["module"]["module_type"]
         self.module_mode = self.config["module"]["module_mode"]
+        if len(self.module_type) != len(self.module_mode):
+            self.logger.error(f'module:module_type and module:module_mode must have the same number of entries!')
         
         # process modules
         for ii, item in enumerate(self.module_type):
