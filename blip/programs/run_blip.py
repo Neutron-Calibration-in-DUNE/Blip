@@ -20,7 +20,7 @@ from blip.dataset.blip import BlipDataset
 from blip.utils.loader import Loader
 from blip.module import ModuleHandler
 from blip.module.common import module_types
-
+from blip.utils.event_display import BlipDisplay
 
 def run():
     """
