@@ -52,7 +52,8 @@ setup(
     # possible entry point
     entry_points={
         'console_scripts': [
-            'blip = blip.programs.run_blip:run'
+            'blip = blip.programs.run_blip:run',
+            'blip_display = blip.programs.run_blip_server:run'
         ],
     },
 )
