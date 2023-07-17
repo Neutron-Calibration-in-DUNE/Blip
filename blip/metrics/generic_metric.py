@@ -37,7 +37,7 @@ class GenericMetric:
         outputs,
         data,
     ):
-        pass
+        self.logger.error(f'"update" not implemented in Metric!')
 
     def compute(self):
         return {

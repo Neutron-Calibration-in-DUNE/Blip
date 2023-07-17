@@ -1,24 +1,15 @@
 
 """
-Generic model code.
+Generic module code.
 """
-import torch
-import os
-import csv
-import getpass
-from torch import nn
-from time import time
-from datetime import datetime
-
 from blip.utils.logger import Logger
 
 generic_config = {
     "no_params":    "no_values"
 }
 
-class GenericModule(nn.Module):
+class GenericModule:
     """
-    Wrapper of torch nn.Module that generates a GenericModule
     """
     def __init__(self,
         name:   str,
@@ -26,7 +17,6 @@ class GenericModule(nn.Module):
         mode:   str='',
         meta:   dict={}
     ):
-        super(GenericModule, self).__init__()
         self.name = name
         self.config = config
         self.mode = mode

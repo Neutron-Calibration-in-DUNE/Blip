@@ -10,13 +10,6 @@ import torch.nn.functional as F
 from time import time
 from datetime import datetime
 
-from blip.utils.logger import Logger, default_logger
-from blip.utils.config import ConfigParser
-
-from blip.clusterer.clusterer import Clusterer
-from blip.dataset.arrakis import Arrakis
-from blip.dataset.blip import BlipDataset
-from blip.utils.loader import Loader
 from blip.models import ModelHandler
 from blip.module.common import *
 from blip.module.generic_module import GenericModule

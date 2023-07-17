@@ -27,4 +27,4 @@ class GenericLoss:
         outputs,
         data,
     ):
-        pass
+        self.logger.error(f'"loss" not implemented in Loss!')
