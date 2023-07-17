@@ -19,12 +19,19 @@ class ModelHandler:
         config:  dict={},
         models:  list=[],
         use_sample_weights: bool=False,
-        device: str='cpu'
+        meta:   dict={}
     ):
         self.name = name + "_model_handler"
         self.use_sample_weights = use_sample_weights
-        self.logger = Logger(self.name, output="both", file_mode="w")
-        self.device = device
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
+        else:
+            self.device = 'cpu'
+        if meta['verbose']:
+            self.logger = Logger(name, output="both", file_mode="w")
+        else:
+            self.logger = Logger(name, file_mode="w")
 
         self.model_type = None
         self.single_model_name = ''
@@ -109,30 +116,13 @@ class ModelHandler:
                     f"specified model '{item}' is not an available type! " + 
                     f"Available types:\n{self.available_models.keys()}"
                 )
-            # # check that arguments are provided
-            # argdict = get_method_arguments(self.available_models[item])
-            # for value in self.config[item].keys():
-            #     if value not in argdict.keys():
-            #         self.logger.error(
-            #             f"specified model value '{item}:{value}' " + 
-            #             f"not a constructor parameter for '{item}'! " + 
-            #             f"Constructor parameters:\n{argdict}"
-            #         )
-            # for value in argdict.keys():
-            #     if argdict[value] == None:
-            #         if value not in self.config[item].keys():
-            #             self.logger.error(
-            #                 f"required input parameters '{item}:{value}' "+
-            #                 f"not specified! Constructor parameters:\n{argdict}"
-            #             )
-            self.config[item]["device"] = self.device
         self.models = {}
         self.batch_model = {}
         for item in self.config.keys():
             if item == "custom_model_file" or item == "load_model" or item == "model_type":
                 continue
             self.models[item] = self.available_models[item](
-                item, self.config[item]
+                item, self.config[item], self.meta
             )
             self.logger.info(f'added model "{item}" to ModelHandler.')
         if self.model_type == 'single':

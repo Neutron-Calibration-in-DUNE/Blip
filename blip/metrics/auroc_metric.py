@@ -13,13 +13,13 @@ class AUROCMetric(GenericMetric):
         name:       str='auroc_metric',
         inputs:     list=['classifications'],
         when_to_compute:    str='all',
-        device:         str='cpu',
         num_classes:    int=[2],
+        meta:   dict={}
     ):
         """
         """
         super(AUROCMetric, self).__init__(
-            name, inputs, when_to_compute, device
+            name, inputs, when_to_compute, meta
         )
 
         self.num_classes = num_classes

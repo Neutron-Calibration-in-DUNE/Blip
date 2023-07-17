@@ -44,10 +44,10 @@ class PointNet(GenericModel):
     def __init__(self,
         name:   str='pointnet',
         config: dict=pointnet_config,
-        device: str='cpu'
+        meta:   dict={}
     ):
         super(PointNet, self).__init__(
-            name, config, device
+            name, config, meta
         )
         self.config = config
 
@@ -76,6 +76,12 @@ class PointNet(GenericModel):
                     ))
             elif augmentation == 'shear':
                 augmentations.append(T.RandomShear(self.config['augmentations'][augmentation]))
+            elif augmentation == "rotate":
+                for ii in range(len(self.config['augmentations'][augmentation]['degrees'])):
+                    augmentations.append(T.RandomRotate(
+                        self.config['augmentations'][augmentation]['degrees'][ii],
+                        self.config['augmentations'][augmentation]['axis'][ii]
+                    ))
         self.augmentations = T.Compose(augmentations)
         self.number_of_augmentations = self.config['number_of_augmentations']
         self.logger.info(f"Attempting to build {self.name} architecture using config: {self.config}")
@@ -100,6 +106,9 @@ class PointNet(GenericModel):
                 )
             _input_dimension = self.config['embedding_mlp_layers'][ii][-1]
             _num_embedding_outputs += _input_dimension
+
+        if self.config["add_summed_adc"]:
+            self.config['mlp_output_layers'][0] += 1
 
         # add linear layer Encoder head
         _reduction_dict[f'linear_layer'] = Linear(
@@ -132,18 +141,27 @@ class PointNet(GenericModel):
         if self.training:
             reductions, classifications = [], [[]]
             for kk in range(self.number_of_augmentations):
+                # Create augmentations
                 augmentations = self.augmentations(data).to(self.device)
                 pos, batch = augmentations.pos, augmentations.batch
+                if self.config["add_summed_adc"]:
+                    summed_adc = augmentations.summed_adc
+                # Pass through embedding dictionary
                 for ii, embedding in enumerate(self.embedding_dict.keys()):
                     pos = self.embedding_dict[embedding](pos, batch)
                     if ii == 0:
                         linear_input = pos
                     else:
                         linear_input = torch.cat([linear_input, pos], dim=1)
+                # Pass through reduction dictionary
                 linear_output = self.reduction_dict['linear_layer'](linear_input)
+                # Apply Max Pooling
                 linear_pool = global_max_pool(linear_output, batch)
+                if self.config["add_summed_adc"]:
+                    linear_pool = torch.cat([linear_pool, summed_adc.unsqueeze(1)], dim=1)
+                # Pass through classification dictionary
                 for jj, classification in enumerate(self.classification_dict.keys()):
-                    classifications[jj].append(self.softmax(self.classification_dict[classification](linear_pool)))
+                    classifications[jj].append(self.classification_dict[classification](linear_pool))
                 reductions.append(linear_pool)
             outputs = {
                 classification: torch.cat(classifications[jj])
@@ -153,16 +171,21 @@ class PointNet(GenericModel):
         else:
             pos = data.pos.to(self.device)
             batch = data.batch.to(self.device)
+            if self.config["add_summed_adc"]:
+                summed_adc = data.summed_adc.to(self.device)
             for ii, embedding in enumerate(self.embedding_dict.keys()):
                 pos = self.embedding_dict[embedding](pos, batch)
                 if ii == 0:
                     linear_input = pos
                 else:
                     linear_input = torch.cat([linear_input, pos], dim=1)
+            # Pass through reduction dictionary
             linear_output = self.reduction_dict['linear_layer'](linear_input)
             linear_pool = global_max_pool(linear_output, batch)
+            if self.config["add_summed_adc"]:
+                linear_pool = torch.cat([linear_pool, summed_adc.unsqueeze(1)], dim=1)
             outputs = {
-                classifications: self.softmax(self.classification_dict[classifications](linear_pool))
+                classifications: self.classification_dict[classifications](linear_pool)
                 for classifications in self.classification_dict.keys()
             }
             outputs['reductions'] = linear_pool

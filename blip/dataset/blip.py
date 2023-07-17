@@ -80,17 +80,25 @@ class BlipDataset(InMemoryDataset, GenericDataset):
 
     """
     def __init__(self, 
+        name:   str="",
         config: dict=blip_dataset_config,
+        meta:   dict={}
     ):
+        self.name = name + '_dataset'
         self.config = config
-        # setup name and logger for this dataset
-        self.name = config["name"]
-        self.logger = Logger(self.name, output="both", file_mode='w')
-        self.logger.info(f"constructing dataset.")
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
+        else:
+            self.device = 'cpu'
+        if meta['verbose']:
+            self.logger = Logger(name, output="both", file_mode="w")
+        else:
+            self.logger = Logger(name, file_mode="w")
+        self.logger.info(f"constructing blip dataset.")
 
         self.number_of_events = 0
         self.root = self.config["root"]
-        self.device = self.config["device"]
         self.skip_processing = self.config["skip_processing"]
         if self.skip_processing:
             if os.path.isdir('processed/'):
@@ -308,13 +316,13 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         self.logger.info(f"setting 'dataset_type: {self.dataset_type}.")
 
         # default to what's in the configuration file. May decide to deprecate in the future
-        if ( "dataset_folder" in self.config.keys() ) :
+        if ("dataset_folder" in self.config.keys()) :
             self.dataset_folder = self.config["dataset_folder"]
             self.logger.info(
                     f"Set dataset path from Configuration." +
                     f" dataset_folder: {self.dataset_folder}"
                     )
-        elif ( 'BLIP_DATASET_PATH' in os.environ ):
+        elif ('BLIP_DATASET_PATH' in os.environ):
             self.logger.debug(f'Found BLIP_DATASET_PATH in environment')
             self.dataset_folder = os.environ['BLIP_DATASET_PATH']
             self.logger.info(
@@ -438,6 +446,10 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         self.dbscan_min_samples = self.config["dbscan_min_samples"]
         self.dbscan_eps = self.config["dbscan_eps"]
         self.meta['clustering_positions'] = self.config["cluster_positions"]
+        if 'cluster_category_type' in self.config.keys():
+            self.meta['cluster_category_type'] = self.config['cluster_category_type']
+        else:
+            self.meta['cluster_category_type'] = 'segmentation'
         self.meta['cluster_position_indices'] = [
             self.meta['blip_positions_indices_by_name'][position] 
             for position in self.meta['clustering_positions']
@@ -610,6 +622,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         #     event_classes = classes[ii]
 
         # create clusters using DBSCAN
+        if np.sum(mask) == 0:
+            return
         cluster_labels = self.dbscan.fit(
             event_positions[:, self.meta['cluster_position_indices']]
         ).labels_
@@ -626,23 +640,32 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             if kk == -1:
                 continue
             cluster_mask = (cluster_labels == kk)
+            if np.sum(cluster_mask) == 0:
+                continue
             cluster_positions = event_positions[cluster_mask]
             cluster_features = event_features[cluster_mask]
             cluster_classes = event_classes[cluster_mask]
             cluster_clusters = event_clusters[cluster_mask]
+            if self.meta['cluster_category_type'] == 'classification':
+                cluster_classes = [
+                    np.bincount(cluster_classes[:, ll]).argmax()
+                    for ll in range(len(self.meta['blip_classes_indices']))
+                ]
 
             # Normalize cluster
             min_positions = np.min(cluster_positions, axis=0)
             max_positions = np.max(cluster_positions, axis=0)
             scale = max_positions - min_positions
             scale[(scale == 0)] = max_positions[(scale == 0)]
+            summed_adc = np.sum(cluster_positions[:,2])
             cluster_positions = 2 * (cluster_positions - min_positions) / scale - 1
-            
+
             event = Data(
                 pos=torch.tensor(cluster_positions).type(self.meta['position_type']),
                 x=torch.tensor(cluster_features).type(self.meta['feature_type']),
                 category=torch.tensor(cluster_classes).type(self.meta['class_type']),
                 clusters = torch.tensor(cluster_clusters).type(self.meta['cluster_type']),
+                summed_adc = torch.tensor(summed_adc).type(torch.float),
                 # Cluster ID is unique to clustering events
                 cluster_id=kk
             )

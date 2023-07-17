@@ -120,9 +120,9 @@ class UNet(GenericModel):
     def __init__(self,
         name:   str,
         config: dict=unet_config,
-        device: str='cpu'    # configuration parameters
+        meta:   dict={}    # configuration parameters
     ):
-        super(UNet, self).__init__(name, config, device)
+        super(UNet, self).__init__(name, config, meta)
         self.name = name
         self.logger = Logger(self.name, file_mode="w")
         self.config = config

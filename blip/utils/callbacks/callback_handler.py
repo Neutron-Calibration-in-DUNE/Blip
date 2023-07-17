@@ -17,11 +17,19 @@ class CallbackHandler:
         name:       str,
         config:     dict={},
         callbacks:  list=[],
-        device:     str='cpu'
+        meta:       dict={}
     ):
         self.name = name + "_callback_handler"
         self.logger = Logger(self.name, output="both", file_mode="w")
-        self.device = device
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
+        else:
+            self.device = 'cpu'
+        if meta['verbose']:
+            self.logger = Logger(name, output="both", file_mode="w")
+        else:
+            self.logger = Logger(name, file_mode="w")
 
         if bool(config) and len(callbacks) != 0:
             self.logger.error(
@@ -91,7 +99,6 @@ class CallbackHandler:
             if item == "custom_callback_file":
                 continue
             # check that callback function exists
-            self.config[item]["device"] = self.device
             if item not in self.available_callbacks.keys():
                 self.logger.error(
                     f"specified callback function '{item}' is not an available type! " + 
@@ -117,7 +124,7 @@ class CallbackHandler:
         for item in self.config.keys():
             if item == "custom_callback_file":
                 continue
-            self.callbacks[item] = self.available_callbacks[item](**self.config[item])
+            self.callbacks[item] = self.available_callbacks[item](**self.config[item], meta=self.meta)
             self.logger.info(f'added callback function "{item}" to CallbackHandler.')
 
     def set_device(self,

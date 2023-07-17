@@ -19,12 +19,19 @@ class ClusteringAlgorithmHandler:
         config:  dict={},
         clustering_algorithms:  list=[],
         use_sample_weights: bool=False,
-        device: str='cpu'
+        meta:   dict={}
     ):
         self.name = name + '_clustering_algorithm_handler'
         self.use_sample_weights = use_sample_weights
-        self.logger = Logger(self.name, output="both", file_mode="w")
-        self.device = device
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
+        else:
+            self.device = 'cpu'
+        if meta['verbose']:
+            self.logger = Logger(name, output="both", file_mode="w")
+        else:
+            self.logger = Logger(name, file_mode="w")
         self.clustering_algorithms = {}
 
         if bool(config) and len(clustering_algorithms) != 0:

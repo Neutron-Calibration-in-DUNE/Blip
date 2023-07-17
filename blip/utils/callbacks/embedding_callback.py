@@ -16,23 +16,23 @@ class EmbeddingCallback(GenericCallback):
     """
     """
     def __init__(self,
-        criterion_list: list=[],
-        metrics_list: list=[],
-        device: str='cpu'
+        criterion_handler: list=[],
+        metrics_handler: list=[],
+        meta:   dict={}
     ):  
         super(EmbeddingCallback, self).__init__(
-            criterion_list,
-            metrics_list, 
-            device
+            criterion_handler,
+            metrics_handler, 
+            meta
         )
-        self.metrics_list = metrics_list
+        self.metrics_handler = metrics_handler
         self.output_name = None
         self.target_name = None
         self.augmented_target_name = None
         self.input_name = None
 
-        if metrics_list != None:
-            for name, metric in self.metrics_list.metrics.items():
+        if metrics_handler != None:
+            for name, metric in self.metrics_handler.metrics.items():
                 if isinstance(metric, DataSaver):
                     if(metric.output == "reductions"):
                         self.output_name = name
@@ -63,14 +63,14 @@ class EmbeddingCallback(GenericCallback):
     ):  
         if train_type == 'training':
             if self.output_name != None:
-                self.training_output = self.metrics_list.metrics[self.output_name].batch_data
+                self.training_output = self.metrics_handler.metrics[self.output_name].batch_data
             if self.augmented_target_name != None:
-                self.training_target = self.metrics_list.metrics[self.augmented_target_name].batch_data  
+                self.training_target = self.metrics_handler.metrics[self.augmented_target_name].batch_data  
         else:
             if self.output_name != None:
-                self.validation_output = self.metrics_list.metrics[self.output_name].batch_data
+                self.validation_output = self.metrics_handler.metrics[self.output_name].batch_data
             if self.target_name != None:
-                self.validation_target = self.metrics_list.metrics[self.target_name].batch_data
+                self.validation_target = self.metrics_handler.metrics[self.target_name].batch_data
 
     def evaluate_training(self):
         # plot the latent distributions
@@ -103,7 +103,7 @@ class EmbeddingCallback(GenericCallback):
         pass
 
         # # evaluate metrics from training and validation
-        # if self.metrics_list == None:
+        # if self.metrics_handler == None:
         #     return
         # epoch_ticks = np.arange(1,self.epochs+1)
         # # training plot

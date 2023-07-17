@@ -24,7 +24,7 @@ class Clusterer:
         clustering_algorithms: ClusteringAlgorithmHandler=None,
         clustering_metrics: MetricHandler=None,
         clustering_callbacks: CallbackHandler=None,
-        device: str='cpu',
+        meta:   dict={},
         gpu: bool=False,
         seed: int=0,
     ):
@@ -33,6 +33,15 @@ class Clusterer:
         self.name = name + "_clusterer"
         self.logger = Logger(self.name, output='both', file_mode='w')
         self.logger.info("constructing clusterer.")
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
+        else:
+            self.device = 'cpu'
+        if meta['verbose']:
+            self.logger = Logger(name, output="both", file_mode="w")
+        else:
+            self.logger = Logger(name, file_mode="w")
         # Check for compatability with parameters
 
         # define directories
@@ -55,7 +64,6 @@ class Clusterer:
         self.clustering_metrics = clustering_metrics
 
         # check for devices
-        self.device = device
         self.gpu = gpu
         self.seed = seed
         

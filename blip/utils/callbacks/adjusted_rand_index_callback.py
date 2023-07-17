@@ -20,12 +20,12 @@ class AdjustedRandIndexCallback(GenericCallback):
     def __init__(self,
         criterion_list: list=[],
         metrics_list:   list=[],
-        device:         str='cpu'
+        meta:   dict={}
     ):  
         super(AdjustedRandIndexCallback, self).__init__(
             criterion_list,
             metrics_list, 
-            device
+            meta
         )
         self.metrics_list = metrics_list
         if "AdjustedRandIndexMetric" in self.metrics_list.metrics.keys():

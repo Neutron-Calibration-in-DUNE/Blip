@@ -19,12 +19,20 @@ class LossHandler:
         config:  dict={},
         losses:  list=[],
         use_sample_weights: bool=False,
-        device:  str='cpu'
+        meta:    dict={}
     ):
         self.name = name + '_loss_handler'
         self.use_sample_weights = use_sample_weights
-        self.logger = Logger(self.name, output="both", file_mode="w")
-        self.device = device
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
+        else:
+            self.device = 'cpu'
+        if meta['verbose']:
+            self.logger = Logger(name, output="both", file_mode="w")
+        else:
+            self.logger = Logger(name, file_mode="w")
+            
         self.losses = {}
         self.batch_loss = {}
 
@@ -121,13 +129,12 @@ class LossHandler:
                             f"required input parameters '{item}:{value}' "+
                             f"not specified! Constructor parameters:\n{argdict}"
                         )
-            self.config[item]["device"] = self.device
         self.losses = {}
         self.batch_loss = {}
         for item in self.config.keys():
             if item == "custom_loss_file":
                 continue
-            self.losses[item] = self.available_criterions[item](**self.config[item])
+            self.losses[item] = self.available_criterions[item](**self.config[item], meta=self.meta)
             self.batch_loss[item] = torch.empty(size=(0,1), dtype=torch.float, device=self.device)
             self.logger.info(f'added loss function "{item}" to LossHandler.')
 

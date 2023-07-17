@@ -23,7 +23,7 @@ class GenericModel(nn.Module):
     def __init__(self,
         name:   str,
         config: dict=generic_config,
-        device: str='cpu'
+        meta:   dict={}
     ):
         super(GenericModel, self).__init__()
         self.name = name
@@ -36,7 +36,9 @@ class GenericModel(nn.Module):
         self.input_shape = None
         self.output_shape = None
         # device for the model
-        self.device = device
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device'] 
         self.to(self.device)
 
     def set_device(self,
@@ -64,7 +66,7 @@ class GenericModel(nn.Module):
                     layer.register_forward_hook(self.forward_hook)
                     
     def forward(self, x):
-        pass
+        self.logger.error(f'"forward" not implemented in Model!')
     
     def save_model(self,
         flag:   str=''
@@ -117,13 +119,13 @@ class GenericModel(nn.Module):
         checkpoint_file:    str=''
     ):
         pass
+
     def load_model(self,
         model_file:   str=''
     ):
         self.logger.info(f"Attempting to load model checkpoint from file {model_file}.")
         try:
             checkpoint = torch.load(model_file)
-            print(checkpoint)
             self.config = checkpoint['model_config']
             self.construct_model()
             # register hooks

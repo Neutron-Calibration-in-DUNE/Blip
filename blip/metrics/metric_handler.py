@@ -18,11 +18,19 @@ class MetricHandler:
         config: dict={},
         metrics:list=[],
         labels: list=[],
-        device: str='cpu'
+        meta:   dict={}
     ):
         self.name = name + "_metric_handler"
         self.logger = Logger(self.name, output="both", file_mode="w")
-        self.device = device
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
+        else:
+            self.device = 'cpu'
+        if meta['verbose']:
+            self.logger = Logger(name, output="both", file_mode="w")
+        else:
+            self.logger = Logger(name, file_mode="w")
         self.labels = labels
         
 
@@ -116,12 +124,11 @@ class MetricHandler:
                             f"required input parameters '{item}:{value}' "+
                             f"not specified! Constructor parameters:\n{argdict}"
                         )
-            self.config[item]["device"] = self.device
         self.metrics = {}
         for item in self.config.keys():
             if item == "custom_metric_file":
                 continue
-            self.metrics[item] = self.available_metrics[item](**self.config[item])
+            self.metrics[item] = self.available_metrics[item](**self.config[item], meta=self.meta)
             self.logger.info(f'added metric function "{item}" to MetricHandler.')
 
     def set_device(self,

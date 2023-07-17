@@ -13,16 +13,25 @@ from blip.dataset.common import *
 
 class Arrakis:
     def __init__(self,
-        name:       str="arrakis",
-        config:     dict={}
+        name:   str="arrakis",
+        config: dict={},
+        meta:   dict={}
     ):
-        self.name = name + "_arrakis"
-        self.logger = Logger(self.name, output='both', file_mode='w')
-        self.logger.info("constructing arrakis dataset.")
+        self.name = name + '_dataset'
+        self.config = config
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
+        else:
+            self.device = 'cpu'
+        if meta['verbose']:
+            self.logger = Logger(name, output="both", file_mode="w")
+        else:
+            self.logger = Logger(name, file_mode="w")
+        self.logger.info(f"constructing arrakis dataset.")
 
         self.simulation_files = []
         self.output_folders = {}
-        self.config = config
         
         """
         ProtoDUNE channel mappings for different
@@ -202,7 +211,9 @@ class Arrakis:
 
                 adc_view_sum = np.array([sum(a) for a in adc_view])
                 adc_view_normalized = adc_view / adc_view_sum
-                
+
+                if len(channel_view.flatten()) == 0:
+                    continue
                 features = np.array([
                     np.vstack((channel_view[ii], tdc_view[ii], adc_view_normalized[ii])).T
                     for ii in range(len(channel_view))],
@@ -218,6 +229,8 @@ class Arrakis:
                     for ii in range(len(channel_view))],
                     dtype=object
                 )
+                hits = np.array([])
+                merge_tree = np.array([])
 
                 meta = {
                     "who_created":      getpass.getuser(),
@@ -268,6 +281,8 @@ class Arrakis:
                     features=features,
                     classes=classes,
                     clusters=clusters,
+                    hists=hits,
+                    merge_tree=merge_tree,
                     meta=meta
                 )
     

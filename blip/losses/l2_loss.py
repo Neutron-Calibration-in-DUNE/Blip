@@ -13,9 +13,9 @@ class L2Loss(GenericLoss):
         alpha: float=1.0,
         name:   str='l2_loss',
         reduction:  str='mean',
-        device:     str='cpu'
+        meta:   dict={}
     ):
-        super(L2Loss, self).__init__(name, device)
+        super(L2Loss, self).__init__(name, meta)
         self.alpha = alpha
         self.reduction = reduction
         self.l2_loss = nn.MSELoss(reduction=reduction)

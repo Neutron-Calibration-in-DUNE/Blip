@@ -158,9 +158,9 @@ class SparseUResNet(GenericModel):
     def __init__(self,
         name:   str='my_unet',      # name of the model
         config: dict=sparse_uresnet_params,
-        device: str='cpu'    # configuration parameters
+        meta:   dict={}# configuration parameters
     ):
-        super(SparseUResNet, self).__init__(name, config, device)
+        super(SparseUResNet, self).__init__(name, config, meta)
         self.name = name
         self.config = config
         # check config

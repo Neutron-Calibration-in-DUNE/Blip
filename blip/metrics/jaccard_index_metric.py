@@ -14,12 +14,12 @@ class JaccardIndexMetric(GenericMetric):
         shape:      tuple=(),
         input:      str='classifications',
         num_classes:    int=2,
-        device: str='cpu'
+        meta:   dict={}
     ):
         """
         """
         super(JaccardIndexMetric, self).__init__(
-            name, shape, input, device
+            name, shape, input, meta
         )
         self.num_classes = num_classes
         if self.num_classes == 2:

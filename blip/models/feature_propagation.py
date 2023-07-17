@@ -27,9 +27,9 @@ class FeaturePropagation(GenericModel):
     def __init__(self,
         name:   str='feature_propagation',
         config: dict=feature_propagation_config,
-        device: str='cpu'
+        meta:   dict={}
     ):
-        super(FeaturePropagation, self).__init__(name, config, device)
+        super(FeaturePropagation, self).__init__(name, config, meta)
         self.config = config
 
         # construct the model

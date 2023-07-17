@@ -13,9 +13,9 @@ class CrossEntropyLoss(GenericLoss):
         alpha: float=1.0,
         name:   str='cross_entropy_loss',
         reduction:  str='mean',
-        device:     str='cpu'
+        meta:   dict={}
     ):
-        super(CrossEntropyLoss, self).__init__(name, device)
+        super(CrossEntropyLoss, self).__init__(name, meta)
         self.alpha = alpha
         self.reduction = reduction
         self.cross_entropy_loss = nn.CrossEntropyLoss(reduction=self.reduction)

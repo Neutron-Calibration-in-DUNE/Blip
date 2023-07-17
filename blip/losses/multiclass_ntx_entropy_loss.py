@@ -15,9 +15,9 @@ class MultiClassNTXEntropyLoss(GenericLoss):
         name:   str='ntxent_loss',
         classes:    list=[], 
         temperature:  float=0.10,
-        device:     str='cpu'
+        meta:   dict={}
     ):
-        super(MultiClassNTXEntropyLoss, self).__init__(name, device)
+        super(MultiClassNTXEntropyLoss, self).__init__(name, meta)
         self.alpha = alpha
         self.temperature = temperature
         self.classes = classes

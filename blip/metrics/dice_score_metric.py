@@ -17,12 +17,12 @@ class DiceScoreMetric(GenericMetric):
         number_of_classes:  list=[],
         when_to_compute:    str="all",
         consolidate_classes:   dict=None,
-        device: str='cpu'
+        meta:   dict={}
     ):
         """
         """
         super(DiceScoreMetric, self).__init__(
-            name, shape, input, when_to_compute, device
+            name, shape, input, when_to_compute, meta
         )
         self.number_of_classes = number_of_classes
         self.inputs = inputs

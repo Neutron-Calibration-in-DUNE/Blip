@@ -19,21 +19,28 @@ class Loader:
     """
     """
     def __init__(self,
-        name,
-        dataset,
-        config: dict
+        name:   str="",
+        config: dict={},
+        meta:   dict={}
     ):
-        self.name = name + "_loader"
-        self.logger = Logger(self.name, output="both", file_mode='w')
-        self.logger.info(f"constructing dataset loader.")
-        if not issubclass(type(dataset), GenericDataset):
+        self.name = name + '_dataset'
+        self.config = config
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
+        else:
+            self.device = 'cpu'
+        if meta['verbose']:
+            self.logger = Logger(name, output="both", file_mode="w")
+        else:
+            self.logger = Logger(name, file_mode="w")
+        self.logger.info(f"constructing blip dataset.")
+
+        if not issubclass(type(self.meta['dataset']), GenericDataset):
             self.logger.error(
                 f'dataset if not of type "GenericDataset", ' + 
-                f'but rather "{type(dataset)}"!'
+                f'but rather {type(self.meta["dataset"])}!'
             )
-        
-        self.dataset = dataset
-        self.config = config
         self.process_config()   
 
     def set_config(self,
@@ -167,27 +174,27 @@ class Loader:
         self.logger.info(f"sparse:      {self.sparse}.")
 
         # determine if using sample weights
-        if self.dataset.use_sample_weights == True:
+        if self.meta['dataset'].use_sample_weights == True:
             self.use_sample_weights = True
         else:
             self.use_sample_weights = False
         self.logger.info(f"use_sample_weights: {self.use_sample_weights}.")
         
         # determine if using class weights
-        if self.dataset.use_class_weights == True:
+        if self.meta['dataset'].use_class_weights == True:
             self.use_class_weights = True
         else:
             self.use_class_weights = False
         self.logger.info(f"use_class_weights: {self.use_class_weights}.")
 
         # determine number of all batches
-        self.num_all_batches = len(self.dataset)
-        self.logger.info(f"number of total samples: {len(self.dataset)}.")
+        self.num_all_batches = len(self.meta['dataset'])
+        self.logger.info(f"number of total samples: {len(self.meta['dataset'])}.")
         self.logger.info(f"number of all batches: {self.num_all_batches}.")
 
         # determine number of training/testing samples
-        self.num_total_train = int(len(self.dataset) * (1 - self.test_split))
-        self.num_test  = int(len(self.dataset) - self.num_total_train)
+        self.num_total_train = int(len(self.meta['dataset']) * (1 - self.test_split))
+        self.num_test  = int(len(self.meta['dataset']) - self.num_total_train)
 
         # determine number of batches for testing
         self.num_test_batches = int(self.num_test/self.batch_size)
@@ -217,7 +224,7 @@ class Loader:
         # set up the training and testing sets
         if self.test_seed != -1:
             self.total_train, self.test = random_split(
-                dataset=self.dataset, 
+                dataset=self.meta['dataset'], 
                 lengths=[self.num_total_train, self.num_test],
                 generator=torch.Generator().manual_seed(self.test_seed)
             )
@@ -226,10 +233,10 @@ class Loader:
             self.logger.info(f"created train/test split with random seed: {self.test_seed}.")
         else:
             self.total_train_indices = range(self.num_total_train)
-            self.test_indices = range(self.num_total_train, len(self.dataset))
+            self.test_indices = range(self.num_total_train, len(self.meta['dataset']))
 
-            self.total_train = Subset(self.dataset, self.total_train_indices)
-            self.test = Subset(self.dataset, self.test_indices)
+            self.total_train = Subset(self.meta['dataset'], self.total_train_indices)
+            self.test = Subset(self.meta['dataset'], self.test_indices)
             self.logger.info(
                 f"created train/test split with first {self.num_total_train} samples " + 
                 f"for training and last {self.num_test} samples for testing."
@@ -257,7 +264,7 @@ class Loader:
                 f"created train/validation split with first {self.num_train} samples " + 
                 f"for training and last {self.num_validation} samples for validation."
             )
-        self.all_indices = range(len(self.dataset))
+        self.all_indices = range(len(self.meta['dataset']))
         
         # set up dataloaders for each set
         self.train_loader = DataLoader(
@@ -282,14 +289,14 @@ class Loader:
             collate_fn=self.collate_fn
         )
         self.all_loader = DataLoader(
-            self.dataset, 
+            self.meta['dataset'], 
             batch_size=1, 
             pin_memory=True,
             num_workers=self.num_workers,
             collate_fn=self.collate_fn
         )
         self.inference_loader = DataLoader(
-            self.dataset, 
+            self.meta['dataset'], 
             batch_size=1, 
             pin_memory=True,
             num_workers=self.num_workers,

@@ -10,12 +10,14 @@ class GenericMetric:
         name:       str='generic',
         inputs:     list=['reductions'],
         when_to_compute:   str='all',
-        device: str='cpu'
+        meta:   dict={}
     ):
         self.name = name
         self.inputs = inputs
         self.when_to_compute = when_to_compute
-        self.device = device
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
 
         self.metrics = {input: None for input in self.inputs}
 
@@ -35,7 +37,7 @@ class GenericMetric:
         outputs,
         data,
     ):
-        pass
+        self.logger.error(f'"update" not implemented in Metric!')
 
     def compute(self):
         return {

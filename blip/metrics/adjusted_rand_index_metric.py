@@ -12,13 +12,13 @@ class AdjustedRandIndexMetric(GenericMetric):
         name:       str='auroc_metric',
         inputs:     list=['classifications'],
         when_to_compute:    str='all',
-        device:     str='cpu',
         classes:    list=[2],
+        meta:   dict={}
     ):
         """
         """
         super(AdjustedRandIndexMetric, self).__init__(
-            name, inputs, when_to_compute, device
+            name, inputs, when_to_compute, meta
         )
         self.classes = classes
         self.batch_metric = {}
