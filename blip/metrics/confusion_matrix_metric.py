@@ -35,16 +35,16 @@ class ConfusionMatrixMetric(GenericMetric):
 
         for ii, input in enumerate(self.inputs):
             # setup confusion matrix with number of classes
-            self.num_classes.append(len(self.meta['dataset'].meta['blip_labels'][ii]))
+            self.num_classes.append(len(self.meta['dataset'].meta['blip_labels_values'][input]))
             self.metrics[input] = MulticlassConfusionMatrix(
-                num_classes=len(self.meta['dataset'].meta['blip_labels'][ii])
+                num_classes=len(self.meta['dataset'].meta['blip_labels_values'][input])
             )
             # set label names
             if self.meta['dataset'].meta['consolidate_classes'] is not None:
                 self.consolidate_classes = True
                 self.labels[input] = self.meta['dataset'].meta['consolidate_classes'][input]
             else:
-                self.labels[input] = self.meta['dataset'].meta['blip_labels'][ii]
+                self.labels[input] = self.meta['dataset'].meta['blip_labels_values'][input]
 
             if self.mode == "voxel":
                 self.batch_probabilities[input] = torch.empty(
