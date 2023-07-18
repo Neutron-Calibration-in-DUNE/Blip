@@ -47,7 +47,7 @@ class Trainer:
         if meta['verbose']:
             self.logger = Logger(self.name, output="both", file_mode="w")
         else:
-            self.logger = Logger(self.name, file_mode="w")
+            self.logger = Logger(self.name, level='warning', file_mode="w")
         # Check for compatability with parameters
 
         # define directories
@@ -670,7 +670,7 @@ class Trainer:
             self.meta['dataset'].append_dataset_files(
                 self.model.name + "_predictions",
                 predictions,
-                inference_indices
+                np.array(inference_indices, dtype=object)
             )
         self.callbacks.evaluate_inference()
         self.logger.info(f"returning predictions.")

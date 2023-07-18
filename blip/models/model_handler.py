@@ -31,7 +31,7 @@ class ModelHandler:
         if meta['verbose']:
             self.logger = Logger(name, output="both", file_mode="w")
         else:
-            self.logger = Logger(name, file_mode="w")
+            self.logger = Logger(name, level='warning', file_mode="w")
 
         self.model_type = None
         self.single_model_name = ''

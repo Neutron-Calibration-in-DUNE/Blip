@@ -27,7 +27,7 @@ class Arrakis:
         if meta['verbose']:
             self.logger = Logger(name, output="both", file_mode="w")
         else:
-            self.logger = Logger(name, file_mode="w")
+            self.logger = Logger(name, level='warning', file_mode="w")
         self.logger.info(f"constructing arrakis dataset.")
 
         self.simulation_files = []
