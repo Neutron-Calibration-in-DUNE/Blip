@@ -19,7 +19,7 @@ from blip.dataset.arrakis_nd import ArrakisND
 from blip.dataset.blip import BlipDataset
 from blip.utils.loader import Loader
 from blip.module import ModuleHandler
-from blip.module.common import module_types1
+from blip.module.common import module_types
 
 def run():
     """

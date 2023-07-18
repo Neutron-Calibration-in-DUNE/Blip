@@ -13,6 +13,10 @@ import os
 
 logging_level = {
     'debug':    logging.DEBUG,
+    'info':     logging.INFO,
+    'warning':  logging.WARNING,
+    'error':    logging.ERROR,
+    'critical': logging.CRITICAL
 }
 
 logging_output = [
@@ -107,7 +111,7 @@ class Logger:
             self.logger.addHandler(self.console)
         if self.output == 'file' or self.output == 'both':
             self.file = logging.FileHandler('.logs/'+self.output_file+'.log', mode='a')
-            self.file.setLevel(self.level)
+            self.file.setLevel(logging.DEBUG)
             self.file.setFormatter(self.file_formatter)
             self.logger.addHandler(self.file)
 
