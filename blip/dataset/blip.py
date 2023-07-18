@@ -208,9 +208,10 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         for ii, classes in enumerate(self.meta['blip_classes']):
             if classes not in self.meta['classes']:
                 self.logger.error(f'specified classes "{classes}" variable not in arrakis meta!')
-            for label in self.meta['blip_labels'][ii]:
-                if label not in self.meta['classes_labels_names'][classes]:
-                    self.logger.error(f'specified label "{classes}:{label}" not in arrakis meta!')
+            if len(self.meta['blip_labels']) != 0:
+                for label in self.meta['blip_labels'][ii]:
+                    if label not in self.meta['classes_labels_names'][classes]:
+                        self.logger.error(f'specified label "{classes}:{label}" not in arrakis meta!')
         for ii, clusters in enumerate(self.meta['blip_clusters']):
             if clusters not in self.meta['clusters']:
                 self.logger.error(f'specified clusters "{clusters}" variable not in arrakis meta!')
@@ -254,15 +255,16 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             self.meta['blip_labels_values_map'] = {}
             self.meta['blip_labels_values_inverse_map'] = {}
             for ii, classes in enumerate(self.meta['blip_classes']):
-                if len(self.meta['blip_labels'][ii]) == 0:
-                    self.meta['blip_labels_values'][classes] = [
-                        list(self.meta['classes_labels_values_by_name'][classes].values())
-                    ]
+                if len(self.meta['blip_labels']) == 0:
+                    self.meta['blip_labels_values'][classes] = list(self.meta['classes_labels_values_by_name'][classes].values())
                 else:
-                    self.meta['blip_labels_values'][classes] = [
-                        self.meta['classes_labels_values_by_name'][classes][key]
-                        for key in self.meta['blip_labels'][ii]
-                    ]
+                    if len(self.meta['blip_labels'][ii]) == 0:
+                        self.meta['blip_labels_values'][classes] = list(self.meta['classes_labels_values_by_name'][classes].values())
+                    else:
+                        self.meta['blip_labels_values'][classes] = [
+                            self.meta['classes_labels_values_by_name'][classes][key]
+                            for key in self.meta['blip_labels'][ii]
+                        ]
                 self.meta['blip_labels_values_map'][classes] = {
                     val: ii
                     for ii, val in enumerate(self.meta['blip_labels_values'][classes])
