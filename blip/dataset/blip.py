@@ -38,7 +38,7 @@ blip_dataset_config = {
     # clustering parameters
     "dbscan_min_samples":   10,
     "dbscan_eps":       10.0,
-    "cluster_class":    "shape",
+    "cluster_class":    "topology",
     "cluster_label":    "blip",
     "cluster_positions":    [],
     # transforms and filters
@@ -64,7 +64,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         edge_attr - a 'n_e x d_e' array of edge_features.
 
     We add an additional array of cluster labels which we call 'clusters', which has
-    a shape of 'n x d_cl', where 'd_cl' is the dimension (number of classes)
+    a topology of 'n x d_cl', where 'd_cl' is the dimension (number of classes)
     for clusters.
 
     The Arrakis datasets prepared in .npz format contain a 'features' array, which
@@ -134,11 +134,13 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             self.meta['features'] = temp_arrakis_meta[0]['features']
             self.meta['classes'] = temp_arrakis_meta[0]['classes']
             self.meta['clusters'] = temp_arrakis_meta[0]['clusters']
+            self.meta['hits'] = temp_arrakis_meta[0]['hits']
             self.meta['source_labels'] = temp_arrakis_meta[0]['source_labels']
-            self.meta['shape_labels'] = temp_arrakis_meta[0]['shape_labels']
+            self.meta['topology_labels'] = temp_arrakis_meta[0]['topology_labels']
             self.meta['particle_labels'] = temp_arrakis_meta[0]['particle_labels']
+            self.meta['physics_labels'] = temp_arrakis_meta[0]['physics_labels']
             self.meta['source_points'] = temp_arrakis_meta[0]['source_points']
-            self.meta['shape_points'] = temp_arrakis_meta[0]['shape_points']
+            self.meta['topology_points'] = temp_arrakis_meta[0]['topology_points']
             self.meta['particle_points'] = temp_arrakis_meta[0]['particle_points']
             self.meta['total_points'] = temp_arrakis_meta[0]['total_points']
             self.meta['adc_view_sum'] = [temp_arrakis_meta[0]['adc_view_sum']]
@@ -153,16 +155,18 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
             if self.meta['clusters'] != temp_arrakis_meta[ii+1]['clusters']:
                 self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
+            if self.meta['hits'] != temp_arrakis_meta[ii+1]['hits']:
+                self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
             if self.meta['source_labels'] != temp_arrakis_meta[ii+1]['source_labels']:
                 self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
-            if self.meta['shape_labels'] != temp_arrakis_meta[ii+1]['shape_labels']:
+            if self.meta['topology_labels'] != temp_arrakis_meta[ii+1]['topology_labels']:
                 self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
             if self.meta['particle_labels'] != temp_arrakis_meta[ii+1]['particle_labels']:
                 self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
             for key in self.meta['source_points'].keys():
                 self.meta['source_points'][key] += temp_arrakis_meta[ii+1]['source_points'][key]
-            for key in self.meta['shape_points'].keys():
-                self.meta['shape_points'][key] += temp_arrakis_meta[ii+1]['shape_points'][key]
+            for key in self.meta['topology_points'].keys():
+                self.meta['topology_points'][key] += temp_arrakis_meta[ii+1]['topology_points'][key]
             for key in self.meta['particle_points'].keys():
                 self.meta['particle_points'][key] += temp_arrakis_meta[ii+1]['particle_points'][key]
             self.meta['total_points'] += temp_arrakis_meta[ii+1]['total_points']
@@ -177,25 +181,32 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         self.meta['clusters_names'] = list(self.meta['clusters'].keys())
         self.meta['clusters_values'] = list(self.meta['clusters'].values())
         self.meta['clusters_names_by_value'] = {val: key for key, val in self.meta['clusters'].items()}
+        self.meta['hits_names'] = list(self.meta['hits'].keys())
+        self.meta['hits_values'] = list(self.meta['hits'].values())
+        self.meta['hits_names_by_value'] = {val: key for key, val in self.meta['hits'].items()}
         self.meta['classes_labels_names'] = {
             'source':   list(self.meta['source_labels'].values()),
-            'shape':    list(self.meta['shape_labels'].values()),
-            'particle': list(self.meta['particle_labels'].values())
+            'topology':    list(self.meta['topology_labels'].values()),
+            'particle': list(self.meta['particle_labels'].values()),
+            'physics': list(self.meta['physics_labels'].values())
         }
         self.meta['classes_labels_values'] = {
             'source':   list(self.meta['source_labels'].keys()),
-            'shape':    list(self.meta['shape_labels'].keys()),
-            'particle': list(self.meta['particle_labels'].keys())
+            'topology':    list(self.meta['topology_labels'].keys()),
+            'particle': list(self.meta['particle_labels'].keys()),
+            'physics': list(self.meta['physics_labels'].keys())
         }
         self.meta['classes_labels_names_by_value'] = {
             'source':   {key: val for key, val in self.meta['source_labels'].items()},
-            'shape':    {key: val for key, val in self.meta['shape_labels'].items()},
+            'topology':    {key: val for key, val in self.meta['topology_labels'].items()},
             'particle': {key: val for key, val in self.meta['particle_labels'].items()},
+            'physics': {key: val for key, val in self.meta['physics_labels'].items()}
         }
         self.meta['classes_labels_values_by_name'] = {
             'source':   {val: key for key, val in self.meta['source_labels'].items()},
-            'shape':    {val: key for key, val in self.meta['shape_labels'].items()},
+            'topology':    {val: key for key, val in self.meta['topology_labels'].items()},
             'particle': {val: key for key, val in self.meta['particle_labels'].items()},
+            'physics': {val: key for key, val in self.meta['physics_labels'].items()}
         }
 
         # Check that config variables match meta info
@@ -215,6 +226,9 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         for ii, clusters in enumerate(self.meta['blip_clusters']):
             if clusters not in self.meta['clusters']:
                 self.logger.error(f'specified clusters "{clusters}" variable not in arrakis meta!')
+        for ii, hits in enumerate(self.meta['blip_hits']):
+            if hits not in self.meta['hits']:
+                self.logger.error(f'specified hits "{hits}" variable not in arrakis meta!')
 
         # Set up maps for positions, features, etc.
         try:
@@ -247,6 +261,17 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             self.meta['blip_classes_indices_by_name'] = {
                 classes: ii
                 for ii, classes in enumerate(self.meta['blip_classes'])
+            }
+        except:
+            self.logger.error(f'failed to get classes indices from meta!')
+        try:    
+            self.meta['blip_hits_indices'] = [
+                self.meta["hits"][label]
+                for label in self.meta['blip_hits']
+            ]
+            self.meta['blip_hits_indices_by_name'] = {
+                hits: ii
+                for ii, hits in enumerate(self.meta['blip_hits'])
             }
         except:
             self.logger.error(f'failed to get classes indices from meta!')
@@ -314,6 +339,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         self.meta['feature_type'] = torch.float
         self.meta['class_type'] = torch.long
         self.meta['cluster_type'] = torch.long
+        self.meta['hit_type'] = torch.float
 
         self.logger.info(f"setting 'dataset_type: {self.dataset_type}.")
 
@@ -370,6 +396,12 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             self.logger.info(f"setting 'clusters':      {self.meta['blip_clusters']}")
         else:
             self.meta['blip_clusters'] = None
+
+        if "hits" in self.config:
+            self.meta['blip_hits'] = self.config["hits"]
+            self.logger.info(f"setting 'hits':      {self.meta['blip_hits']}")
+        else:
+            self.meta['blip_hits'] = None
 
         if "classes_mask" in self.config:
             self.meta['blip_classes_mask'] = self.config["classes_mask"]
@@ -499,7 +531,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         self.pre_filter = self.config["pre_filter"]
 
     def apply_event_masks(self,
-        event_features, event_classes, event_clusters
+        event_features, event_classes, event_clusters, event_hits
     ):
         mask = np.array([True for ii in range(len(event_features))])
         # Apply 'classes_mask' and 'labels_mask'
@@ -516,6 +548,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         event_features = event_features[mask]
         event_classes = event_classes[mask]
         event_clusters = event_clusters[mask]
+        event_hits = event_hits[mask]
 
         # Separate positions and features
         event_positions = event_features[:, self.meta['blip_position_indices']]
@@ -531,9 +564,10 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 event_classes[:, class_index][(event_classes[:, class_index] == key)] = val
         event_classes = event_classes[:, self.meta['blip_classes_indices']]
         event_clusters = event_clusters[:, self.meta['blip_clusters_indices']]
+        event_hits = event_hits[:, self.meta['blip_hits_indices']]
 
         # Grab indices of interest
-        return event_positions, event_features, event_classes, event_clusters, mask
+        return event_positions, event_features, event_classes, event_clusters, event_hits, mask
 
     def consolidate_class(self, 
         classes
@@ -589,21 +623,23 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             features = data['features']
             classes = data['classes']
             clusters = data['clusters']
+            hits = data['hits']
             # Iterate over all events in this file
             for ii in range(len(features)):
                 # gather event features and classes
                 event_features = features[ii]
                 event_classes = classes[ii]
                 event_clusters = clusters[ii]
+                event_hits = hits[ii]
                 if self.dataset_type == "cluster":
                     self.process_cluster(
                         event_features, event_classes, 
-                        event_clusters, raw_path
+                        event_clusters, event_hits, raw_path
                     )
                 elif self.dataset_type == "voxel":
                     self.process_voxel(
                         event_features, event_classes, 
-                        event_clusters, raw_path
+                        event_clusters, event_hits, raw_path
                     )
         self.number_of_events = self.index
         self.logger.info(f"processed {self.number_of_events} events.")
@@ -612,10 +648,11 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         event_features,
         event_classes,
         event_clusters,
+        event_hits,
         raw_path
     ):
-        event_positions, event_features, event_classes, event_clusters, mask = self.apply_event_masks(
-            event_features, event_classes, event_clusters
+        event_positions, event_features, event_classes, event_clusters, event_hits, mask = self.apply_event_masks(
+            event_features, event_classes, event_clusters, event_hits
         )
         # # check if classes need to be consolidated
         # if self.meta['consolidate_classes'] is not None:
@@ -689,9 +726,10 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         event_features,
         event_classes,
         event_clusters,
+        event_hits,
         raw_path
     ):
-        event_positions, event_features, event_classes, event_clusters, mask = self.apply_event_masks(
+        event_positions, event_features, event_classes, event_clusters, event_hits, mask = self.apply_event_masks(
             event_features, event_classes, event_clusters
         )
         self.meta['event_mask'][raw_path].append(mask)
@@ -705,7 +743,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             pos=torch.tensor(event_positions).type(self.meta['position_type']),
             x=torch.tensor(event_features).type(self.meta['feature_type']),
             category=torch.tensor(event_classes).type(self.meta['class_type']),
-            clusters=torch.tensor(event_clusters).type(self.meta['cluster_type'])
+            clusters=torch.tensor(event_clusters).type(self.meta['cluster_type']),
+            hits=torch.tensor(event_hits).type(self.meta['hit_type'])
         )
         if self.pre_filter is not None:
             event = self.pre_filter(event)

@@ -134,6 +134,8 @@ def run():
 
     # check for processing simulation files
     if "simulation_files" in dataset_config and dataset_config["process_simulation"]:
+        if 'simulation_type' not in dataset_config.keys():
+            logger.error(f'simulation_type not specified in dataset config!')
         if dataset_config["simulation_type"] == "LArSoft":
             arrakis_dataset = Arrakis(
                 name,

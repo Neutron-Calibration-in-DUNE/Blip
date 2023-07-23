@@ -13,6 +13,7 @@ dataset:
   # in .npz or .hdf5 files.
   # If this is the first time processing the simulation output
   process_simulation: False
+  simulation_type:    "LArSoft"
   simulation_folder:  ""
   simulation_files:   []
 
@@ -35,6 +36,7 @@ dataset:
   classes:        []
   labels:         []
   clusters:       []
+  hits:           []
   # ---- normalization ----
   # Normalization parameters for positions and features.  Typically we want to normalize
   # input features depending on the type of task, or to unbias certain simulation parameters,

@@ -140,8 +140,8 @@ class Arrakis:
         """
         We iterate over each view (wire plane) and collect all
         (channel, tdc, adc) points for each point cloud into a features
-        array, together with (source, shape, particle) as
-        the categorical information and (shape, particle) as clustering
+        array, together with (source, topology, particle) as
+        the categorical information and (topology, particle) as clustering
         information.
         """
         if self.wire_plane_point_cloud == None:
@@ -156,12 +156,18 @@ class Arrakis:
         energy = self.wire_plane_point_cloud['energy'] * 10e5
         adc = self.wire_plane_point_cloud['adc']
 
-        # construct ids and names for source, shape and particle labels
+        # construct ids and names for source, topology and particle labels
         source_label = self.wire_plane_point_cloud['source_label']
-        shape_label = self.wire_plane_point_cloud['shape_label']
+        topology_label = self.wire_plane_point_cloud['topology_label']
         particle_label = self.wire_plane_point_cloud['particle_label']
-        unique_shape_label = self.wire_plane_point_cloud['unique_shape']
+        physics_label = self.wire_plane_point_cloud['physics_label']
+        unique_topology_label = self.wire_plane_point_cloud['unique_topology']
         unique_particle_label = self.wire_plane_point_cloud['unique_particle']
+        unique_physics_label = self.wire_plane_point_cloud['unique_physics']
+        hit_mean = self.wire_plane_point_cloud['hit_mean']
+        hit_rms = self.wire_plane_point_cloud['hit_rms']
+        hit_amplitude = self.wire_plane_point_cloud['hit_amplitude']
+        hit_charge = self.wire_plane_point_cloud['hit_charge']
 
         for tpc, tpc_ranges in self.protodune_tpc_wire_channels.items():
             for v, tpc_view in enumerate(tpc_ranges):
@@ -175,17 +181,23 @@ class Arrakis:
                 adc_view = []
                 energy_view = []
                 source_label_view = []
-                shape_label_view = []
+                topology_label_view = []
                 particle_label_view = []
-                unique_shape_label_view = []
+                physics_label_view = []
+                unique_topology_label_view = []
                 unique_particle_label_view = []
+                unique_physics_label_view = []
+                hit_mean_view = []
+                hit_rms_view = []
+                hit_amplitude_view = []
+                hit_charge_view = []
 
                 for event in range(len(channel)):
                     view_mask = (
                         (channel[event] >= tpc_view[0]) & 
                         (channel[event] < tpc_view[1]) & 
                         #(source_label[event] >= 0) &        # we don't want 'undefined' points in our dataset.
-                        (shape_label[event] >= 0) &         # i.e., things with a label == -1
+                        (topology_label[event] >= 0) &         # i.e., things with a label == -1
                         (particle_label[event] >= 0)
                     )
                     if np.sum(view_mask) > 0:
@@ -194,20 +206,32 @@ class Arrakis:
                         adc_view.append(adc[event][view_mask])
                         energy_view.append(energy[event][view_mask])
                         source_label_view.append(source_label[event][view_mask])
-                        shape_label_view.append(shape_label[event][view_mask])
+                        topology_label_view.append(topology_label[event][view_mask])
                         particle_label_view.append(particle_label[event][view_mask])
-                        unique_shape_label_view.append(unique_shape_label[event][view_mask])
+                        physics_label_view.append(physics_label[event][view_mask])
+                        unique_topology_label_view.append(unique_topology_label[event][view_mask])
                         unique_particle_label_view.append(unique_particle_label[event][view_mask])
+                        unique_physics_label_view.append(unique_physics_label[event][view_mask])
+                        hit_mean_view.append(hit_mean[event][view_mask])
+                        hit_rms_view.append(hit_rms[event][view_mask])
+                        hit_amplitude_view.append(hit_amplitude[event][view_mask])
+                        hit_charge_view.append(hit_charge[event][view_mask])
 
                 channel_view = np.array(channel_view, dtype=object)
                 tdc_view = np.array(tdc_view, dtype=object)
                 adc_view = np.array(adc_view, dtype=object)
                 energy_view = np.array(energy_view, dtype=object)
                 source_label_view = np.array(source_label_view, dtype=object)
-                shape_label_view = np.array(shape_label_view, dtype=object)
+                topology_label_view = np.array(topology_label_view, dtype=object)
                 particle_label_view = np.array(particle_label_view, dtype=object)
-                unique_shape_label_view = np.array(unique_shape_label_view, dtype=object)
+                physics_label_view = np.array(physics_label_view, dtype=object)
+                unique_topology_label_view = np.array(unique_topology_label_view, dtype=object)
                 unique_particle_label_view = np.array(unique_particle_label_view, dtype=object)
+                unique_physics_label_view = np.array(unique_physics_label_view, dtype=object)
+                hit_mean_view = np.array(hit_mean_view, dtype=object)
+                hit_rms_view = np.array(hit_rms_view, dtype=object)
+                hit_amplitude_view = np.array(hit_amplitude_view, dtype=object)
+                hit_charge_view = np.array(hit_charge_view, dtype=object)
 
                 adc_view_sum = np.array([sum(a) for a in adc_view])
                 adc_view_normalized = adc_view / adc_view_sum
@@ -220,16 +244,31 @@ class Arrakis:
                     dtype=object
                 )
                 classes = np.array([
-                    np.vstack((source_label_view[ii], shape_label_view[ii], particle_label_view[ii])).T
+                    np.vstack((
+                        source_label_view[ii], 
+                        topology_label_view[ii], 
+                        particle_label_view[ii], 
+                        physics_label_view[ii])).T
                     for ii in range(len(channel_view))],
                     dtype=object
                 )          
                 clusters = np.array([
-                    np.vstack((unique_shape_label_view[ii], unique_particle_label_view[ii])).T
+                    np.vstack((
+                        unique_topology_label_view[ii], 
+                        unique_particle_label_view[ii],
+                        unique_physics_label_view[ii])).T
                     for ii in range(len(channel_view))],
                     dtype=object
                 )
-                hits = np.array([])
+                hits = np.array([
+                    np.vstack((
+                        hit_mean_view[ii],
+                        hit_rms_view[ii],
+                        hit_amplitude_view[ii],
+                        hit_charge_view[ii])).T
+                    for ii in range(len(channel_view))],
+                    dtype=object
+                )
                 merge_tree = np.array([])
 
                 meta = {
@@ -243,10 +282,13 @@ class Arrakis:
                         "channel": 0, "tdc": 1, "adc": 2
                     },
                     "classes": {
-                        "source": 0, "shape": 1, "particle": 2
+                        "source": 0, "topology": 1, "particle": 2, "physics": 3
                     },
                     "clusters": {
-                        "shape":  0, "particle": 1
+                        "topology":  0, "particle": 1, "physics": 2
+                    },
+                    "hits": {
+                        "mean": 0, "rms": 1, "amplitude": 2, "charge": 3
                     },
                     "source_labels": {
                         key: value
@@ -256,13 +298,13 @@ class Arrakis:
                         key: np.count_nonzero(np.concatenate(source_label_view) == key)
                         for key, value in classification_labels["source"].items()
                     },
-                    "shape_labels": {
+                    "topology_labels": {
                         key: value
-                        for key, value in classification_labels["shape"].items()
+                        for key, value in classification_labels["topology"].items()
                     },
-                    "shape_points": {
-                        key: np.count_nonzero(np.concatenate(shape_label_view) == key)
-                        for key, value in classification_labels["shape"].items()
+                    "topology_points": {
+                        key: np.count_nonzero(np.concatenate(topology_label_view) == key)
+                        for key, value in classification_labels["topology"].items()
                     },
                     "particle_labels": {
                         key: value
@@ -271,6 +313,14 @@ class Arrakis:
                     "particle_points": {
                         key: np.count_nonzero(np.concatenate(particle_label_view) == key)
                         for key, value in classification_labels["particle"].items()
+                    },
+                    "physics_labels": {
+                        key: value
+                        for key, value in classification_labels["physics"].items()
+                    },      
+                    "physics_points": {
+                        key: np.count_nonzero(np.concatenate(physics_label_view) == key)
+                        for key, value in classification_labels["physics"].items()
                     },
                     "total_points":     len(np.concatenate(features)),
                     "adc_view_sum":     adc_view_sum,    
@@ -281,7 +331,7 @@ class Arrakis:
                     features=features,
                     classes=classes,
                     clusters=clusters,
-                    hists=hits,
+                    hits=hits,
                     merge_tree=merge_tree,
                     meta=meta
                 )
