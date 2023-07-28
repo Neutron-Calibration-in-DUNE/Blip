@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 ================================
-Welcome to Blip's documentation!
+WELCOME to BLIP !
 ================================
 
 Blip is a collection of machine learning tools for reconstructing, classifying and analyzing low energy (< MeV) interactions in liquid argon time projection chambers (LArTPCs).  
@@ -16,12 +16,16 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   Introduction
-   Usage
-   Examples
+   1.Dataset
+   2.Arrakis
+   3.Blip
+   4.ConfigurationFiles
+   5.CustomModules
+   6.Examples
 
-Summary (local installation)
-------------------------------
+
+Summary BLIP (local installation)
+------------------------------------
 
 For a quick summary or just as a reminder follow the next steps:
 
@@ -51,8 +55,8 @@ For a quick summary or just as a reminder follow the next steps:
 
    pip install .
 
-Summary (wilson cluster installation)
---------------------------------------
+Summary BLIP (wilson cluster installation)
+--------------------------------------------
 
 1.- Clone the repository and load the modules:
 
