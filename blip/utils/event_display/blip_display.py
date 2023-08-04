@@ -9,6 +9,7 @@ from bokeh.application import Application
 from bokeh.application.handlers.function import FunctionHandler
 from bokeh.layouts import row, column, layout
 from bokeh.plotting import figure, show
+from bokeh.models import TabPanel, Tabs
 from bokeh.models import Div, RangeSlider, Spinner
 from bokeh.models import Select, MultiSelect, FileInput
 from bokeh.models import Button, CheckboxGroup, TextInput
@@ -67,7 +68,8 @@ class BlipDisplay:
         self.available_truth_labels = [
             'adc', 
             'source', 'topology', 'particle', 'physics', 
-            'cluster_topology', 'cluster_particle', 'cluster_physics'
+            'cluster_topology', 'cluster_particle', 'cluster_physics',
+            'hit_mean', 'hit_rms', 'hit_amplitude', 'hit_charge'
         ]
         self.first_figure_label = 'adc'
         self.first_scatter = {}
@@ -248,8 +250,11 @@ class BlipDisplay:
             self.plot_second_event
         )
         
-        # construct the layout
-        self.layout = row(
+        # construct the wire plane layout
+        self.header_layout = row()
+        self.blip_layout = row()
+        self.edep_layout = row()
+        self.wire_plane_layout = row(
             column(
                 self.file_folder_select,
                 self.file_select,
@@ -277,8 +282,41 @@ class BlipDisplay:
                 height_policy='fixed', height=1000
             )
         )
-
-        document.add_root(self.layout)
+        self.wire_plane_channel_layout = row()
+        self.semantic_model_layout = row()
+        self.point_net_embedding_layout = row()
+        # enumerate the different tabs
+        self.header_tab = TabPanel(
+            child=self.header_layout, title="Blip Display"
+        )
+        self.wire_plane_display_tab = TabPanel(
+            child=self.wire_plane_layout, title="Wire-Plane"
+        )
+        self.wire_plane_channel_tab = TabPanel(
+            child=self.wire_plane_channel_layout, title="Wire-Plane Channel"
+        )
+        self.edep_tab = TabPanel(
+            child=self.edep_layout, title="Energy Deposit"
+        )
+        self.semantic_model_tab = TabPanel(
+            child=self.semantic_model_layout, title="Semantic Model"
+        )
+        self.point_net_embedding_tab = TabPanel(
+            child=self.point_net_embedding_layout, title="PointNet Embedding"
+        )
+        self.blip_tab = TabPanel(
+            child=self.blip_layout, title="Blip Runner"
+        )
+        self.tab_layout = Tabs(tabs=[
+            self.header_tab,
+            self.blip_tab,
+            self.edep_tab,
+            self.wire_plane_display_tab,
+            self.wire_plane_channel_tab,
+            self.semantic_model_tab,
+            self.point_net_embedding_tab
+        ])
+        document.add_root(self.tab_layout)
         document.title = "Blip Display"
     
     def update_file_folder(self, attr, old, new):
@@ -437,7 +475,6 @@ class BlipDisplay:
                     val: Magma256[int(ii % 256)]
                     for ii, val in enumerate(label_vals)
                 }
-                print(label_vals)
                 for val in label_vals:   
                     if self.first_figure_plot_type == "Truth": 
                         mask = (self.event_clusters[:, label_index] == val)

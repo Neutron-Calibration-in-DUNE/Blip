@@ -11,6 +11,7 @@ import pandas as pd
 
 from blip.utils.callbacks import GenericCallback
 from blip.utils import utils
+from blip.metrics import SaverMetric
 
 class EmbeddingCallback(GenericCallback):
     """
@@ -33,15 +34,8 @@ class EmbeddingCallback(GenericCallback):
 
         if metrics_handler != None:
             for name, metric in self.metrics_handler.metrics.items():
-                if isinstance(metric, DataSaver):
-                    if(metric.output == "reductions"):
-                        self.output_name = name
-                    elif(metric.output == "position"):
-                        self.input_name = name
-                    elif(metric.output == "category"):
-                        self.target_name = name
-                    elif(metric.output == "augmented_category"):
-                        self.augmented_target_name = name
+                if isinstance(metric, SaverMetric):
+                    self.saver_metric = metric
 
         if not os.path.isdir("plots/embedding/"):
             os.makedirs("plots/embedding/")
@@ -51,9 +45,9 @@ class EmbeddingCallback(GenericCallback):
             self.training_output = None
             self.validation_output = None
         if self.augmented_target_name != None:
-            self.training_target = None
+            self.training_input = None
         if self.target_name != None:
-            self.validation_target = None
+            self.validation_input = None
             
     def reset_batch(self):
         pass
@@ -62,42 +56,38 @@ class EmbeddingCallback(GenericCallback):
         train_type='training'
     ):  
         if train_type == 'training':
-            if self.output_name != None:
-                self.training_output = self.metrics_handler.metrics[self.output_name].batch_data
-            if self.augmented_target_name != None:
-                self.training_target = self.metrics_handler.metrics[self.augmented_target_name].batch_data  
+            self.training_output = self.saver_metric.batch_output
+            self.training_input = self.saver_metric.batch_input
         else:
-            if self.output_name != None:
-                self.validation_output = self.metrics_handler.metrics[self.output_name].batch_data
-            if self.target_name != None:
-                self.validation_target = self.metrics_handler.metrics[self.target_name].batch_data
+            self.validation_output = self.saver_metric.batch_output
+            self.validation_input = self.saver_metric.batch_input
+        self.saver_metric.reset_saver()
 
     def evaluate_training(self):
         # plot the latent distributions
-        if self.output_name != None:
-            print(self.training_output)
-            print(self.training_target)
-            # find embedding for the training data
-            # Get low-dimensional t-SNE Embeddings
-            embedding = TSNE(
-                n_components=2, 
-                learning_rate='auto',
-                init='random'
-            ).fit_transform(self.training_output.cpu().numpy()[:2000])
-            targets = self.training_target.cpu().numpy()[:2000]
-            unique_targets = np.unique(targets)
+        for ii, output in enumerate(self.training_output.keys()):
+            for jj, input in enumerate(self.training_input.keys()):
+                # find embedding for the training data
+                # Get low-dimensional t-SNE Embeddings
+                embedding = TSNE(
+                    n_components=2, 
+                    learning_rate='auto',
+                    init='random'
+                ).fit_transform(self.training_output[output].cpu().numpy())
+                targets = self.training_input[input].cpu().numpy()
+                unique_targets = np.unique(targets)
 
-            fig, axs = plt.subplots(figsize=(16,10))
-            for target in unique_targets:
-                axs.scatter(
-                    embedding[:,0][(targets == target)],
-                    embedding[:,1][(targets == target)],
-                    label=f"{target}"
-                )
-            axs.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
-            plt.suptitle("Training TSNE projection")
-            plt.tight_layout()
-            plt.savefig(f"plots/embedding/training_tsne.png")
+                fig, axs = plt.subplots(figsize=(16,10))
+                for target in unique_targets:
+                    axs.scatter(
+                        embedding[:,0][(targets == target)],
+                        embedding[:,1][(targets == target)],
+                        label=f"{target}"
+                    )
+                axs.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
+                plt.suptitle("Training TSNE projection")
+                plt.tight_layout()
+                plt.savefig(f"plots/embedding/training_tsne_{output}_{input}.png")
             
     def evaluate_testing(self):  
         pass

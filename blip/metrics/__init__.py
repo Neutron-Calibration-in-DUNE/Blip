@@ -5,4 +5,5 @@ from .dice_score_metric import *
 from .jaccard_index_metric import *
 from .precission_metric import *
 from .recall_metric import *
+from .saver_metric import *
 from .metric_handler import *
