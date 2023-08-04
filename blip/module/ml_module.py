@@ -183,6 +183,8 @@ class MachineLearningModule(GenericModule):
                 progress_bar=self.config['training']['progress_bar'],
                 rewrite_bar=self.config['training']['rewrite_bar']
             )
+        elif self.mode == 'hyper_parameter_scan':
+            return
 
         # save model/data/config
         if 'run_name' in self.config['training'].keys():

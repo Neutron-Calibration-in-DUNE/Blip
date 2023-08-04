@@ -65,7 +65,9 @@ class BlipDisplay:
 
         # parameters for first plot
         self.available_truth_labels = [
-            'adc', 'source', 'shape', 'particle', 'cluster_shape', 'cluster_particle'
+            'adc', 
+            'source', 'topology', 'particle', 'physics', 
+            'cluster_topology', 'cluster_particle', 'cluster_physics'
         ]
         self.first_figure_label = 'adc'
         self.first_scatter = {}
@@ -378,15 +380,20 @@ class BlipDisplay:
             self.classes = input_file['classes']
         if 'clusters' in input_file.files:
             self.clusters = input_file['clusters']
+        if 'hits' in input_file.files:
+            self.hits = input_file['hits']
         if 'source' in input_file.files:
             self.predictions['source'] = input_file['source']
             self.available_prediction_labels.append('source')
-        if 'shape' in input_file.files:
-            self.predictions['shape'] = input_file['shape']
-            self.available_prediction_labels.append('shape')
+        if 'topology' in input_file.files:
+            self.predictions['topology'] = input_file['topology']
+            self.available_prediction_labels.append('topology')
         if 'particle' in input_file.files:
             self.predictions['particle'] = input_file['particle']
             self.available_prediction_labels.append('particle')
+        if 'physics' in input_file.files:
+            self.predictions['physics'] = input_file['physics']
+            self.available_prediction_labels.append('physics')
         if self.first_figure_plot_type == "Predictions":
             self.first_figure_color_select.options = self.available_prediction_labels
             if len(self.available_prediction_labels) > 0:
@@ -407,6 +414,7 @@ class BlipDisplay:
             self.event_features = self.features[self.event]
             self.event_classes = self.classes[self.event]
             self.event_clusters = self.clusters[self.event]
+            self.event_hits = self.hits[self.event]
             self.event_predictions = {
                 key: val[self.event][0]
                 for key, val in self.predictions.items()
@@ -481,31 +489,57 @@ class BlipDisplay:
         if self.second_figure_label == 'adc':
             pass
         else:
-
-            label_index = self.meta['classes'][self.second_figure_label]
-            label_vals = self.meta[f"{self.second_figure_label}_labels"]
-            self.second_scatter = {}
-            self.second_scatter_colors = {
-                #val: Magma256[len(label_vals)][ii]
-                val: Magma256[int(ii*256/len(label_vals))]
-                for ii, val in enumerate(label_vals.values())
-            }
-            for key, val in label_vals.items():   
-                if self.second_figure_plot_type == "Truth": 
-                    mask = (self.event_classes[:, label_index] == key)
-                else:
-                    if self.second_figure_label not in self.available_prediction_labels:
+            if 'cluster' in self.second_figure_label:
+                label_index = self.meta['clusters'][self.second_figure_label.replace('cluster_','')]
+                label_vals = np.unique(self.event_clusters[:, label_index])
+                self.second_scatter = {}
+                self.second_scatter_colors = {
+                    #val: Magma256[len(label_vals)][ii]
+                    val: Magma256[int(ii % 256)]
+                    for ii, val in enumerate(label_vals)
+                }
+                print(label_vals)
+                for val in label_vals:   
+                    if self.second_figure_plot_type == "Truth": 
+                        mask = (self.event_clusters[:, label_index] == val)
+                    else:
+                        if self.second_figure_label not in self.available_prediction_labels:
+                            continue
+                        labels = np.argmax(self.event_predictions[self.second_figure_label], axis=1)
+                        mask = (labels == val)
+                    if np.sum(mask) == 0:
                         continue
-                    labels = np.argmax(self.event_predictions[self.second_figure_label], axis=1)
-                    mask = (labels == key)
-                if np.sum(mask) == 0:
-                    continue
-                self.second_scatter[val] = self.second_figure.circle(
-                    self.event_features[:,0][mask],
-                    self.event_features[:,1][mask],
-                    legend_label=val,
-                    color=self.second_scatter_colors[val]
-                )
+                    self.second_scatter[val] = self.second_figure.circle(
+                        self.event_features[:,0][mask],
+                        self.event_features[:,1][mask],
+                        legend_label=str(val),
+                        color=self.second_scatter_colors[val]
+                    )
+            else:
+                label_index = self.meta['classes'][self.second_figure_label]
+                label_vals = self.meta[f"{self.second_figure_label}_labels"]
+                self.second_scatter = {}
+                self.second_scatter_colors = {
+                    #val: Magma256[len(label_vals)][ii]
+                    val: Magma256[int(ii*256/len(label_vals))]
+                    for ii, val in enumerate(label_vals.values())
+                }
+                for key, val in label_vals.items():   
+                    if self.second_figure_plot_type == "Truth": 
+                        mask = (self.event_classes[:, label_index] == key)
+                    else:
+                        if self.second_figure_label not in self.available_prediction_labels:
+                            continue
+                        labels = np.argmax(self.event_predictions[self.second_figure_label], axis=1)
+                        mask = (labels == key)
+                    if np.sum(mask) == 0:
+                        continue
+                    self.second_scatter[val] = self.second_figure.circle(
+                        self.event_features[:,0][mask],
+                        self.event_features[:,1][mask],
+                        legend_label=val,
+                        color=self.second_scatter_colors[val]
+                    )
         self.second_figure.legend.click_policy="hide"
         self.second_figure.xaxis[0].axis_label = "Channel [n]"
         self.second_figure.yaxis[0].axis_label = "TDC [10ns]"
