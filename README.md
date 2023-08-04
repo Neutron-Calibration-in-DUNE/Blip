@@ -9,6 +9,8 @@
 <!-- [![Python Versions](https://img.shields.io/pypi/pyversions/nestpy.svg)](https://pypi.python.org/pypi/nestpy)
 [![PyPI downloads](https://img.shields.io/pypi/dm/nestpy.svg)](https://pypistats.org/packages/nestpy) -->
 
+[![Documentation Status](https://readthedocs.org/projects/blip-dune/badge/?version=latest)](https://blip-dune.readthedocs.io/en/latest/?badge=latest)
+
 Blip is a collection of machine learning tools for reconstructing, classifying and analyzing low energy (< MeV) interactions in liquid argon time projection chambers (LArTPCs).  These interactions leave small point like signals (commonly referred to as "blips", hence the name). Blip is a python package which can be installed locally, or on the Wilson cluster, by following the directions below (eventually Blip will be available on the Wilson cluster without the need to install).
 
 ### Table of Contents
