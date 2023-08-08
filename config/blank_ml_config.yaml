@@ -38,6 +38,7 @@ dataset:
   classes:        []
   labels:         []
   clusters:       []
+  hits:           []
   # ---- normalization ----
   # Normalization parameters for positions and features.  Typically we want to normalize
   # input features depending on the type of task, or to unbias certain simulation parameters,
