@@ -16,6 +16,7 @@ Contents
 .. toctree::
    :maxdepth: 2
 
+   0.GettingStarted
    1.Dataset
    2.Arrakis
    3.Blip
