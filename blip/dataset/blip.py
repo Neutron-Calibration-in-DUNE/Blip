@@ -226,6 +226,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         for ii, clusters in enumerate(self.meta['blip_clusters']):
             if clusters not in self.meta['clusters']:
                 self.logger.error(f'specified clusters "{clusters}" variable not in arrakis meta!')
+
         if "hits" in self.config:
             for ii, hits in enumerate(self.meta['blip_hits']):
                 if hits not in self.meta['hits']:

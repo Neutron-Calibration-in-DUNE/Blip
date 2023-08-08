@@ -18,7 +18,7 @@ LOCAL_BLIP_DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )/../"
 # environment, and where you want the BLIP environment stored.
 export ANACONDA_ENV_DIR=/wclustre/dune/$USER
 export ANACONDA_PKG_DIR=/wclustre/dune/$USER
-export BLIP_ENV_DIR=/wclustre/dune/$USER/blip
+export BLIP_ENV_DIR=/wclustre/dune/$USER
 
 # Currently, four modules are required for installation,
 # gnu, openblas, cuda and condaforge.  The versions which
