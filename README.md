@@ -57,6 +57,49 @@ Please contact Nicholas Carrara or David Rivera about becoming involved in devel
 <a name="build"></a>
 ## Building Blip
 
+## Docker
+The easiest way to install Blip is to grab the docker container.  First, you must install docker and start it up using the commands,
+```bash
+sudo apt-get update
+sudo apt-get install docker.io
+sudo systemctl start docker
+sudo systemctl enable docker
+```
+
+Now we want to install the nvidia-container-toolkit, which can be done with the following (instructions are [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)).  First, set your distribution using the following command:
+```bash
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID) \
+      && curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+      && curl -s -L https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list | \
+            sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+            sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+```
+If you are not using a LTS version of ubuntu, then you can do the following instead:
+```bash
+distribution=ubuntu18.04 \
+      && curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+      && curl -s -L https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.list | \
+            sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+            sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+```
+You should then be able to download the container toolkit,
+```bash
+sudo apt-get update
+sudo apt-get install nvidia-container-toolkit
+```
+Restart the docker service, and then you should be ready to grab a container,
+```bash
+sudo systemctl restart docker
+```
+Now grab the official pytorch container from docker by issuing the command:
+```bash
+docker pull pytorch/pytorch:2.0.1-cuda11.7-cudnn8-devel
+```
+The image can then be loaded by issuing
+```bash
+docker run -it --gpus all $(pwd):/workspace/ pytorch/pytorch:2.0.1-cuda11.7-cudnn8-devel bash
+```
+
 <a name="yaml"></a>
 ### Environment YAML
 The easiet way to install is to create a conda environment dedicated to the API using the packages defined in ``environment_blip.yml``:
