@@ -15,5 +15,5 @@ dataset:
   # If this is the first time processing the simulation output
   process_simulation: True
   simulation_type:    'LArSoft'
-  simulation_folder:  "~/data/"
+  simulation_folder:  "/data/"
   simulation_files:   ["labeling_sim_arrakis.root"]
