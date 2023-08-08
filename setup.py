@@ -52,6 +52,7 @@ setup(
     # possible entry point
     entry_points={
         'console_scripts': [
+            'arrakis = blip.programs.run_arrakis:run',
             'blip = blip.programs.run_blip:run',
             'blip_display = blip.programs.run_blip_server:run'
         ],
