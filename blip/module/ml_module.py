@@ -67,6 +67,10 @@ class MachineLearningModule(GenericModule):
         if "training" not in self.config.keys():
             self.logger.error(f'"training" section not specified in config!')
         
+        if self.mode == "hyper_parameter_scan":
+            if "hyper_parameters" not in self.config.keys():
+                self.logger.error(f'"hyper_parameters" section not specified in config!')
+        
     def parse_model(self):
         """
         """
@@ -105,13 +109,9 @@ class MachineLearningModule(GenericModule):
         self.logger.info("configuring optimizer.")
         optimizer_config = self.config['optimizer']
         self.optimizer = Optimizer(
-            self.model.model,
-            optimizer=optimizer_config["optimizer_type"],
-            learning_rate=float(optimizer_config["learning_rate"]),
-            betas=optimizer_config["betas"],
-            epsilon=float(optimizer_config["epsilon"]),
-            momentum=float(optimizer_config["momentum"]),
-            weight_decay=float(optimizer_config["weight_decay"])
+            self.name,
+            optimizer_config,
+            self.model.model
         )
     
     def parse_metrics(self):
@@ -168,6 +168,58 @@ class MachineLearningModule(GenericModule):
             seed=training_config['seed']
         )
     
+    def parse_hyper_parameters(self):
+        """
+        """
+        if "hyper_parameters" not in self.config.keys():
+            self.logger.warn("no hyper_parameters in config file.")
+            return
+        self.logger.info("configuring hyper_parameters")
+        hyper_parameters_config = self.config["hyper_parameters"]
+        model_config = self.config["model"]
+        if "iterations" not in hyper_parameters_config.keys():
+            self.logger.error("no 'iterations' specified in hyper_parameters config!")
+        self.iterations = hyper_parameters_config["iterations"]
+        self.hyper_parameters = {
+            f'iteration_{ii}': model_config
+            for ii in range(self.iterations)
+        }
+        # code for generating random hyper-parameters
+
+
+    def run_hyper_parameter_scan(self):
+        self.logger.info(f"running hyper_parameter scan over {self.iterations} iterations")
+        optimizer_config = self.config['optimizer']
+        training_config = self.config['training']
+        for ii, model_config in enumerate(self.hyper_parameters.keys()):
+            self.model = ModelHandler(
+                self.name,
+                model_config,
+                meta=self.meta
+            )
+            self.optimizer = Optimizer(
+                self.name,
+                optimizer_config,
+                self.model.model
+            )
+            self.trainer = Trainer(
+                self.model.model,
+                self.criterion,
+                self.optimizer,
+                self.metrics,
+                self.callbacks,
+                meta=self.meta,
+                seed=training_config['seed']
+            )
+            self.trainer.train(
+                epochs=self.config['training']['epochs'],
+                checkpoint=self.config['training']['checkpoint'],
+                progress_bar=self.config['training']['progress_bar'],
+                rewrite_bar=self.config['training']['rewrite_bar'],
+                save_predictions=self.config['training']['save_predictions'],
+                no_timing=self.config['training']['no_timing']
+            )
+    
     def run_module(self):
         if self.mode == 'training':
             self.trainer.train(
@@ -184,7 +236,7 @@ class MachineLearningModule(GenericModule):
                 rewrite_bar=self.config['training']['rewrite_bar']
             )
         elif self.mode == 'hyper_parameter_scan':
-            return
+            self.run_hyper_parameter_scan()
 
         # save model/data/config
         if 'run_name' in self.config['training'].keys():

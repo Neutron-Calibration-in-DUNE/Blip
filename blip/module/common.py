@@ -6,8 +6,9 @@ import numpy as np
 module_types = {
     "clustering": ["parameter_scan"],
     "data_prep":  [],
-    "ml":   ["training", "inference"],
-    "tda":  []
+    "ml":   ["training", "inference", "hyper_parameter_scan"],
+    "tda":  ["merge_tree"],
+    "mcts": ["playout"]
 }
 
 module_aliases = {

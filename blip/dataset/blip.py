@@ -226,9 +226,11 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         for ii, clusters in enumerate(self.meta['blip_clusters']):
             if clusters not in self.meta['clusters']:
                 self.logger.error(f'specified clusters "{clusters}" variable not in arrakis meta!')
-        for ii, hits in enumerate(self.meta['blip_hits']):
-            if hits not in self.meta['hits']:
-                self.logger.error(f'specified hits "{hits}" variable not in arrakis meta!')
+
+        if "hits" in self.config:
+            for ii, hits in enumerate(self.meta['blip_hits']):
+                if hits not in self.meta['hits']:
+                    self.logger.error(f'specified hits "{hits}" variable not in arrakis meta!')
 
         # Set up maps for positions, features, etc.
         try:
@@ -730,7 +732,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         raw_path
     ):
         event_positions, event_features, event_classes, event_clusters, event_hits, mask = self.apply_event_masks(
-            event_features, event_classes, event_clusters
+            event_features, event_classes, event_clusters, event_hits
         )
         self.meta['event_mask'][raw_path].append(mask)
         # # check if classes need to be consolidated
@@ -738,7 +740,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         #     event_classes = self.consolidate_class(classes[ii])
         # else:
         #     event_classes = classes[ii]
-
+        print(event_positions)
         event = Data(
             pos=torch.tensor(event_positions).type(self.meta['position_type']),
             x=torch.tensor(event_features).type(self.meta['feature_type']),
