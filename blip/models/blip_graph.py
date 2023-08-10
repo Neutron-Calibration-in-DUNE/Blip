@@ -1,5 +1,5 @@
 """
-Implementation of the blip model using pytorch
+Implementation of the blip graph model using pytorch
 """
 import numpy as np
 import torch
@@ -8,14 +8,14 @@ from collections import OrderedDict
 import torch_geometric.transforms as T
 from torch.nn import Linear
 import torch.nn.functional as F
-from torch_geometric.nn import MLP, DynamicEdgeConv
+from torch_geometric.nn import MLP, DynamicEdgeConv, PointNetConv, PointTransformerConv
 from torch_geometric.nn import global_add_pool, global_mean_pool, global_max_pool
 
 
 from blip.models.common import activations, normalizations
 from blip.models import GenericModel
 
-pointnet_config = {
+blip_graph_config = {
     "input_dimension":      3,
     "classifications":      ["source", "shape", "particle"],
     'augmentations':    {
@@ -25,16 +25,17 @@ pointnet_config = {
         'number_of_augmentations':  2
     },
     'embedding': {
-        "embedding_type":       "dynamic_edge_conv",
-        "number_of_embeddings": 4,
-        "number_of_neighbors":  [5, 10, 20, 30],
-        "aggregation":          ["max", "max", "max", "max"],    
-        "embedding_mlp_layers": [
-            [5, 10, 25, 10],
-            [10, 25, 50, 25],
-            [20, 30, 40, 30],
-            [30, 50, 75, 50]
-        ],
+        'embedding_1': {
+            "embedding_type":       "dynamic_edge_conv",
+            "number_of_neighbors":  5,
+            "aggregation":          "max",    
+            "embedding_mlp_layers": [5, 10, 25, 10],
+        },
+        'embedding_2': {
+            "embedding_type":   "point_net_conv",
+            "local_mlp_layers": [5, 10, 25, 10],
+            "add_self_loops":   True,
+        },
     },
     'reduction': {
         'linear_output':        128,
@@ -46,15 +47,15 @@ pointnet_config = {
     },
 }
 
-class PointNet(GenericModel):
+class BlipGraph(GenericModel):
     """
     """
     def __init__(self,
-        name:   str='pointnet',
-        config: dict=pointnet_config,
+        name:   str='blip_graph',
+        config: dict=blip_graph_config,
         meta:   dict={}
     ):
-        super(PointNet, self).__init__(
+        super(BlipGraph, self).__init__(
             name, config, meta
         )
         self.config = config
@@ -108,7 +109,7 @@ class PointNet(GenericModel):
 
         each section should have its own config subsection like the following:
 
-        PointNet:
+        BlipGraph:
             augmentations:
                 ...
             embedding:
@@ -118,7 +119,7 @@ class PointNet(GenericModel):
             classification:
                 ...
         """
-        self.logger.info(f"Attempting to build {self.name} architecture using config: {self.config}")
+        self.logger.info(f"Attempting to build BlipGraph architecture using config: {self.config}")
 
         self.embedding_dicts = []
         _embedding_dict = OrderedDict()
@@ -130,14 +131,20 @@ class PointNet(GenericModel):
         
         # iterate over embeddings
         embedding_config = self.config['embedding']
-        for ii in range(embedding_config['number_of_embeddings']):
-            if embedding_config['embedding_type'] == 'dynamic_edge_conv':
-                _embedding_dict[f'embedding_{ii}'] = DynamicEdgeConv(
-                    MLP([2 * _input_dimension] + embedding_config['embedding_mlp_layers'][ii]), 
-                    embedding_config['number_of_neighbors'][ii],
-                    embedding_config['aggregation'][ii]
+        for ii, embedding in enumerate(embedding_config.keys()):
+            if embedding_config[embedding]['embedding_type'] == 'dynamic_edge_conv':
+                _embedding_dict[embedding] = DynamicEdgeConv(
+                    nn=MLP([2 * _input_dimension] + embedding_config[embedding]['embedding_mlp_layers']), 
+                    k=embedding_config[embedding]['number_of_neighbors'],
+                    aggr=embedding_config[embedding]['aggregation']
                 )
-            _input_dimension = embedding_config['embedding_mlp_layers'][ii][-1]
+                _input_dimension = embedding_config['embedding_mlp_layers'][-1]
+            elif embedding_config[embedding]['embedding_type'] == 'point_net_conv':
+                _embedding_dict[embedding] = PointNetConv(
+                    local_nn=MLP([_input_dimension + self.config['input_dimension']] + embedding_config[embedding]['local_mlp_layers']), 
+                    add_self_loops=embedding_config[embedding]['add_self_loops']
+                )
+                _input_dimension = embedding_config['local_mlp_layers'][-1]
             _num_embedding_outputs += _input_dimension
 
         if self.config["add_summed_adc"]:
@@ -172,7 +179,7 @@ class PointNet(GenericModel):
 
         # record the info
         self.logger.info(
-            f"Constructed PointNet with dictionaries:"
+            f"Constructed BlipGraph with dictionaries:"
         )
 
     
