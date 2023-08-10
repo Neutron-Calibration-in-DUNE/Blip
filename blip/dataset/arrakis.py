@@ -106,6 +106,8 @@ class Arrakis:
                 self.wire_plane_point_cloud = self.uproot_file[key].arrays(library="np")
             elif 'mc_op_det_point_cloud' in key:
                 self.op_det_point_cloud = self.uproot_file[key].arrays(library="np")
+            elif 'mc_maps' in key:
+                self.mc_maps = self.uproot_file[key].arrays(library="np")
 
     def generate_training_data(self,
         process_type:   str='all',

@@ -9,7 +9,7 @@ from bokeh.application import Application
 from bokeh.application.handlers.function import FunctionHandler
 from bokeh.layouts import row, column, layout
 from bokeh.plotting import figure, show
-from bokeh.models import TabPanel, Tabs
+from bokeh.models import TabPanel, Tabs, TapTool
 from bokeh.models import Div, RangeSlider, Spinner
 from bokeh.models import Select, MultiSelect, FileInput
 from bokeh.models import Button, CheckboxGroup, TextInput
@@ -38,12 +38,15 @@ class BlipDisplay:
     def __init__(self,
         document = None
     ):
+        # Wire plane display
         self.file_folder = str(Path().absolute())
         self.available_folders = []
         self.update_available_folders()
+
         self.available_files = []
         self.input_file = ''
         self.update_available_files()
+        
         self.meta = {}
         self.available_events = []
         self.event = -1
@@ -57,6 +60,23 @@ class BlipDisplay:
         ]
         self.meta_string = ''
         self.update_meta_string()
+
+        self.simulation_wrangler_vars = [
+            "pdg_code", "generator", "generator_label", 
+            "particle_id", "particle_energy",
+            "parent_track_id", "parent_pdg_code",
+            "daughter_track_id", "progeny_track_id", "ancestry_track_id",
+            "edep_id", "edep_process", "detsim", "random_detsim", "edep_detsim",
+            "detsim_edep"
+        ]
+        self.simulation_wrangler_vals = [
+            '...', '...', '...', '...','...',
+            '...','...','...','...','...','...','...',
+            '...','...','...','...'
+        ]
+        self.simulation_wrangler_string = ''
+        self.update_simulation_wrangler_string()
+        
         self.features = []
         self.classes = []
         self.clusters = []
@@ -111,6 +131,14 @@ class BlipDisplay:
             self.meta_string += ":\t"
             self.meta_string += str(self.meta_vals[ii])
             self.meta_string += "\n"
+    
+    def update_simulation_wrangler_string(self):
+        self.simulation_wrangler_string = ''
+        for ii, item in enumerate(self.simulation_wrangler_vars):
+            self.simulation_wrangler_string += item
+            self.simulation_wrangler_string += ":\t"
+            self.simulation_wrangler_string += str(self.simulation_wrangler_vals[ii])
+            self.simulation_wrangler_string += "\n"
 
     def update_available_events(self):
         self.available_events = [
@@ -118,8 +146,75 @@ class BlipDisplay:
         ]
         if len(self.available_events) > 0:
             self.event = 0
+    
+    def update_first_figure_taptool(self):
+        pass
+
+    def update_second_figure_taptool(self):
+        pass
 
     def construct_widgets(self,
+        document
+    ):
+        self.construct_header_widgets(document)
+        self.construct_blip_widgets(document)
+        self.construct_edep_widgets(document)
+        self.construct_wire_plane_widgets(document)
+        self.construct_wire_plane_channel_widgets(document)
+        self.construct_semantic_widgets(document)
+        self.construct_point_net_embedding_widgets(document)
+
+        # enumerate the different tabs
+        self.header_tab = TabPanel(
+            child=self.header_layout, title="Blip Display"
+        )
+        self.wire_plane_display_tab = TabPanel(
+            child=self.wire_plane_layout, title="Wire-Plane"
+        )
+        self.wire_plane_channel_tab = TabPanel(
+            child=self.wire_plane_channel_layout, title="Wire-Plane Channel"
+        )
+        self.edep_tab = TabPanel(
+            child=self.edep_layout, title="Energy Deposit"
+        )
+        self.semantic_model_tab = TabPanel(
+            child=self.semantic_model_layout, title="Semantic Model"
+        )
+        self.point_net_embedding_tab = TabPanel(
+            child=self.point_net_embedding_layout, title="PointNet Embedding"
+        )
+        self.blip_tab = TabPanel(
+            child=self.blip_layout, title="Blip Runner"
+        )
+        self.tab_layout = Tabs(tabs=[
+            self.header_tab,
+            self.blip_tab,
+            self.edep_tab,
+            self.wire_plane_display_tab,
+            self.wire_plane_channel_tab,
+            self.semantic_model_tab,
+            self.point_net_embedding_tab
+        ])
+        document.add_root(self.tab_layout)
+        document.title = "Blip Display"
+
+    def construct_header_widgets(self,
+        document
+    ):
+        self.neutrino_image = Div(text="""<img src="data/neutrino.png" alt="div_image">""", width=100, height=100)
+        self.header_layout = row(self.neutrino_image)
+
+    def construct_blip_widgets(self,
+        document
+    ):
+        self.blip_layout = row()
+
+    def construct_edep_widgets(self,
+        document
+    ):
+        self.edep_layout = row()
+
+    def construct_wire_plane_widgets(self,
         document
     ):
         # Left hand column
@@ -186,6 +281,8 @@ class BlipDisplay:
             x_axis_label="x []",
             y_axis_label="y []"
         )
+        self.first_figure_taptool = self.first_figure.select(type=TapTool)
+        self.first_figure_taptool.callback = self.update_first_figure_taptool()
         self.first_figure.legend.click_policy="hide"
         self.first_figure_radio_text = PreText(
             text="Label type:"
@@ -212,6 +309,11 @@ class BlipDisplay:
         self.first_figure_plot_button.on_click(
             self.plot_first_event
         )
+        self.simulation_wrangler_pretext = PreText(
+            text=self.simulation_wrangler_string,
+            width=200,
+            height=200
+        )
 
         # Second plot column
         self.second_figure = figure(
@@ -221,6 +323,8 @@ class BlipDisplay:
             x_range=self.first_figure.x_range,
             y_range=self.first_figure.y_range
         )
+        self.second_figure_taptool = self.second_figure.select(type=TapTool)
+        self.second_figure_taptool.callback = self.update_second_figure_taptool()
         self.second_figure.legend.click_policy="hide"
         self.second_figure_radio_group = RadioGroup(
             labels = self.plot_options, active=1
@@ -251,9 +355,6 @@ class BlipDisplay:
         )
         
         # construct the wire plane layout
-        self.header_layout = row()
-        self.blip_layout = row()
-        self.edep_layout = row()
         self.wire_plane_layout = row(
             column(
                 self.file_folder_select,
@@ -270,6 +371,7 @@ class BlipDisplay:
                 self.first_figure_color_select,
                 self.first_figure_radio_group,
                 self.first_figure_plot_button,
+                self.simulation_wrangler_pretext,
                 width_policy='fixed', width=600,
                 height_policy='fixed', height=1000
             ),
@@ -282,43 +384,32 @@ class BlipDisplay:
                 height_policy='fixed', height=1000
             )
         )
-        self.wire_plane_channel_layout = row()
-        self.semantic_model_layout = row()
-        self.point_net_embedding_layout = row()
-        # enumerate the different tabs
-        self.header_tab = TabPanel(
-            child=self.header_layout, title="Blip Display"
-        )
-        self.wire_plane_display_tab = TabPanel(
-            child=self.wire_plane_layout, title="Wire-Plane"
-        )
-        self.wire_plane_channel_tab = TabPanel(
-            child=self.wire_plane_channel_layout, title="Wire-Plane Channel"
-        )
-        self.edep_tab = TabPanel(
-            child=self.edep_layout, title="Energy Deposit"
-        )
-        self.semantic_model_tab = TabPanel(
-            child=self.semantic_model_layout, title="Semantic Model"
-        )
-        self.point_net_embedding_tab = TabPanel(
-            child=self.point_net_embedding_layout, title="PointNet Embedding"
-        )
-        self.blip_tab = TabPanel(
-            child=self.blip_layout, title="Blip Runner"
-        )
-        self.tab_layout = Tabs(tabs=[
-            self.header_tab,
-            self.blip_tab,
-            self.edep_tab,
-            self.wire_plane_display_tab,
-            self.wire_plane_channel_tab,
-            self.semantic_model_tab,
-            self.point_net_embedding_tab
-        ])
-        document.add_root(self.tab_layout)
-        document.title = "Blip Display"
     
+    def construct_wire_plane_channel_widgets(self,
+        document
+    ):
+        self.wire_plane_channel_layout = row()
+    
+    def construct_semantic_widgets(self,
+        document
+    ):
+        self.semantic_model_layout = row()
+
+    def construct_point_net_embedding_widgets(self,
+        document
+    ):
+        self.point_net_embedding_layout = row()
+    
+    ######################## Header Display ##########################
+
+    ######################### Blip Display ###########################
+
+    ######################### Edep Display ###########################
+
+    ###################### Wire Plane Display ########################
+    """
+    functions here are for updating the Wire Plane display left panel.
+    """
     def update_file_folder(self, attr, old, new):
         if new == '..':
             self.file_folder = str(Path(self.file_folder).parent)
@@ -360,6 +451,9 @@ class BlipDisplay:
             self.second_figure.x_range = self.first_figure.x_range
             self.second_figure.y_range = self.first_figure.y_range
 
+    """
+    functions here are for updating the Wire Plane display plots.
+    """
     def update_first_figure_radio_group(self, attr, old, new):
         if self.first_figure_radio_group.active == 0:
             self.first_figure_plot_type = "Truth"
@@ -443,7 +537,6 @@ class BlipDisplay:
                 self.second_figure_color_select.value = self.available_prediction_labels[0]
                 self.second_figure_label = self.available_prediction_labels[0]
 
-    
     def load_root_file(self):
         pass
 
@@ -580,4 +673,6 @@ class BlipDisplay:
         self.second_figure.legend.click_policy="hide"
         self.second_figure.xaxis[0].axis_label = "Channel [n]"
         self.second_figure.yaxis[0].axis_label = "TDC [10ns]"
+    
+    ###################### Wire Plane Display ########################
             
