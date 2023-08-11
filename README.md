@@ -10,8 +10,6 @@
 <!-- [![Python Versions](https://img.shields.io/pypi/pyversions/nestpy.svg)](https://pypi.python.org/pypi/nestpy)
 [![PyPI downloads](https://img.shields.io/pypi/dm/nestpy.svg)](https://pypistats.org/packages/nestpy) -->
 
-[![Documentation Status](https://readthedocs.org/projects/blip-dune/badge/?version=latest)](https://blip-dune.readthedocs.io/en/latest/?badge=latest)
-
 Blip is a collection of machine learning tools for reconstructing, classifying and analyzing low energy (< MeV) interactions in liquid argon time projection chambers (LArTPCs).  These interactions leave small point like signals (commonly referred to as "blips", hence the name). Blip is a python package which can be installed locally, or on the Wilson cluster, by following the directions below (eventually Blip will be available on the Wilson cluster without the need to install).
 
 ### Table of Contents
@@ -53,6 +51,34 @@ This uses the HTTPS protocol. For environments (e.g. computing clusters) where o
 Anyone in the "Neutron-Calibration-in-DUNE" organization should be able to develop (push changes to the remote repository).
 
 Please contact Nicholas Carrara or David Rivera about becoming involved in development before merging with the master branch. 
+
+
+## Docker
+The easiest way to run Blip is to grab the docker container.  First, you must install docker and start it up using the commands,
+```bash
+sudo apt-get update
+sudo apt-get install docker.io
+sudo systemctl start docker
+sudo systemctl enable docker
+```
+Then, we can grab the blip container with the following:
+```bash
+docker clone 
+```
+
+To run the image using the blip_display and gpus, there are various command line parameters that must be set,
+```bash
+docker run --it --gpus all -p 5006:5006 blip
+```
+where the *--gpus all* command tells docker to forward GPU access and *-p 5006:5006* port forwards the local 5006 port in the container to the local host 5006 port.  
+
+To access the container with ssh support from the local host, do the following:
+```bash
+docker run -it --rm -e "USER_ID=$(id -u)" -e GROUP_ID="$(id -g)" \
+      -v "$HOME/.ssh:/home/builder/.ssh:rw" \
+      -v "$SSH_AUTH_SOCK:/ssh.socket" -e "SSH_AUTH_SOCK=/ssh.socket" \
+      --gpus all -p 5006:5006 blip
+```
 
 <a name="build"></a>
 ## Building Blip
@@ -98,6 +124,10 @@ docker pull pytorch/pytorch:2.0.1-cuda11.7-cudnn8-devel
 The image can then be loaded by issuing
 ```bash
 docker run -it --gpus all $(pwd):/workspace/ pytorch/pytorch:2.0.1-cuda11.7-cudnn8-devel bash
+```
+From inside the container, we can issue the following commands:
+```bash
+
 ```
 
 <a name="yaml"></a>

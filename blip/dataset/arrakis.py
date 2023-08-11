@@ -99,6 +99,7 @@ class Arrakis:
         self.energy_deposit_point_cloud = None
         self.wire_plane_point_cloud = None
         self.op_det_point_cloud = None
+        self.mc_maps = None
         for key in self.uproot_file.keys():
             if 'energy_deposit_point_cloud' in key:
                 self.energy_deposit_point_cloud = self.uproot_file[key].arrays(library="np")
@@ -194,6 +195,30 @@ class Arrakis:
                 hit_amplitude_view = []
                 hit_charge_view = []
 
+                mc_maps = {
+                    'pdg_code': [],
+                    'parent_track_id': [],
+                    'ancestor_track_id': [],
+                    'ancestor_level': []
+                }
+                for event in range(len(channel)):
+                    mc_maps['pdg_code'].append({
+                        self.mc_maps['pdg_code_map.first'][event][ii]: self.mc_maps['pdg_code_map.second'][event][ii]
+                        for ii in range(len(self.mc_maps['pdg_code_map.first'][event]))
+                    })
+                    mc_maps['parent_track_id'].append({
+                        self.mc_maps['parent_track_id_map.first'][event][ii]: self.mc_maps['parent_track_id_map.second'][event][ii]
+                        for ii in range(len(self.mc_maps['parent_track_id_map.first'][event]))
+                    })
+                    mc_maps['ancestor_track_id'].append({
+                        self.mc_maps['ancestor_track_id_map.first'][event][ii]: self.mc_maps['ancestor_track_id_map.second'][event][ii]
+                        for ii in range(len(self.mc_maps['ancestor_track_id_map.first'][event]))
+                    })
+                    mc_maps['ancestor_level'].append({
+                        self.mc_maps['ancestor_level_map.first'][event][ii]: self.mc_maps['ancestor_level_map.second'][event][ii]
+                        for ii in range(len(self.mc_maps['ancestor_level_map.first'][event]))
+                    })
+
                 for event in range(len(channel)):
                     view_mask = (
                         (channel[event] >= tpc_view[0]) & 
@@ -279,7 +304,7 @@ class Arrakis:
                     "where_created":    socket.gethostname(),
                     "num_events":       len(features),
                     "view":             v,
-                    "mc_maps":          {},
+                    "mc_maps":          mc_maps,
                     "features": {
                         "channel": 0, "tdc": 1, "adc": 2
                     },
