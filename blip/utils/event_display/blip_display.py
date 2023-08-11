@@ -279,7 +279,8 @@ class BlipDisplay:
         self.first_figure = figure(
             title="Plot I [Truth]",
             x_axis_label="x []",
-            y_axis_label="y []"
+            y_axis_label="y []",
+            tool_list = ['pan', 'wheel_zoom', 'box_zoom', 'lasso_select', 'tap', 'reset', 'save']
         )
         self.first_figure_taptool = self.first_figure.select(type=TapTool)
         self.first_figure_taptool.callback = self.update_first_figure_taptool()
@@ -321,7 +322,8 @@ class BlipDisplay:
             x_axis_label="x []",
             y_axis_label="y []",
             x_range=self.first_figure.x_range,
-            y_range=self.first_figure.y_range
+            y_range=self.first_figure.y_range,
+            tool_list = ['pan', 'wheel_zoom', 'box_zoom', 'lasso_select', 'tap', 'reset', 'save']
         )
         self.second_figure_taptool = self.second_figure.select(type=TapTool)
         self.second_figure_taptool.callback = self.update_second_figure_taptool()
