@@ -148,7 +148,7 @@ class BlipDisplay:
         if len(self.available_events) > 0:
             self.event = 0
     
-    def update_first_figure_taptool(self, attr, old, new):
+    def update_first_figure_taptool(self, event):
         print("hello")
 
     def update_second_figure_taptool(self):
