@@ -147,7 +147,7 @@ class BlipDisplay:
         if len(self.available_events) > 0:
             self.event = 0
     
-    def update_first_figure_taptool(self):
+    def update_first_figure_taptool(self, attr, old, new):
         print("hello")
 
     def update_second_figure_taptool(self):
@@ -282,8 +282,8 @@ class BlipDisplay:
             y_axis_label="y []",
             tools='pan,wheel_zoom,box_zoom,lasso_select,tap,reset,save'
         )
-        self.first_figure_taptool = self.first_figure.select(type=TapTool)
-        self.first_figure_taptool.callback = self.update_first_figure_taptool()
+        self.first_figure_taptool = self.first_figure.select(dict(type=TapTool))[0]
+        self.first_figure_taptool.callback = self.update_first_figure_taptool
         self.first_figure.legend.click_policy="hide"
         self.first_figure_radio_text = PreText(
             text="Label type:"
