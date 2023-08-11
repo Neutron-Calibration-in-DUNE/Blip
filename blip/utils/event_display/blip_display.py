@@ -280,12 +280,10 @@ class BlipDisplay:
             title="Plot I [Truth]",
             x_axis_label="x []",
             y_axis_label="y []",
-            tools='pan,wheel_zoom,box_zoom,lasso_select,tap,reset,save'
+            tools='pan,wheel_zoom,box_zoom,lasso_select,reset,save'
         )
-        self.first_figure_taptool = self.first_figure.select(dict(type=TapTool))[0]
-        self.first_figure_taptool.on_change(
-            'data', self.update_first_figure_taptool
-        )
+        self.first_figure_taptool = TapTool(callback=self.update_first_figure_taptool)
+        self.first_figure.add_tools(self.first_figure_taptool)
         self.first_figure.legend.click_policy="hide"
         self.first_figure_radio_text = PreText(
             text="Label type:"
