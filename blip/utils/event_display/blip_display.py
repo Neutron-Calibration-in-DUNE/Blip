@@ -17,6 +17,7 @@ from bokeh.models import CategoricalColorMapper, Toggle
 from bokeh.models import CheckboxButtonGroup, CustomJS
 from bokeh.models import Paragraph, PreText, Dropdown
 from bokeh.models import ColumnDataSource, RadioGroup
+from bokeh.events import Tap
 from bokeh.palettes import Turbo256, Category20, Category20b, TolRainbow, Magma256
 from bokeh.transform import linear_cmap
 from bokeh.transform import factor_cmap, factor_mark
@@ -282,7 +283,7 @@ class BlipDisplay:
             y_axis_label="y []",
             tools='pan,wheel_zoom,box_zoom,lasso_select,tap,reset,save'
         )
-        self.first_figure.data_source.selected.on_change('indices', self.update_first_figure_taptool)
+        self.first_figure.on_event(Tap, self.update_first_figure_taptool)
         # self.first_figure_taptool = TapTool(callback=self.update_first_figure_taptool)
         # self.first_figure.add_tools(self.first_figure_taptool)
         self.first_figure.legend.click_policy="hide"
