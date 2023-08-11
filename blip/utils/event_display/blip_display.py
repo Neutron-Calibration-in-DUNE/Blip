@@ -149,7 +149,7 @@ class BlipDisplay:
             self.event = 0
     
     def update_first_figure_taptool(self, event):
-        print("hello")
+        print(event)
 
     def update_second_figure_taptool(self):
         pass
