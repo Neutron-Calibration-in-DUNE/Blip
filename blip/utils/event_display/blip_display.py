@@ -148,7 +148,7 @@ class BlipDisplay:
             self.event = 0
     
     def update_first_figure_taptool(self):
-        pass
+        print("hello")
 
     def update_second_figure_taptool(self):
         pass
@@ -526,6 +526,8 @@ class BlipDisplay:
         if 'physics' in input_file.files:
             self.predictions['physics'] = input_file['physics']
             self.available_prediction_labels.append('physics')
+        if 'mc_maps' in self.meta.keys():
+            self.mc_maps = self.meta['mc_maps']
         if self.first_figure_plot_type == "Predictions":
             self.first_figure_color_select.options = self.available_prediction_labels
             if len(self.available_prediction_labels) > 0:
@@ -550,6 +552,11 @@ class BlipDisplay:
                 key: val[self.event][0]
                 for key, val in self.predictions.items()
             }
+            if 'mc_maps' in self.meta.keys():
+                self.event_pdg_maps = self.mc_maps['pdg_code'][self.event]
+                self.event_parent_track_id_maps = self.mc_maps['parent_track_id'][self.event]
+                self.event_ancestor_track_id_maps = self.mc_maps['ancestor_track_id'][self.event]
+                self.event_ancestor_level_maps = self.mc_maps['ancestor_level'][self.event]
         else:
             pass
     
