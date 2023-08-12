@@ -46,27 +46,42 @@ class MachineLearningModule(GenericModule):
         """
         """
         self.check_config()
+
+        self.model = None
+        self.criterion = None
+        self.optimizer = None
+        self.metrics = None
+        self.callbacks = None
+        self.trainer = None
+
         self.parse_model()
         self.parse_loss()
         self.parse_optimizer()
         self.parse_metrics()
         self.parse_callbacks()
         self.parse_training()
-            
+        self.parse_inference()
+     
     def check_config(self):
         if "model" not in self.config.keys():
             self.logger.error(f'"model" section not specified in config!')
-        if "criterion" not in self.config.keys():
-            self.logger.error(f'"criterion" section not specified in config!')
-        if "optimizer" not in self.config.keys():
-            self.logger.error(f'"optimizer" section not specified in config!')
-        if "metrics" not in self.config.keys():
-            self.logger.error(f'"metrics" section not specified in config!')
-        if "callbacks" not in self.config.keys():
-            self.logger.error(f'"callbacks" section not specified in config!')
-        if "training" not in self.config.keys():
-            self.logger.error(f'"training" section not specified in config!')
         
+        if self.mode == "training":
+            if "criterion" not in self.config.keys():
+                self.logger.error(f'"criterion" section not specified in config!')
+            if "optimizer" not in self.config.keys():
+                self.logger.error(f'"optimizer" section not specified in config!')
+            if "metrics" not in self.config.keys():
+                self.logger.warn(f'"metrics" section not specified in config!')
+            if "callbacks" not in self.config.keys():
+                self.logger.warn(f'"callbacks" section not specified in config!')
+            if "training" not in self.config.keys():
+                self.logger.error(f'"training" section not specified in config!')
+                
+        if self.mode == "inference":
+            if "inference" not in self.config.keys():
+                self.logger.error(f'"inference" section not specified in config!')
+
         if self.mode == "hyper_parameter_scan":
             if "hyper_parameters" not in self.config.keys():
                 self.logger.error(f'"hyper_parameters" section not specified in config!')
@@ -168,6 +183,29 @@ class MachineLearningModule(GenericModule):
             seed=training_config['seed']
         )
     
+    def parse_inference(self):
+        if "inference" not in self.config.keys():
+            self.logger.warn("no inference in config file.")
+            return
+        if self.trainer == None:
+            self.trainer = Trainer(
+                self.model.model,
+                self.criterion,
+                self.optimizer,
+                self.metrics,
+                self.callbacks,
+                meta=self.meta
+            )
+
+        if "layers" in self.config["inference"].keys():
+            for layer in self.config["inference"]["layers"]:
+                if layer not in self.model.model.forward_views.keys():
+                    self.logger.error(f"layer '{layer}' not in the model forward views!  Possible views: {self.model.model.forward_views.keys()}")
+                self.module_data_product[layer] = None
+        if "outputs" in self.config["inference"].keys():
+            for output in self.config["inference"]["outputs"]:
+                self.module_data_product[output] = None
+    
     def parse_hyper_parameters(self):
         """
         """
@@ -222,7 +260,7 @@ class MachineLearningModule(GenericModule):
     
     def run_module(self):
         if self.mode == 'training':
-            self.trainer.train(
+            self.module_data_product['predictions'] = self.trainer.train(
                 epochs=self.config['training']['epochs'],
                 checkpoint=self.config['training']['checkpoint'],
                 progress_bar=self.config['training']['progress_bar'],
@@ -231,9 +269,12 @@ class MachineLearningModule(GenericModule):
                 no_timing=self.config['training']['no_timing']
             )
         elif self.mode == 'inference':
-            self.trainer.inference(
-                progress_bar=self.config['training']['progress_bar'],
-                rewrite_bar=self.config['training']['rewrite_bar']
+            self.module_data_product['predictions'] = self.trainer.inference(
+                layers=self.config['inference']['layers'],
+                outputs=self.config['inference']['outputs'],
+                progress_bar=self.config['inference']['progress_bar'],
+                rewrite_bar=self.config['inference']['rewrite_bar'],
+                save_predictions=self.config['inference']['save_predictions']
             )
         elif self.mode == 'hyper_parameter_scan':
             self.run_hyper_parameter_scan()

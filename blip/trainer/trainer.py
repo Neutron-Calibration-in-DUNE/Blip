@@ -7,8 +7,10 @@ import os
 from tqdm import tqdm
 from blip.dataset.blip import BlipDataset
 from blip.utils.logger import Logger
+from blip.losses import LossHandler
 from blip.models import ModelChecker
 from blip.metrics import MetricHandler
+from blip.optimizers import Optimizer
 from blip.utils.timing import Timers
 from blip.utils.memory import MemoryTrackers
 from blip.utils.callbacks import CallbackHandler
@@ -29,8 +31,8 @@ class Trainer:
     """
     def __init__(self,
         model,
-        criterion,
-        optimizer,
+        criterion:  LossHandler=None,
+        optimizer:  Optimizer=None,
         metrics:    MetricHandler=None,
         callbacks:  CallbackHandler=None,
         meta:   dict={},
@@ -458,8 +460,11 @@ class Trainer:
         # see if predictions should be saved
         if save_predictions:
             self.logger.info(f"Running inference to save predictions.")
-            self.inference(
+            return self.inference(
                 dataset_type='all',
+                outputs=[output for output in self.shapes["output"].keys()],
+                progress_bar=progress_bar,
+                rewrite_bar=rewrite_bar,
                 save_predictions=True,
             )
     
@@ -580,17 +585,21 @@ class Trainer:
         self.model.save_model(flag='trained')
         if save_predictions:
             self.logger.info(f"Running inference to save predictions.")
-            self.inference(
-                self.meta['loader'],
+            return self.inference(
                 dataset_type='all',
+                outputs=[output for output in self.shapes["output"].keys()],
+                progress_bar=progress_bar,
+                rewrite_bar=rewrite_bar,
                 save_predictions=True,
             )
 
     def inference(self,
         dataset_type:   str='all',  # which dataset to use for inference
+        layers:         list=[],    # which forward views to save
+        outputs:        list=[],    # which outputs to save
         save_predictions:bool=True, # wether to save the predictions
         progress_bar:   bool=True,  # progress bar from tqdm
-        rewrite_bar:    bool=True, # wether to leave the bars after each epoch
+        rewrite_bar:    bool=True,  # wether to leave the bars after each epoch
     ):
         """
         Here we just do inference on a particular part
@@ -636,9 +645,11 @@ class Trainer:
         
         # set up array for predictions
         predictions = {
-            classes: []
-            for classes in self.shapes["output"].keys()
+            layer: [] 
+            for layer in layers
         }
+        for output in outputs:
+            predictions[output] = []
 
         self.logger.info(f"running inference on dataset '{self.meta['dataset'].name}'.")
         # make sure to set model to eval() during validation!
@@ -648,16 +659,20 @@ class Trainer:
                 self.metrics.reset_batch()
             for ii, data in inference_loop:
                 # get the network output
-                outputs = self.model(data)
-                for jj, key in enumerate(outputs.keys()):
+                model_output = self.model(data)
+                for jj, key in enumerate(model_output.keys()):
                     if key in predictions.keys():
-                        predictions[key].append([outputs[key].cpu().numpy()])
+                        predictions[key].append([model_output[key].cpu().numpy()])
+                for jj, key in enumerate(self.model.forward_views.keys()):
+                    if key in predictions.keys():
+                        predictions[key].append([self.model.forward_views[key].cpu().numpy()])
                 # compute loss
-                loss = self.criterion.loss(outputs, data)
+                if self.criterion != None:
+                    loss = self.criterion.loss(model_output, data)
 
                 # update metrics
                 if self.metrics != None:
-                    self.metrics.update(outputs, data, train_type="inference")
+                    self.metrics.update(model_output, data, train_type="inference")
 
                 # update progress bar
                 if (progress_bar == True):
