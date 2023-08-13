@@ -258,8 +258,8 @@ class Arrakis:
             edeps = np.array([
                 np.vstack((
                     edep_energy_tpc[ii],
-                    edep_num_photons[ii],
-                    edep_num_electrons[ii])).T
+                    edep_num_photons_tpc[ii],
+                    edep_num_electrons_tpc[ii])).T
                 for ii in range(len(edep_t_tpc))],
                 dtype=object
             )
