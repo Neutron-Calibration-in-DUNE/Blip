@@ -56,6 +56,20 @@ class Arrakis:
             "tpc10": [[12800,13599],[13600,14399],[14400,14879]],
             "tpc11": [[12800,13599],[13600,14399],[14880,15359]],
         }
+        self.protodune_tpc_positions = {
+            "tpc0": [[],[],[]],
+            "tpc1": [[],[],[]],
+            "tpc2": [[],[],[]],
+            "tpc3": [[],[],[]],
+            "tpc4": [[],[],[]],
+            "tpc5": [[],[],[]],
+            "tpc6": [[],[],[]],
+            "tpc7": [[],[],[]],
+            "tpc8": [[],[],[]],
+            "tpc9": [[],[],[]],
+            "tpc10": [[],[],[]],
+            "tpc11": [[],[],[]],
+        }
 
         self.parse_config()
 
@@ -129,6 +143,10 @@ class Arrakis:
         input_file: str=''
     ):
         """
+        We iterate over each tpc and collect all (x,y,z) points for each 
+        point cloud into a features array, together with (source, topology, particle) as
+        the categorical information and (topology, particle) as clustering
+        information.
         """
         if self.energy_deposit_point_cloud == None:
             self.logger.warn(f'no energy_deposit_point_cloud data in file {input_file}!')
@@ -136,6 +154,178 @@ class Arrakis:
         self.logger.info(
             f"generating 'energy_deposit_point_cloud' training data from file: {input_file}"
         )
+        edep_t = self.energy_deposit_point_cloud['edep_t']
+        edep_x = self.energy_deposit_point_cloud['edep_x']
+        edep_y = self.energy_deposit_point_cloud['edep_y']
+        edep_z = self.energy_deposit_point_cloud['edep_z']
+        edep_energy = self.energy_deposit_point_cloud['edep_energy']
+        edep_num_photons = self.energy_deposit_point_cloud['edep_num_photons']
+        edep_num_electrons = self.energy_deposit_point_cloud['edep_num_electrons']
+
+        # construct ids and names for source, topology and particle labels
+        source_label = self.energy_deposit_point_cloud['source_label']
+        topology_label = self.energy_deposit_point_cloud['topology_label']
+        particle_label = self.energy_deposit_point_cloud['particle_label']
+        physics_label = self.energy_deposit_point_cloud['physics_label']
+        unique_topology_label = self.energy_deposit_point_cloud['unique_topology']
+        unique_particle_label = self.energy_deposit_point_cloud['unique_particle']
+        unique_physics_label = self.energy_deposit_point_cloud['unique_physics']
+
+        for tpc, tpc_ranges in self.protodune_tpc_positions.items():
+            edep_t_tpc = []
+            edep_x_tpc = []
+            edep_y_tpc = []
+            edep_z_tpc = []
+            edep_energy_tpc = []
+            edep_num_photons_tpc = []
+            edep_num_electrons_tpc = []
+            source_label_tpc = []
+            topology_label_tpc = []
+            particle_label_tpc = []
+            physics_label_tpc = []
+            unique_topology_label_tpc = []
+            unique_particle_label_tpc = []
+            unique_physics_label_tpc = []
+
+            for event in range(len(edep_t)):
+                view_mask = (
+                    (edep_x[event] >= tpc_ranges[0][0]) & 
+                    (edep_x[event] < tpc_ranges[0][1]) & 
+                    (edep_y[event] >= tpc_ranges[1][0]) & 
+                    (edep_y[event] < tpc_ranges[1][1]) & 
+                    (edep_z[event] >= tpc_ranges[2][0]) & 
+                    (edep_z[event] < tpc_ranges[2][1]) & 
+                    #(source_label[event] >= 0) &        # we don't want 'undefined' points in our dataset.
+                    (topology_label[event] >= 0) &         # i.e., things with a label == -1
+                    (particle_label[event] >= 0)
+                )
+                if np.sum(view_mask) > 0:
+                    edep_t_tpc.append(edep_t[event][view_mask])
+                    edep_x_tpc.append(edep_x[event][view_mask])
+                    edep_y_tpc.append(edep_y[event][view_mask])
+                    edep_z_tpc.append(edep_z[event][view_mask])
+                    edep_energy_tpc.append(edep_energy[event][view_mask])
+                    edep_num_photons_tpc.append(edep_num_photons[event][view_mask])
+                    edep_num_electrons_tpc.append(edep_num_electrons[event][view_mask])
+                    source_label_tpc.append(source_label[event][view_mask])
+                    topology_label_tpc.append(topology_label[event][view_mask])
+                    particle_label_tpc.append(particle_label[event][view_mask])
+                    physics_label_tpc.append(physics_label[event][view_mask])
+                    unique_topology_label_tpc.append(unique_topology_label[event][view_mask])
+                    unique_particle_label_tpc.append(unique_particle_label[event][view_mask])
+                    unique_physics_label_tpc.append(unique_physics_label[event][view_mask])
+
+            edep_t_tpc = np.array(edep_t_tpc, dtype=object)
+            edep_x_tpc = np.array(edep_x_tpc, dtype=object)
+            edep_y_tpc = np.array(edep_y_tpc, dtype=object)
+            edep_z_tpc = np.array(edep_z_tpc, dtype=object)
+            edep_energy_tpc = np.array(edep_energy_tpc, dtype=object)
+            edep_num_photons_tpc = np.array(edep_num_photons_tpc, dtype=object)
+            edep_num_electrons_tpc = np.array(edep_num_electrons_tpc, dtype=object)
+            source_label_tpc = np.array(source_label_tpc, dtype=object)
+            topology_label_tpc = np.array(topology_label_tpc, dtype=object)
+            particle_label_tpc = np.array(particle_label_tpc, dtype=object)
+            physics_label_tpc = np.array(physics_label_tpc, dtype=object)
+            unique_topology_label_tpc = np.array(unique_topology_label_tpc, dtype=object)
+            unique_particle_label_tpc = np.array(unique_particle_label_tpc, dtype=object)
+            unique_physics_label_tpc = np.array(unique_physics_label_tpc, dtype=object)
+
+            if len(edep_t_tpc.flatten()) == 0:
+                continue
+            features = np.array([
+                np.vstack(
+                    (edep_t_tpc[ii], edep_x_tpc[ii], edep_y_tpc[ii], edep_z_tpc[ii])).T
+                for ii in range(len(edep_t_tpc))],
+                dtype=object
+            )
+            classes = np.array([
+                np.vstack((
+                    source_label_tpc[ii], 
+                    topology_label_tpc[ii], 
+                    particle_label_tpc[ii], 
+                    physics_label_tpc[ii])).T
+                for ii in range(len(edep_t_tpc))],
+                dtype=object
+            )          
+            clusters = np.array([
+                np.vstack((
+                    unique_topology_label_tpc[ii], 
+                    unique_particle_label_tpc[ii],
+                    unique_physics_label_tpc[ii])).T
+                for ii in range(len(edep_t_tpc))],
+                dtype=object
+            )
+            edeps = np.array([
+                np.vstack((
+                    edep_energy_tpc[ii],
+                    edep_num_photons[ii],
+                    edep_num_electrons[ii])).T
+                for ii in range(len(edep_t_tpc))],
+                dtype=object
+            )
+            merge_tree = np.array([])
+
+            meta = {
+                "who_created":      getpass.getuser(),
+                "when_created":     datetime.now().strftime("%m-%d-%Y-%H:%M:%S"),
+                "where_created":    socket.gethostname(),
+                "num_events":       len(features),
+                "features": {
+                    "t": 0, "x": 1, "y": 2, "z": 3
+                },
+                "classes": {
+                    "source": 0, "topology": 1, "particle": 2, "physics": 3
+                },
+                "clusters": {
+                    "topology":  0, "particle": 1, "physics": 2
+                },
+                "edeps": {
+                    "energy": 0, "num_photons": 1, "num_electrons": 2
+                },
+                "source_labels": {
+                    key: value
+                    for key, value in classification_labels["source"].items()
+                },
+                "source_points": {
+                    key: np.count_nonzero(np.concatenate(source_label_tpc) == key)
+                    for key, value in classification_labels["source"].items()
+                },
+                "topology_labels": {
+                    key: value
+                    for key, value in classification_labels["topology"].items()
+                },
+                "topology_points": {
+                    key: np.count_nonzero(np.concatenate(topology_label_tpc) == key)
+                    for key, value in classification_labels["topology"].items()
+                },
+                "particle_labels": {
+                    key: value
+                    for key, value in classification_labels["particle"].items()
+                },      
+                "particle_points": {
+                    key: np.count_nonzero(np.concatenate(particle_label_tpc) == key)
+                    for key, value in classification_labels["particle"].items()
+                },
+                "physics_labels": {
+                    key: value
+                    for key, value in classification_labels["physics"].items()
+                },      
+                "physics_points": {
+                    key: np.count_nonzero(np.concatenate(physics_label_tpc) == key)
+                    for key, value in classification_labels["physics"].items()
+                },
+                "total_points":     len(np.concatenate(features)),   
+            }
+                
+            np.savez(
+                f"data/{self.output_folders[input_file]}/edep_{tpc}.npz",
+                features=features,
+                classes=classes,
+                clusters=clusters,
+                edeps=edeps,
+                merge_tree=merge_tree,
+                meta=meta
+            )
 
     def generate_view_tpc_point_cloud(self,
         input_file: str=''
