@@ -115,7 +115,7 @@ class Arrakis:
         self.op_det_point_cloud = None
         self.mc_maps = None
         for key in self.uproot_file.keys():
-            if 'energy_deposit_point_cloud' in key:
+            if 'mc_edep_point_cloud' in key:
                 self.energy_deposit_point_cloud = self.uproot_file[key].arrays(library="np")
             elif 'mc_wire_plane_point_cloud' in key:
                 self.wire_plane_point_cloud = self.uproot_file[key].arrays(library="np")
