@@ -107,7 +107,7 @@ class TPCDisplay:
         else:
             self.document = document
 
-        self.construct_widgets(self.document)
+        self.construct_tpc_widgets(self.document)
 
     def update_available_folders(self):
         self.available_folders = ['.', '..']
