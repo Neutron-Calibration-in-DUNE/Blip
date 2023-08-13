@@ -40,14 +40,12 @@ class BlipDisplay:
     def __init__(self,
         document = None
     ):
-        
-
         if document == None:
             self.document = curdoc()
         else:
             self.document = document
 
-        self.tpc_display = TPCDisplay(self.document)
+        # self.tpc_display = TPCDisplay(self.document)
         self.construct_widgets(self.document)
 
     def construct_widgets(self,
@@ -65,9 +63,9 @@ class BlipDisplay:
         self.blip_tab = TabPanel(
             child=self.blip_layout, title="Blip Runner"
         )
-        self.tpc_display_tab = TabPanel(
-            child=self.tpc_display.tpc_layout, title="Wire-Plane"
-        )
+        # self.tpc_display_tab = TabPanel(
+        #     child=self.tpc_display.tpc_layout, title="Wire-Plane"
+        # )
         self.semantic_model_tab = TabPanel(
             child=self.semantic_model_layout, title="Semantic Model"
         )
@@ -78,7 +76,7 @@ class BlipDisplay:
         self.tab_layout = Tabs(tabs=[
             self.header_tab,
             self.blip_tab,
-            self.tpc_display_tab,
+            # self.tpc_display_tab,
             self.semantic_model_tab,
             self.point_net_embedding_tab
         ])
