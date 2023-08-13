@@ -32,7 +32,7 @@ from pathlib import Path
 import imageio
 
 from blip.utils.logger import Logger
-from blip.utils.event_display.tpc import TPCDisplay
+from blip.utils.event_display import TPCDisplay
 
 class BlipDisplay:
     """

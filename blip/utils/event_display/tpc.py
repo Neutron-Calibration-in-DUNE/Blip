@@ -327,25 +327,6 @@ class TPCDisplay:
                 height_policy='fixed', height=1000
             )
         )
-    
-    def construct_tpc_channel_widgets(self,
-        document
-    ):
-        self.tpc_channel_layout = row()
-    
-    def construct_semantic_widgets(self,
-        document
-    ):
-        self.semantic_model_layout = row()
-
-    def construct_point_net_embedding_widgets(self,
-        document
-    ):
-        self.point_net_embedding_layout = row()
-    
-    ######################## Header Display ##########################
-
-    ######################### Blip Display ###########################
 
     ######################### TPC Display ############################
     """
@@ -630,5 +611,4 @@ class TPCDisplay:
         self.second_figure.xaxis[0].axis_label = "Channel [n]"
         self.second_figure.yaxis[0].axis_label = "TDC [10ns]"
     
-    ###################### Wire Plane Display ########################
             
