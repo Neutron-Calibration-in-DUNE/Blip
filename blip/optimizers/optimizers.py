@@ -54,7 +54,7 @@ class Optimizer:
                 self.model.parameters(),
                 lr=self.learning_rate,
                 betas=self.config["betas"],
-                eps=self.config["epsilon"],
+                eps=float(self.config["epsilon"]),
                 weight_decay=self.config["weight_decay"]
             )
         else:

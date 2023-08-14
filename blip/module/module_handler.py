@@ -57,7 +57,12 @@ class ModuleHandler:
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
         for module_file in self.module_files:
-            if ("__init__.py" in module_file) or ("__pycache__.py" in module_file) or ("generic_module.py" in module_file) or ("__pycache__" in module_file):
+            if (
+                ("__init__.py" in module_file) or 
+                ("__pycache__.py" in module_file) or 
+                ("generic_module.py" in module_file) or 
+                ("__pycache__" in module_file)
+            ):
                 continue
             # try:
             self.load_module(module_file)
@@ -71,13 +76,11 @@ class ModuleHandler:
             f'{module_file.removesuffix(".py")}.name', 
             module_file
         )
-        print(spec)
         custom_module_file = importlib.util.module_from_spec(spec)
         sys.modules[f'{module_file.removesuffix(".py")}.name'] = custom_module_file
         spec.loader.exec_module(custom_module_file)
         for name, obj in inspect.getmembers(sys.modules[f'{module_file.removesuffix(".py")}.name']):
             if inspect.isclass(obj):
-                print("class")
                 custom_class = getattr(custom_module_file, name)
                 if issubclass(custom_class, GenericModule):
                     self.available_modules[name] = custom_class
