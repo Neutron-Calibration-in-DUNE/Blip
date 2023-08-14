@@ -1,7 +1,6 @@
 from .generic_model import GenericModel
 from .model_checker import ModelChecker
 from .pointnet import PointNet
-from .set_abstraction_dbscan import SetAbstractionDBSCAN
 from .feature_propagation import FeaturePropagation
 from .segmentation import Segmentation
 from .pointnet_plus_plus import PointNetPlusPlus
