@@ -75,9 +75,11 @@ class ModuleHandler:
         sys.modules[f'{module_file.removesuffix(".py")}.name'] = custom_module_file
         spec.loader.exec_module(custom_module_file)
         for name, obj in inspect.getmembers(sys.modules[f'{module_file.removesuffix(".py")}.name']):
+            print(module_file)
+            print(name)
+            print(obj)
             if inspect.isclass(obj):
                 custom_class = getattr(custom_module_file, name)
-                print(custom_class)
                 if issubclass(custom_class, GenericModule):
                     self.available_modules[name] = custom_class
     
