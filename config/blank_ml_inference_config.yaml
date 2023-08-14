@@ -22,17 +22,12 @@ dataset:
   dataset_type:   ""
   dataset_folder: ""
   dataset_files:  []
-  normalized:     False
-  root:           "."
-  skip_processing:  False
-  transform:        null
-  pre_transform:    null
-  pre_filter:       null
   # ---- variables ----
   # The following variables are enough to describe a general set of tasks.  In tasks involving
   # semantic segmentation or point clouds networks, there should be a distinction between 
   # 'positions' and 'features', the former of which defines the grid/point cloud geometry,
   # while the later refers to discriminating variables.
+  view:           2
   positions:      []
   features:       []
   classes:        []
@@ -71,6 +66,12 @@ dataset:
   # only two important shapes, "blip" and "not-blip",
   # then we would consolidate like below:
   consolidate_classes:  
+  # transforms and filters
+  root:           "."
+  skip_processing:  False
+  transform:        null
+  pre_transform:    null
+  pre_filter:       null
 
 loader:
   loader_type:      ""

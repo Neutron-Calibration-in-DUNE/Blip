@@ -24,23 +24,35 @@ from blip.dataset.generic_dataset import GenericDataset
 from blip.dataset.common import *
 
 blip_dataset_config = {
-    "name":             "default",
-    # type of this blip dataset
-    "dataset_type":     "voxel",
+    "name":               "default",
+    # type of this blip dataset which could be
+    # view, wire_plane, tpc, tpc_reco, view_cluster, tpc_cluster
+    "dataset_type":       "view",   
     # input folder and files    
-    "dataset_folder":     "data/",
-    "dataset_files":      [""],
+    "dataset_folder":   "data/",
+    "dataset_files":    [""],
     # positions, features, classes, etc.
-    "positions":            [],
-    "features":             [],
-    "classes":              [],
-    "normalized":           True,
+    "view":         2,
+    "positions":    [],
+    "features":     [],
+    "classes":      [],
+    "clusters":     [],
+    "hits":         [],
+    # normalizations
+    "positions_normalization":   [],
+    "features_normalization":   [],
+    # weights
+    "class_weights":    [],
+    "sample_weights":   [],
     # clustering parameters
     "dbscan_min_samples":   10,
     "dbscan_eps":       10.0,
     "cluster_class":    "topology",
     "cluster_label":    "blip",
-    "cluster_positions":    [],
+    "cluster_variables":[],
+    # masks
+    "class_mask":   "",
+    "label_mask":   "",
     # transforms and filters
     "root":             ".",
     "transform":        None,
@@ -131,7 +143,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             except:
                 self.logger.error(f'error reading file "{input_file}"!')
         try:
-            self.meta['features'] = temp_arrakis_meta[0]['features']
+            self.meta['view_features'] = temp_arrakis_meta[0]['view_features']
+            self.meta['edep_features'] = temp_arrakis_meta[0]['edep_features']
             self.meta['classes'] = temp_arrakis_meta[0]['classes']
             self.meta['clusters'] = temp_arrakis_meta[0]['clusters']
             self.meta['hits'] = temp_arrakis_meta[0]['hits']
@@ -139,17 +152,25 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             self.meta['topology_labels'] = temp_arrakis_meta[0]['topology_labels']
             self.meta['particle_labels'] = temp_arrakis_meta[0]['particle_labels']
             self.meta['physics_labels'] = temp_arrakis_meta[0]['physics_labels']
-            self.meta['source_points'] = temp_arrakis_meta[0]['source_points']
-            self.meta['topology_points'] = temp_arrakis_meta[0]['topology_points']
-            self.meta['particle_points'] = temp_arrakis_meta[0]['particle_points']
-            self.meta['total_points'] = temp_arrakis_meta[0]['total_points']
-            self.meta['adc_view_sum'] = [temp_arrakis_meta[0]['adc_view_sum']]
         except:
             self.logger.error(f'error collecting meta information from arrakis file {input_file}!')
+        for point_label in [
+            'edep_source_points', 'edep_topology_points', 'edep_particle_points', 'edep_physics_points', 'edep_total_points',
+            'view_0_source_points', 'view_0_topology_points', 'view_0_particle_points', 'view_0_physics_points', 'view_0_total_points',
+            'view_1_source_points', 'view_1_topology_points', 'view_1_particle_points', 'view_1_physics_points', 'view_1_total_points',
+            'view_2_source_points', 'view_2_topology_points', 'view_2_particle_points', 'view_2_physics_points', 'view_2_total_points',
+            'view_0_adc_sum', 'view_1_adc_sum', 'view_2_adc_sum', 
+        ]:
+            try:
+                self.meta[point_label] = temp_arrakis_meta[0][point_label]
+            except:
+                self.logger.warn(f'no "{point_label}" in meta!')
         
         # Check that meta info is consistent over the different files
         for ii in range(len(temp_arrakis_meta)-1):
-            if self.meta['features'] != temp_arrakis_meta[ii+1]['features']:
+            if self.meta['view_features'] != temp_arrakis_meta[ii+1]['view_features']:
+                self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
+            if self.meta['edep_features'] != temp_arrakis_meta[ii+1]['edep_features']:
                 self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
             if self.meta['classes'] != temp_arrakis_meta[ii+1]['classes']:
                 self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
@@ -163,18 +184,26 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
             if self.meta['particle_labels'] != temp_arrakis_meta[ii+1]['particle_labels']:
                 self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
-            for key in self.meta['source_points'].keys():
-                self.meta['source_points'][key] += temp_arrakis_meta[ii+1]['source_points'][key]
-            for key in self.meta['topology_points'].keys():
-                self.meta['topology_points'][key] += temp_arrakis_meta[ii+1]['topology_points'][key]
-            for key in self.meta['particle_points'].keys():
-                self.meta['particle_points'][key] += temp_arrakis_meta[ii+1]['particle_points'][key]
-            self.meta['total_points'] += temp_arrakis_meta[ii+1]['total_points']
-            self.meta['adc_view_sum'].append(temp_arrakis_meta[ii+1]['adc_view_sum'])
+            for point_label in [
+                'edep_source_points', 'edep_topology_points', 'edep_particle_points', 'edep_physics_points', 'edep_total_points',
+                'view_0_source_points', 'view_0_topology_points', 'view_0_particle_points', 'view_0_physics_points', 'view_0_total_points',
+                'view_1_source_points', 'view_1_topology_points', 'view_1_particle_points', 'view_1_physics_points', 'view_1_total_points',
+                'view_2_source_points', 'view_2_topology_points', 'view_2_particle_points', 'view_2_physics_points', 'view_2_total_points',
+            ]:
+                if point_label in temp_arrakis_meta[ii+1].keys():
+                    for key in self.meta[point_label].keys():
+                        self.meta[point_label][key] += temp_arrakis_meta[ii+1][point_label][key]
 
-        self.meta['features_names'] = list(self.meta['features'].keys())
-        self.meta['features_values'] = list(self.meta['features'].values())
-        self.meta['features_names_by_value'] = {val: key for key, val in self.meta['features'].items()}
+        # arange dictionaries for label<->value<->index maps
+        self.meta['edep_features_names'] = list(self.meta['edep_features'].keys())
+        self.meta['edep_features_values'] = list(self.meta['edep_features'].values())
+        self.meta['edep_features_names_by_value'] = {val: key for key, val in self.meta['edep_features'].items()}
+        self.meta['view_features_names'] = list(self.meta['view_features'].keys())
+        self.meta['view_features_values'] = list(self.meta['view_features'].values())
+        self.meta['view_features_names_by_value'] = {val: key for key, val in self.meta['view_features'].items()}
+        self.meta['features_names'] = self.meta['edep_features_names'] + self.meta['view_features_names']
+        self.meta['features_values'] = self.meta['edep_features_values'] + self.meta['view_features_values']
+        self.meta['features_names_by_value'] = {**self.meta['edep_features_names_by_value'], **self.meta['view_features_names_by_value']}
         self.meta['classes_names'] = list(self.meta['classes'].keys())
         self.meta['classes_values'] = list(self.meta['classes'].values())
         self.meta['classes_names_by_value'] = {val: key for key, val in self.meta['classes'].items()}
@@ -334,7 +363,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         if "dataset_type" not in self.config.keys():
             self.logger.error(f'no dataset_type specified in config!')
         self.dataset_type = self.config["dataset_type"]
-        if self.dataset_type == 'voxel':
+        if self.dataset_type == 'view':
+            self.meta['view'] = self.config['view']
             self.meta['position_type'] = torch.int
         else:
             self.meta['position_type'] = torch.float
@@ -622,31 +652,51 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         
         for jj, raw_path in enumerate(self.dataset_files):
             data = np.load(raw_path, allow_pickle=True)
-            features = data['features']
-            classes = data['classes']
-            clusters = data['clusters']
-            hits = data['hits']
-            # Iterate over all events in this file
-            for ii in range(len(features)):
-                # gather event features and classes
-                event_features = features[ii]
-                event_classes = classes[ii]
-                event_clusters = clusters[ii]
-                event_hits = hits[ii]
-                if self.dataset_type == "cluster":
-                    self.process_cluster(
+            # view, wire_plane, tpc, tpc_reco, view_cluster, tpc_cluster
+            if self.meta['dataset_type'] == 'view':
+                features = data[f'view_{self.meta["view"]}_features']
+                classes = data[f'view_{self.meta["view"]}_classes']
+                clusters = data[f'view_{self.meta["view"]}_clusters']
+                hits = data[f'view_{self.meta["view"]}_hits']
+                # Iterate over all events in this file
+                for ii in range(len(features)):
+                    # gather event features and classes
+                    event_features = features[ii]
+                    event_classes = classes[ii]
+                    event_clusters = clusters[ii]
+                    event_hits = hits[ii]
+                    self.process_view(
                         event_features, event_classes, 
                         event_clusters, event_hits, raw_path
                     )
-                elif self.dataset_type == "voxel":
-                    self.process_voxel(
+            elif self.meta['dataset_type'] == 'view_cluster':
+                features = data[f'view_{self.meta["view"]}_features']
+                classes = data[f'view_{self.meta["view"]}_classes']
+                clusters = data[f'view_{self.meta["view"]}_clusters']
+                hits = data[f'view_{self.meta["view"]}_hits']
+                # Iterate over all events in this file
+                for ii in range(len(features)):
+                    # gather event features and classes
+                    event_features = features[ii]
+                    event_classes = classes[ii]
+                    event_clusters = clusters[ii]
+                    event_hits = hits[ii]
+                    self.process_view_cluster(
                         event_features, event_classes, 
                         event_clusters, event_hits, raw_path
                     )
+            elif self.meta['dataset_type'] == 'wire_plane':
+                pass
+            elif self.meta['dataset_type'] == 'tpc':
+                pass
+            elif self.meta['dataset_type'] == 'tpc_reco':
+                pass
+            elif self.meta['dataset_type'] == 'tpc_cluster':
+                pass
         self.number_of_events = self.index
         self.logger.info(f"processed {self.number_of_events} events.")
 
-    def process_cluster(self,
+    def process_view_cluster(self,
         event_features,
         event_classes,
         event_clusters,
@@ -724,7 +774,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         self.meta['input_events'][raw_path].append(input_events)
         self.meta['cluster_indices'][raw_path].append(cluster_indices)
                            
-    def process_voxel(self,
+    def process_view(self,
         event_features,
         event_classes,
         event_clusters,

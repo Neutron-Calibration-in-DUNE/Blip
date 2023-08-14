@@ -212,7 +212,7 @@ class Arrakis:
 
         for tpc, tpc_ranges in self.protodune_tpc_positions.items():
             np.savez(
-                f"data/{self.output_folders[input_file]}/tpc_{tpc}.npz",
+                f"data/{self.output_folders[input_file]}/{tpc}.npz",
                 edep_features=self.energy_deposit_point_clouds[tpc]['edep_features'],
                 edep_classes=self.energy_deposit_point_clouds[tpc]['edep_classes'],
                 edep_clusters=self.energy_deposit_point_clouds[tpc]['edep_clusters'],
