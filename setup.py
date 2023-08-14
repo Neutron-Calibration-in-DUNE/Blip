@@ -15,7 +15,7 @@ setup(
     version='00.01.00',
 
     # descriptions
-    description='Blobs and Low-energy Interaction Pointnet.',
+    description='Blips and Low-energy Interaction Pointnet.',
     long_description=long_description,
     long_description_content_type="text/markdown",
     keywords='',
