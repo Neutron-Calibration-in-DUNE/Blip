@@ -60,10 +60,10 @@ class ModuleHandler:
             print(module_file)
             if module_file in ["__init__.py", "__pycache__.py", "generic_module.py"]:
                 continue
-            try:
-                self.load_module(module_file)
-            except:
-                pass
+            # try:
+            self.load_module(module_file)
+            # except:
+            #     pass
     
     def load_module(self,
         module_file: str
