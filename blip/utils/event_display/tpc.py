@@ -39,29 +39,54 @@ class TPCDisplay:
     def __init__(self,
         document = None
     ):
-        # Wire plane display
-        self.file_folder = str(Path().absolute())
-        self.available_folders = []
-        self.update_available_folders()
-
-        self.available_files = []
-        self.input_file = ''
-        self.update_available_files()
+        # File folder and file select.
+        # These act as drop down menus which update upon 
+        # selecting, one for wire planes and another for 
+        # edeps.
+        self.wire_plane_file_folder = str(Path().absolute())
+        self.wire_plane_available_folders = []
+        self.update_wire_plane_available_folders()
+        self.edep_file_folder = str(Path().absolute())
+        self.edep_available_folders = []
+        self.update_edep_available_folders()
+        self.wire_plane_input_file = ''
+        self.wire_plane_available_files = []
+        self.update_wire_plane_available_files()
+        self.edep_available_folders_input_file = ''
+        self.edep_available_folders_files = []
+        self.update_edep_available_files()
         
-        self.meta = {}
-        self.available_events = []
-        self.event = -1
-        self.meta_vars = [
+        # Meta information from blip dataset files (.npz)
+        self.wire_plane_meta = {}
+        self.wire_plane_available_events = []
+        self.wire_plane_event = -1
+        self.wire_plane_meta_vars = [
             "input_file", "who_created", "when_created",
             "where_created", "num_events", "view",
             "features", "classes"
         ]
-        self.meta_vals = [
+        self.wire_plane_meta_vals = [
             '...', '...', '...', '...', '...', '...', '...', '...'
         ]
-        self.meta_string = ''
+        self.wire_plane_meta_string = ''
+        self.update_meta_string()
+        self.edep_meta = {}
+        self.edep_available_events = []
+        self.edep_event = -1
+        self.edep_meta_vars = [
+            "input_file", "who_created", "when_created",
+            "where_created", "num_events", "view",
+            "features", "classes"
+        ]
+        self.edep_meta_vals = [
+            '...', '...', '...', '...', '...', '...', '...', '...'
+        ]
+        self.edep_meta_string = ''
         self.update_meta_string()
 
+        # Arrakis simulation wrangler mc truth maps
+        # which allow us to query variables through
+        # the track id of the particle.
         self.simulation_wrangler_vars = [
             "pdg_code", "generator", "generator_label", 
             "particle_id", "particle_energy",
@@ -71,64 +96,103 @@ class TPCDisplay:
             "detsim_edep"
         ]
         self.simulation_wrangler_vals = [
-            '...', '...', '...', '...','...',
-            '...','...','...','...','...','...','...',
-            '...','...','...','...'
+            '...','...','...','...','...',
+            '...','...','...','...','...','...',
+            '...','...','...','...','...'
         ]
         self.simulation_wrangler_string = ''
         self.update_simulation_wrangler_string()
         
+        # data from blip dataset files for a given 
+        # event.
         self.features = []
         self.classes = []
         self.clusters = []
+        self.hits = []
+        self.edeps = []
         self.predictions = {}
 
-        self.plot_options = ["Truth", "Predictions", "Channel", "MergeTree"]
+        self.plot_options = [
+            "Wire Plane", "Wire Channel", "TPC", "MergeTree"
+        ]
 
         # parameters for first plot
-        self.available_truth_labels = [
+        self.available_wire_plane_truth_labels = [
             'adc', 
             'source', 'topology', 'particle', 'physics', 
             'cluster_topology', 'cluster_particle', 'cluster_physics',
             'hit_mean', 'hit_rms', 'hit_amplitude', 'hit_charge'
         ]
+        self.available_wire_channel_truth_labels = []
+        self.available_edep_truth_labels = [
+            'energy', 'num_photons', 'num_electrons', 
+            'source', 'topology', 'particle', 'physics', 
+            'cluster_topology', 'cluster_particle', 'cluster_physics',
+        ]
+        self.available_merge_tree_truth_labels = []
+
+
+
         self.first_figure_label = 'adc'
         self.first_scatter = {}
-        self.first_figure_plot_type = "Truth"
+        self.first_figure_plot_type = "Wire Plane"
 
         # parameters for second plot
         self.available_prediction_labels = []
         self.second_figure_label = ''
         self.second_scatter = {}
-        self.second_figure_plot_type = "Predictions"
+        self.second_figure_plot_type = "Wire Plane"
         
         self.document = document
 
         self.construct_widgets(self.document)
 
-    def update_available_folders(self):
-        self.available_folders = ['.', '..']
+    def update_wire_plane_available_folders(self):
+        self.wire_plane_available_folders = ['.', '..']
         folders = [
-            f.parts[-1] for f in Path(self.file_folder).iterdir() if f.is_dir()
+            f.parts[-1] for f in Path(self.wire_plane_file_folder).iterdir() if f.is_dir()
         ]
         if len(folders) > 0:
             folders.sort()
-            self.available_folders += folders
+            self.wire_plane_available_folders += folders
         
-    def update_available_files(self):
-        self.available_files = [
-            f.parts[-1] for f in Path(self.file_folder).iterdir() if f.is_file()
+    def update_wire_plane_available_files(self):
+        self.wire_plane_available_files = [
+            f.parts[-1] for f in Path(self.wire_plane_file_folder).iterdir() if f.is_file()
         ]
-        if len(self.available_files) > 0:
-            self.available_files.sort()
+        if len(self.wire_plane_available_files) > 0:
+            self.wire_plane_available_files.sort()
+    
+    def update_edep_available_folders(self):
+        self.edep_available_folders = ['.', '..']
+        folders = [
+            f.parts[-1] for f in Path(self.edep_file_folder).iterdir() if f.is_dir()
+        ]
+        if len(folders) > 0:
+            folders.sort()
+            self.edep_available_folders += folders
+        
+    def update_edep_available_files(self):
+        self.edep_available_files = [
+            f.parts[-1] for f in Path(self.edep_file_folder).iterdir() if f.is_file()
+        ]
+        if len(self.edep_available_files) > 0:
+            self.edep_available_files.sort()
 
     def update_meta_string(self):
-        self.meta_string = ''
-        for ii, item in enumerate(self.meta_vars):
-            self.meta_string += item
-            self.meta_string += ":\t"
-            self.meta_string += str(self.meta_vals[ii])
-            self.meta_string += "\n"
+        self.wire_plane_meta_string = ''
+        for ii, item in enumerate(self.wire_plane_meta_vars):
+            self.wire_plane_meta_string += item
+            self.wire_plane_meta_string += ":\t"
+            self.wire_plane_meta_string += str(self.wire_plane_meta_vals[ii])
+            self.wire_plane_meta_string += "\n"
+    
+        self.edep_meta_string = ''
+        for ii, item in enumerate(self.edep_meta_vars):
+            self.edep_meta_string += item
+            self.edep_meta_string += ":\t"
+            self.edep_meta_string += str(self.edep_meta_vals[ii])
+            self.edep_meta_string += "\n"
     
     def update_simulation_wrangler_string(self):
         self.simulation_wrangler_string = ''
@@ -139,11 +203,11 @@ class TPCDisplay:
             self.simulation_wrangler_string += "\n"
 
     def update_available_events(self):
-        self.available_events = [
-            str(ii) for ii in range(int(self.meta["num_events"]))
+        self.wire_plane_available_events = [
+            str(ii) for ii in range(int(self.wire_plane_meta["num_events"]))
         ]
-        if len(self.available_events) > 0:
-            self.event = 0
+        if len(self.wire_plane_available_events) > 0:
+            self.wire_plane_event = 0
     
     def update_first_figure_taptool(self, event):
         print(event.x, event.y)
@@ -155,23 +219,23 @@ class TPCDisplay:
         document
     ):
         # Left hand column
-        self.file_folder_select = Select(
-            title=f"Blip folder: ~/{Path(self.file_folder).parts[-1]}",
+        self.wire_plane_file_folder_select = Select(
+            title=f"Blip folder: ~/{Path(self.wire_plane_file_folder).parts[-1]}",
             value=".",
-            options=self.available_folders,
+            options=self.wire_plane_available_folders,
             width_policy='fixed', width=350
         )
-        self.file_folder_select.on_change(
+        self.wire_plane_file_folder_select.on_change(
             "value", self.update_file_folder
         )
         self.file_select = Select(
             title="Blip file:", value="", 
-            options=self.available_files,
+            options=self.wire_plane_available_files,
             width_policy='fixed', width=350
         )
-        if len(self.available_files) > 0:
-            self.file_select.value = self.available_files[0]
-            self.input_file = self.file_select.value
+        if len(self.wire_plane_available_files) > 0:
+            self.file_select.value = self.wire_plane_available_files[0]
+            self.wire_plane_input_file = self.file_select.value
         self.file_select.on_change(
             "value", self.update_input_file
         )
@@ -183,17 +247,17 @@ class TPCDisplay:
         self.load_file_button.on_click(
             self.load_input_file
         )
-        self.meta_pretext = PreText(
-            text=self.meta_string,
+        self.wire_plane_meta_pretext = PreText(
+            text=self.wire_plane_meta_string,
             width=200,
             height=200
         )
-        self.event_select = Select(
+        self.wire_plane_event_select = Select(
             title="Event:", value="",
-            options=self.available_events,
+            options=self.wire_plane_available_events,
             width_policy='fixed', width=100
         )
-        self.event_select.on_change(
+        self.wire_plane_event_select.on_change(
             "value", self.update_event
         )
         self.load_event_button = Button(
@@ -234,7 +298,7 @@ class TPCDisplay:
         )
         self.first_figure_color_select = Select(
             title="Plot I labeling:", value="",
-            options=self.available_truth_labels,
+            options=self.available_wire_plane_truth_labels,
             width_policy='fixed', width=100
         )
         self.first_figure_color_select.on_change(
@@ -297,11 +361,11 @@ class TPCDisplay:
         # construct the wire plane layout
         self.wire_plane_layout = row(
             column(
-                self.file_folder_select,
+                self.wire_plane_file_folder_select,
                 self.file_select,
                 self.load_file_button,
-                self.meta_pretext,
-                self.event_select,
+                self.wire_plane_meta_pretext,
+                self.wire_plane_event_select,
                 self.load_event_button,
                 self.link_axes_toggle,
                 width_policy = 'fixed', width=400
@@ -329,39 +393,39 @@ class TPCDisplay:
     """
     def update_file_folder(self, attr, old, new):
         if new == '..':
-            self.file_folder = str(Path(self.file_folder).parent)
+            self.wire_plane_file_folder = str(Path(self.wire_plane_file_folder).parent)
         elif new == '.':
             pass
         else:
-            self.file_folder = str(Path(self.file_folder)) + "/" + new
-        self.update_available_folders()
-        self.file_folder_select.options = self.available_folders
-        self.file_folder_select.title = title=f"Blip folder: ~/{Path(self.file_folder).parts[-1]}"
-        self.file_folder_select.value = '.'
+            self.wire_plane_file_folder = str(Path(self.wire_plane_file_folder)) + "/" + new
+        self.update_wire_plane_available_folders()
+        self.wire_plane_file_folder_select.options = self.wire_plane_available_folders
+        self.wire_plane_file_folder_select.title = title=f"Blip folder: ~/{Path(self.wire_plane_file_folder).parts[-1]}"
+        self.wire_plane_file_folder_select.value = '.'
 
-        self.update_available_files()
-        self.file_select.options = self.available_files
-        if len(self.available_files) > 0:
-            self.file_select.value = self.available_files[0]
+        self.update_wire_plane_available_files()
+        self.file_select.options = self.wire_plane_available_files
+        if len(self.wire_plane_available_files) > 0:
+            self.file_select.value = self.wire_plane_available_files[0]
     
     def update_input_file(self, attr, old, new):
-        self.input_file = new
+        self.wire_plane_input_file = new
 
     def update_meta(self):
-        for ii, item in enumerate(self.meta_vars):
-            if item in self.meta.keys():
-                self.meta_vals[ii] = self.meta[item]
-        self.meta_vals[0] = self.input_file
+        for ii, item in enumerate(self.wire_plane_meta_vars):
+            if item in self.wire_plane_meta.keys():
+                self.wire_plane_meta_vals[ii] = self.wire_plane_meta[item]
+        self.wire_plane_meta_vals[0] = self.wire_plane_input_file
         self.update_meta_string()
-        self.meta_pretext.text = self.meta_string
+        self.wire_plane_meta_pretext.text = self.wire_plane_meta_string
     
     def update_events(self):
         self.update_available_events()
-        self.event_select.options = self.available_events
-        self.event_select.value = str(self.event)
+        self.wire_plane_event_select.options = self.wire_plane_available_events
+        self.wire_plane_event_select.value = str(self.wire_plane_event)
 
     def update_event(self, attr, old, new):
-        self.event = int(self.event_select.value)
+        self.wire_plane_event = int(self.wire_plane_event_select.value)
     
     def update_link_axes(self, new):
         if self.link_axes_toggle.active:
@@ -374,9 +438,9 @@ class TPCDisplay:
     def update_first_figure_radio_group(self, attr, old, new):
         if self.first_figure_radio_group.active == 0:
             self.first_figure_plot_type = "Truth"
-            self.first_figure_color_select.options = self.available_truth_labels
-            self.first_figure_color_select.value = self.available_truth_labels[0]
-            self.first_figure_label = self.available_truth_labels[0]
+            self.first_figure_color_select.options = self.available_wire_plane_truth_labels
+            self.first_figure_color_select.value = self.available_wire_plane_truth_labels[0]
+            self.first_figure_label = self.available_wire_plane_truth_labels[0]
         elif self.first_figure_radio_group.active == 1:
             self.first_figure_plot_type = "Predictions"
             self.first_figure_color_select.options = self.available_prediction_labels
@@ -395,9 +459,9 @@ class TPCDisplay:
     def update_second_figure_radio_group(self, attr, old, new):
         if self.second_figure_radio_group.active == 0:
             self.second_figure_plot_type = "Truth"
-            self.second_figure_color_select.options = self.available_truth_labels
-            self.second_figure_color_select.value = self.available_truth_labels[0]
-            self.second_figure_label = self.available_truth_labels[0]
+            self.second_figure_color_select.options = self.available_wire_plane_truth_labels
+            self.second_figure_color_select.value = self.available_wire_plane_truth_labels[0]
+            self.second_figure_label = self.available_wire_plane_truth_labels[0]
         elif self.second_figure_radio_group.active == 1:
             self.second_figure_plot_type = "Predictions"
             self.second_figure_color_select.options = self.available_prediction_labels
@@ -414,21 +478,21 @@ class TPCDisplay:
         self.second_figure_label = self.second_figure_color_select.value
 
     def load_input_file(self):
-        if self.input_file.endswith(".npz"):
+        if self.wire_plane_input_file.endswith(".npz"):
             self.load_npz_file()
-        elif self.input_file.endswith(".root"):
+        elif self.wire_plane_input_file.endswith(".root"):
             self.load_root_file()
         else:
-            print(f"Can't load file {self.input_file}.")
+            print(f"Can't load file {self.wire_plane_input_file}.")
     
     def load_npz_file(self):
         input_file = np.load(
-            self.file_folder + "/" + self.input_file, 
+            self.wire_plane_file_folder + "/" + self.wire_plane_input_file, 
             allow_pickle=True
         )
         self.available_prediction_labels = []
         if 'meta' in input_file.files:
-            self.meta = input_file['meta'].item()
+            self.wire_plane_meta = input_file['meta'].item()
             self.update_meta()
             self.update_events()
         if 'features' in input_file.files:
@@ -451,8 +515,8 @@ class TPCDisplay:
         if 'physics' in input_file.files:
             self.predictions['physics'] = input_file['physics']
             self.available_prediction_labels.append('physics')
-        if 'mc_maps' in self.meta.keys():
-            self.mc_maps = self.meta['mc_maps']
+        if 'mc_maps' in self.wire_plane_meta.keys():
+            self.mc_maps = self.wire_plane_meta['mc_maps']
         if self.first_figure_plot_type == "Predictions":
             self.first_figure_color_select.options = self.available_prediction_labels
             if len(self.available_prediction_labels) > 0:
@@ -468,20 +532,20 @@ class TPCDisplay:
         pass
 
     def load_event(self):
-        if str(self.event) in self.available_events:
-            self.event_features = self.features[self.event]
-            self.event_classes = self.classes[self.event]
-            self.event_clusters = self.clusters[self.event]
-            self.event_hits = self.hits[self.event]
-            self.event_predictions = {
-                key: val[self.event][0]
+        if str(self.wire_plane_event) in self.wire_plane_available_events:
+            self.wire_plane_event_features = self.features[self.wire_plane_event]
+            self.wire_plane_event_classes = self.classes[self.wire_plane_event]
+            self.wire_plane_event_clusters = self.clusters[self.wire_plane_event]
+            self.wire_plane_event_hits = self.hits[self.wire_plane_event]
+            self.wire_plane_event_predictions = {
+                key: val[self.wire_plane_event][0]
                 for key, val in self.predictions.items()
             }
-            if 'mc_maps' in self.meta.keys():
-                self.event_pdg_maps = self.mc_maps['pdg_code'][self.event]
-                self.event_parent_track_id_maps = self.mc_maps['parent_track_id'][self.event]
-                self.event_ancestor_track_id_maps = self.mc_maps['ancestor_track_id'][self.event]
-                self.event_ancestor_level_maps = self.mc_maps['ancestor_level'][self.event]
+            if 'mc_maps' in self.wire_plane_meta.keys():
+                self.wire_plane_event_pdg_maps = self.mc_maps['pdg_code'][self.wire_plane_event]
+                self.wire_plane_event_parent_track_id_maps = self.mc_maps['parent_track_id'][self.wire_plane_event]
+                self.wire_plane_event_ancestor_track_id_maps = self.mc_maps['ancestor_track_id'][self.wire_plane_event]
+                self.wire_plane_event_ancestor_level_maps = self.mc_maps['ancestor_level'][self.wire_plane_event]
         else:
             pass
     
@@ -492,8 +556,8 @@ class TPCDisplay:
             pass
         else:
             if 'cluster' in self.first_figure_label:
-                label_index = self.meta['clusters'][self.first_figure_label.replace('cluster_','')]
-                label_vals = np.unique(self.event_clusters[:, label_index])
+                label_index = self.wire_plane_meta['clusters'][self.first_figure_label.replace('cluster_','')]
+                label_vals = np.unique(self.wire_plane_event_clusters[:, label_index])
                 self.first_scatter = {}
                 self.first_scatter_colors = {
                     #val: Magma256[len(label_vals)][ii]
@@ -502,23 +566,23 @@ class TPCDisplay:
                 }
                 for val in label_vals:   
                     if self.first_figure_plot_type == "Truth": 
-                        mask = (self.event_clusters[:, label_index] == val)
+                        mask = (self.wire_plane_event_clusters[:, label_index] == val)
                     else:
                         if self.first_figure_label not in self.available_prediction_labels:
                             continue
-                        labels = np.argmax(self.event_predictions[self.first_figure_label], axis=1)
+                        labels = np.argmax(self.wire_plane_event_predictions[self.first_figure_label], axis=1)
                         mask = (labels == val)
                     if np.sum(mask) == 0:
                         continue
                     self.first_scatter[val] = self.first_figure.circle(
-                        self.event_features[:,0][mask],
-                        self.event_features[:,1][mask],
+                        self.wire_plane_event_features[:,0][mask],
+                        self.wire_plane_event_features[:,1][mask],
                         legend_label=str(val),
                         color=self.first_scatter_colors[val]
                     )
             else:
-                label_index = self.meta['classes'][self.first_figure_label]
-                label_vals = self.meta[f"{self.first_figure_label}_labels"]
+                label_index = self.wire_plane_meta['classes'][self.first_figure_label]
+                label_vals = self.wire_plane_meta[f"{self.first_figure_label}_labels"]
                 self.first_scatter = {}
                 self.first_scatter_colors = {
                     #val: Magma256[len(label_vals)][ii]
@@ -527,17 +591,17 @@ class TPCDisplay:
                 }
                 for key, val in label_vals.items():   
                     if self.first_figure_plot_type == "Truth": 
-                        mask = (self.event_classes[:, label_index] == key)
+                        mask = (self.wire_plane_event_classes[:, label_index] == key)
                     else:
                         if self.first_figure_label not in self.available_prediction_labels:
                             continue
-                        labels = np.argmax(self.event_predictions[self.first_figure_label], axis=1)
+                        labels = np.argmax(self.wire_plane_event_predictions[self.first_figure_label], axis=1)
                         mask = (labels == key)
                     if np.sum(mask) == 0:
                         continue
                     self.first_scatter[val] = self.first_figure.circle(
-                        self.event_features[:,0][mask],
-                        self.event_features[:,1][mask],
+                        self.wire_plane_event_features[:,0][mask],
+                        self.wire_plane_event_features[:,1][mask],
                         legend_label=val,
                         color=self.first_scatter_colors[val]
                     )
@@ -552,8 +616,8 @@ class TPCDisplay:
             pass
         else:
             if 'cluster' in self.second_figure_label:
-                label_index = self.meta['clusters'][self.second_figure_label.replace('cluster_','')]
-                label_vals = np.unique(self.event_clusters[:, label_index])
+                label_index = self.wire_plane_meta['clusters'][self.second_figure_label.replace('cluster_','')]
+                label_vals = np.unique(self.wire_plane_event_clusters[:, label_index])
                 self.second_scatter = {}
                 self.second_scatter_colors = {
                     #val: Magma256[len(label_vals)][ii]
@@ -563,23 +627,23 @@ class TPCDisplay:
                 print(label_vals)
                 for val in label_vals:   
                     if self.second_figure_plot_type == "Truth": 
-                        mask = (self.event_clusters[:, label_index] == val)
+                        mask = (self.wire_plane_event_clusters[:, label_index] == val)
                     else:
                         if self.second_figure_label not in self.available_prediction_labels:
                             continue
-                        labels = np.argmax(self.event_predictions[self.second_figure_label], axis=1)
+                        labels = np.argmax(self.wire_plane_event_predictions[self.second_figure_label], axis=1)
                         mask = (labels == val)
                     if np.sum(mask) == 0:
                         continue
                     self.second_scatter[val] = self.second_figure.circle(
-                        self.event_features[:,0][mask],
-                        self.event_features[:,1][mask],
+                        self.wire_plane_event_features[:,0][mask],
+                        self.wire_plane_event_features[:,1][mask],
                         legend_label=str(val),
                         color=self.second_scatter_colors[val]
                     )
             else:
-                label_index = self.meta['classes'][self.second_figure_label]
-                label_vals = self.meta[f"{self.second_figure_label}_labels"]
+                label_index = self.wire_plane_meta['classes'][self.second_figure_label]
+                label_vals = self.wire_plane_meta[f"{self.second_figure_label}_labels"]
                 self.second_scatter = {}
                 self.second_scatter_colors = {
                     #val: Magma256[len(label_vals)][ii]
@@ -588,17 +652,17 @@ class TPCDisplay:
                 }
                 for key, val in label_vals.items():   
                     if self.second_figure_plot_type == "Truth": 
-                        mask = (self.event_classes[:, label_index] == key)
+                        mask = (self.wire_plane_event_classes[:, label_index] == key)
                     else:
                         if self.second_figure_label not in self.available_prediction_labels:
                             continue
-                        labels = np.argmax(self.event_predictions[self.second_figure_label], axis=1)
+                        labels = np.argmax(self.wire_plane_event_predictions[self.second_figure_label], axis=1)
                         mask = (labels == key)
                     if np.sum(mask) == 0:
                         continue
                     self.second_scatter[val] = self.second_figure.circle(
-                        self.event_features[:,0][mask],
-                        self.event_features[:,1][mask],
+                        self.wire_plane_event_features[:,0][mask],
+                        self.wire_plane_event_features[:,1][mask],
                         legend_label=val,
                         color=self.second_scatter_colors[val]
                     )

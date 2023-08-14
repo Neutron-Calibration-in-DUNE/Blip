@@ -58,17 +58,17 @@ class Arrakis:
         }
         self.protodune_tpc_positions = {
             "tpc0": [[-376.8501, -366.8851],[0., 607.49875],[-0.49375, 231.16625]],
-            "tpc1": [[-359.2651, -0.1651],[0., 607.49875],[-0.49375, 231.16625]],
-            "tpc2": [[0.1651, 359.2651],[0., 607.49875],[-0.49375, 231.16625]],
-            "tpc3": [[366.8851, 376.8501],[0., 607.49875],[-0.49375, 231.16625]],
+            "tpc1": [[-359.2651,   -0.1651],[0., 607.49875],[-0.49375, 231.16625]],
+            "tpc2": [[0.1651, 359.2651],    [0., 607.49875],[-0.49375, 231.16625]],
+            "tpc3": [[366.8851, 376.8501],  [0., 607.49875],[-0.49375, 231.16625]],
             "tpc4": [[-376.8501, -366.8851],[0., 607.49875],[231.56625, 463.22625]],
-            "tpc5": [[-359.2651, -0.1651],[0., 607.49875],[231.56625, 463.22625]],
-            "tpc6": [[0.1651, 359.2651],[0., 607.49875],[231.56625, 463.22625]],
-            "tpc7": [[366.8851, 376.8501],[0., 607.49875],[231.56625, 463.22625]],
+            "tpc5": [[-359.2651, -0.1651],  [0., 607.49875],[231.56625, 463.22625]],
+            "tpc6": [[0.1651, 359.2651],    [0., 607.49875],[231.56625, 463.22625]],
+            "tpc7": [[366.8851, 376.8501],  [0., 607.49875],[231.56625, 463.22625]],
             "tpc8": [[-376.8501, -366.8851],[0., 607.49875],[463.62625, 695.28625]],
-            "tpc9": [[-359.2651, -0.1651],[0., 607.49875],[463.62625, 695.28625]],
-            "tpc10": [[0.1651, 359.2651],[0., 607.49875],[463.62625, 695.28625]],
-            "tpc11": [[366.8851, 376.8501],[0., 607.49875],[463.62625, 695.28625]],
+            "tpc9": [[-359.2651, -0.1651],  [0., 607.49875],[463.62625, 695.28625]],
+            "tpc10": [[0.1651, 359.2651],   [0., 607.49875],[463.62625, 695.28625]],
+            "tpc11": [[366.8851, 376.8501], [0., 607.49875],[463.62625, 695.28625]],
         }
 
         self.parse_config()
@@ -110,10 +110,10 @@ class Arrakis:
                 f'error while atttempting to load input file {input_folder + input_file}'
             )
         
+        self.mc_map = None
         self.energy_deposit_point_cloud = None
         self.wire_plane_point_cloud = None
         self.op_det_point_cloud = None
-        self.mc_maps = None
         for key in self.uproot_file.keys():
             if 'mc_edep_point_cloud' in key:
                 self.energy_deposit_point_cloud = self.uproot_file[key].arrays(library="np")
@@ -122,23 +122,138 @@ class Arrakis:
             elif 'mc_op_det_point_cloud' in key:
                 self.op_det_point_cloud = self.uproot_file[key].arrays(library="np")
             elif 'mc_maps' in key:
-                self.mc_maps = self.uproot_file[key].arrays(library="np")
+                self.mc_map = self.uproot_file[key].arrays(library="np")
 
     def generate_training_data(self,
         process_type:   str='all',
         input_file:    str=''
     ):
+        self.meta = {}
+        self.mc_maps = {}
+        self.energy_deposit_point_clouds = {}
+        self.wire_plane_point_clouds = {}
+        self.op_det_point_clouds = {}
+
+        for tpc, tpc_ranges in self.protodune_tpc_positions.items():
+            self.meta[tpc] = {
+                "who_created":      getpass.getuser(),
+                "when_created":     datetime.now().strftime("%m-%d-%Y-%H:%M:%S"),
+                "where_created":    socket.gethostname(),
+                "view_features": {
+                    "channel": 0, "tdc": 1, "adc": 2
+                },
+                "edep_features": {
+                    "t": 0, "x": 1, "y": 2, "z": 3, "energy": 4, "num_photons": 5, "num_electrons": 6
+                },
+                "classes": {
+                    "source": 0, "topology": 1, "particle": 2, "physics": 3
+                },
+                "clusters": {
+                    "topology":  0, "particle": 1, "physics": 2
+                },
+                "hits": {
+                    "mean": 0, "rms": 1, "amplitude": 2, "charge": 3
+                },
+                "source_labels": {
+                    key: value
+                    for key, value in classification_labels["source"].items()
+                },
+                "topology_labels": {
+                    key: value
+                    for key, value in classification_labels["topology"].items()
+                },
+                "particle_labels": {
+                    key: value
+                    for key, value in classification_labels["particle"].items()
+                },      
+                "physics_labels": {
+                    key: value
+                    for key, value in classification_labels["physics"].items()
+                },      
+            }
+            self.mc_maps[tpc] = {
+                'pdg_code': [],
+                'parent_track_id': [],
+                'ancestor_track_id': [],
+                'ancestor_level': []
+            }
+            self.energy_deposit_point_clouds[tpc] = {
+                'edep_features': [],
+                'edep_classes':  [],
+                'edep_clusters': [],                
+            }
+            self.wire_plane_point_clouds[tpc] = {
+                'view_0_features':  [],
+                'view_0_classes':   [],
+                'view_0_clusters':  [],
+                'view_0_hits':      [],
+                'view_1_features':  [],
+                'view_1_classes':   [],
+                'view_1_clusters':  [],
+                'view_1_hits':      [],
+                'view_2_features':  [],
+                'view_2_classes':   [],
+                'view_2_clusters':  [],
+                'view_2_hits':      []
+            }   
+
+        self.generate_mc_maps(input_file)
+
         if process_type == 'energy_deposit_point_cloud':
             self.generate_energy_deposit_point_cloud(input_file)
-        elif process_type == 'view_tpc_point_cloud':
-            self.generate_view_tpc_point_cloud(input_file)
+        elif process_type == 'wire_plane_point_cloud':
+            self.generate_wire_plane_point_cloud(input_file)
         elif process_type == 'op_det_point_cloud':
             self.generate_op_det_point_cloud(input_file)
         elif process_type == 'all':
             self.generate_energy_deposit_point_cloud(input_file)
-            self.generate_view_tpc_point_cloud(input_file)
+            self.generate_wire_plane_point_cloud(input_file)
             self.generate_op_det_point_cloud(input_file)
-        
+
+        for tpc, tpc_ranges in self.protodune_tpc_positions.items():
+            np.savez(
+                f"data/{self.output_folders[input_file]}/tpc_{tpc}.npz",
+                edep_features=self.energy_deposit_point_clouds[tpc]['edep_features'],
+                edep_classes=self.energy_deposit_point_clouds[tpc]['edep_classes'],
+                edep_clusters=self.energy_deposit_point_clouds[tpc]['edep_clusters'],
+                view_0_features=self.wire_plane_point_clouds[tpc]['view_0_features'],
+                view_0_classes=self.wire_plane_point_clouds[tpc]['view_0_classes'],
+                view_0_clusters=self.wire_plane_point_clouds[tpc]['view_0_clusters'],
+                view_0_hits=self.wire_plane_point_clouds[tpc]['view_0_hits'],
+                view_1_features=self.wire_plane_point_clouds[tpc]['view_1_features'],
+                view_1_classes=self.wire_plane_point_clouds[tpc]['view_1_classes'],
+                view_1_clusters=self.wire_plane_point_clouds[tpc]['view_1_clusters'],
+                view_1_hits=self.wire_plane_point_clouds[tpc]['view_1_hits'],
+                view_2_features=self.wire_plane_point_clouds[tpc]['view_2_features'],
+                view_2_classes=self.wire_plane_point_clouds[tpc]['view_2_classes'],
+                view_2_clusters=self.wire_plane_point_clouds[tpc]['view_2_clusters'],
+                view_2_hits=self.wire_plane_point_clouds[tpc]['view_2_hits'],
+                mc_maps=self.mc_maps[tpc],
+                meta=self.meta[tpc]
+            )
+
+    def generate_mc_maps(self,
+        input_file: str=''
+    ):
+        for tpc, tpc_ranges in self.protodune_tpc_wire_channels.items():
+            for event in range(len(self.mc_map['pdg_code_map.first'])):
+                self.mc_maps[tpc]['pdg_code'].append({
+                    self.mc_map['pdg_code_map.first'][event][ii]: self.mc_map['pdg_code_map.second'][event][ii]
+                    for ii in range(len(self.mc_map['pdg_code_map.first'][event]))
+                })
+                self.mc_maps[tpc]['parent_track_id'].append({
+                    self.mc_map['parent_track_id_map.first'][event][ii]: self.mc_map['parent_track_id_map.second'][event][ii]
+                    for ii in range(len(self.mc_map['parent_track_id_map.first'][event]))
+                })
+                self.mc_maps[tpc]['ancestor_track_id'].append({
+                    self.mc_map['ancestor_track_id_map.first'][event][ii]: self.mc_map['ancestor_track_id_map.second'][event][ii]
+                    for ii in range(len(self.mc_map['ancestor_track_id_map.first'][event]))
+                })
+                self.mc_maps[tpc]['ancestor_level'].append({
+                    self.mc_map['ancestor_level_map.first'][event][ii]: self.mc_map['ancestor_level_map.second'][event][ii]
+                    for ii in range(len(self.mc_map['ancestor_level_map.first'][event]))
+                })
+
     def generate_energy_deposit_point_cloud(self,
         input_file: str=''
     ):
@@ -233,8 +348,14 @@ class Arrakis:
             if len(edep_t_tpc.flatten()) == 0:
                 continue
             features = np.array([
-                np.vstack(
-                    (edep_t_tpc[ii], edep_x_tpc[ii], edep_y_tpc[ii], edep_z_tpc[ii])).T
+                np.vstack((
+                    edep_t_tpc[ii], 
+                    edep_x_tpc[ii], 
+                    edep_y_tpc[ii], 
+                    edep_z_tpc[ii],
+                    edep_energy_tpc[ii],
+                    edep_num_photons_tpc[ii],
+                    edep_num_electrons_tpc[ii])).T
                 for ii in range(len(edep_t_tpc))],
                 dtype=object
             )
@@ -255,79 +376,32 @@ class Arrakis:
                 for ii in range(len(edep_t_tpc))],
                 dtype=object
             )
-            edeps = np.array([
-                np.vstack((
-                    edep_energy_tpc[ii],
-                    edep_num_photons_tpc[ii],
-                    edep_num_electrons_tpc[ii])).T
-                for ii in range(len(edep_t_tpc))],
-                dtype=object
-            )
-            merge_tree = np.array([])
 
-            meta = {
-                "who_created":      getpass.getuser(),
-                "when_created":     datetime.now().strftime("%m-%d-%Y-%H:%M:%S"),
-                "where_created":    socket.gethostname(),
-                "num_events":       len(features),
-                "features": {
-                    "t": 0, "x": 1, "y": 2, "z": 3
-                },
-                "classes": {
-                    "source": 0, "topology": 1, "particle": 2, "physics": 3
-                },
-                "clusters": {
-                    "topology":  0, "particle": 1, "physics": 2
-                },
-                "edeps": {
-                    "energy": 0, "num_photons": 1, "num_electrons": 2
-                },
-                "source_labels": {
-                    key: value
-                    for key, value in classification_labels["source"].items()
-                },
-                "source_points": {
-                    key: np.count_nonzero(np.concatenate(source_label_tpc) == key)
-                    for key, value in classification_labels["source"].items()
-                },
-                "topology_labels": {
-                    key: value
-                    for key, value in classification_labels["topology"].items()
-                },
-                "topology_points": {
-                    key: np.count_nonzero(np.concatenate(topology_label_tpc) == key)
-                    for key, value in classification_labels["topology"].items()
-                },
-                "particle_labels": {
-                    key: value
-                    for key, value in classification_labels["particle"].items()
-                },      
-                "particle_points": {
-                    key: np.count_nonzero(np.concatenate(particle_label_tpc) == key)
-                    for key, value in classification_labels["particle"].items()
-                },
-                "physics_labels": {
-                    key: value
-                    for key, value in classification_labels["physics"].items()
-                },      
-                "physics_points": {
-                    key: np.count_nonzero(np.concatenate(physics_label_tpc) == key)
-                    for key, value in classification_labels["physics"].items()
-                },
-                "total_points":     len(np.concatenate(features)),   
+            self.meta[tpc]["num_events"] = len(features)
+            self.meta[tpc]["edep_source_points"] = {
+                key: np.count_nonzero(np.concatenate(source_label_tpc) == key)
+                for key, value in classification_labels["source"].items()
             }
-                
-            np.savez(
-                f"data/{self.output_folders[input_file]}/edep_{tpc}.npz",
-                features=features,
-                classes=classes,
-                clusters=clusters,
-                edeps=edeps,
-                merge_tree=merge_tree,
-                meta=meta
-            )
+            self.meta[tpc]["edep_topology_points"] = {
+                key: np.count_nonzero(np.concatenate(topology_label_tpc) == key)
+                for key, value in classification_labels["topology"].items()
+            }
+            self.meta[tpc]["edep_particle_points"] = {
+                key: np.count_nonzero(np.concatenate(particle_label_tpc) == key)
+                for key, value in classification_labels["particle"].items()
+            }
+            self.meta[tpc]["edep_physics_points"] = {
+                key: np.count_nonzero(np.concatenate(physics_label_tpc) == key)
+                for key, value in classification_labels["physics"].items()
+            }
+            self.meta[tpc]["edep_total_points"] = len(np.concatenate(features))   
 
-    def generate_view_tpc_point_cloud(self,
+            self.energy_deposit_point_clouds[tpc]['edep_features'] = features
+            self.energy_deposit_point_clouds[tpc]['edep_classes'] = classes
+            self.energy_deposit_point_clouds[tpc]['edep_clusters'] = clusters
+
+
+    def generate_wire_plane_point_cloud(self,
         input_file: str=''
     ):
         """
@@ -341,7 +415,7 @@ class Arrakis:
             self.logger.warn(f'no wire_plane_point_cloud data in file {input_file}!')
             return
         self.logger.info(
-            f"generating 'view_tpc_point_cloud' training data from file: {input_file}"
+            f"generating 'wire_plane_point_cloud' training data from file: {input_file}"
         )
         
         channel = self.wire_plane_point_cloud['channel']
@@ -363,6 +437,7 @@ class Arrakis:
         hit_charge = self.wire_plane_point_cloud['hit_charge']
 
         for tpc, tpc_ranges in self.protodune_tpc_wire_channels.items():
+            self.wire_plane_point_cloud[tpc] = {}
             for v, tpc_view in enumerate(tpc_ranges):
                 """
                 For each point cloud, we want to normalize adc against
@@ -393,20 +468,20 @@ class Arrakis:
                 }
                 for event in range(len(channel)):
                     mc_maps['pdg_code'].append({
-                        self.mc_maps['pdg_code_map.first'][event][ii]: self.mc_maps['pdg_code_map.second'][event][ii]
-                        for ii in range(len(self.mc_maps['pdg_code_map.first'][event]))
+                        self.mc_map['pdg_code_map.first'][event][ii]: self.mc_map['pdg_code_map.second'][event][ii]
+                        for ii in range(len(self.mc_map['pdg_code_map.first'][event]))
                     })
                     mc_maps['parent_track_id'].append({
-                        self.mc_maps['parent_track_id_map.first'][event][ii]: self.mc_maps['parent_track_id_map.second'][event][ii]
-                        for ii in range(len(self.mc_maps['parent_track_id_map.first'][event]))
+                        self.mc_map['parent_track_id_map.first'][event][ii]: self.mc_map['parent_track_id_map.second'][event][ii]
+                        for ii in range(len(self.mc_map['parent_track_id_map.first'][event]))
                     })
                     mc_maps['ancestor_track_id'].append({
-                        self.mc_maps['ancestor_track_id_map.first'][event][ii]: self.mc_maps['ancestor_track_id_map.second'][event][ii]
-                        for ii in range(len(self.mc_maps['ancestor_track_id_map.first'][event]))
+                        self.mc_map['ancestor_track_id_map.first'][event][ii]: self.mc_map['ancestor_track_id_map.second'][event][ii]
+                        for ii in range(len(self.mc_map['ancestor_track_id_map.first'][event]))
                     })
                     mc_maps['ancestor_level'].append({
-                        self.mc_maps['ancestor_level_map.first'][event][ii]: self.mc_maps['ancestor_level_map.second'][event][ii]
-                        for ii in range(len(self.mc_maps['ancestor_level_map.first'][event]))
+                        self.mc_map['ancestor_level_map.first'][event][ii]: self.mc_map['ancestor_level_map.second'][event][ii]
+                        for ii in range(len(self.mc_map['ancestor_level_map.first'][event]))
                     })
 
                 for event in range(len(channel)):
@@ -486,72 +561,30 @@ class Arrakis:
                     for ii in range(len(channel_view))],
                     dtype=object
                 )
-                merge_tree = np.array([])
 
-                meta = {
-                    "who_created":      getpass.getuser(),
-                    "when_created":     datetime.now().strftime("%m-%d-%Y-%H:%M:%S"),
-                    "where_created":    socket.gethostname(),
-                    "num_events":       len(features),
-                    "view":             v,
-                    "mc_maps":          mc_maps,
-                    "features": {
-                        "channel": 0, "tdc": 1, "adc": 2
-                    },
-                    "classes": {
-                        "source": 0, "topology": 1, "particle": 2, "physics": 3
-                    },
-                    "clusters": {
-                        "topology":  0, "particle": 1, "physics": 2
-                    },
-                    "hits": {
-                        "mean": 0, "rms": 1, "amplitude": 2, "charge": 3
-                    },
-                    "source_labels": {
-                        key: value
-                        for key, value in classification_labels["source"].items()
-                    },
-                    "source_points": {
-                        key: np.count_nonzero(np.concatenate(source_label_view) == key)
-                        for key, value in classification_labels["source"].items()
-                    },
-                    "topology_labels": {
-                        key: value
-                        for key, value in classification_labels["topology"].items()
-                    },
-                    "topology_points": {
-                        key: np.count_nonzero(np.concatenate(topology_label_view) == key)
-                        for key, value in classification_labels["topology"].items()
-                    },
-                    "particle_labels": {
-                        key: value
-                        for key, value in classification_labels["particle"].items()
-                    },      
-                    "particle_points": {
-                        key: np.count_nonzero(np.concatenate(particle_label_view) == key)
-                        for key, value in classification_labels["particle"].items()
-                    },
-                    "physics_labels": {
-                        key: value
-                        for key, value in classification_labels["physics"].items()
-                    },      
-                    "physics_points": {
-                        key: np.count_nonzero(np.concatenate(physics_label_view) == key)
-                        for key, value in classification_labels["physics"].items()
-                    },
-                    "total_points":     len(np.concatenate(features)),
-                    "adc_view_sum":     adc_view_sum,    
+                self.meta[tpc]["num_events"] = len(features)
+                self.meta[tpc][f"view_{v}_source_points"] = {
+                    key: np.count_nonzero(np.concatenate(source_label_view) == key)
+                    for key, value in classification_labels["source"].items()
                 }
-                    
-                np.savez(
-                    f"data/{self.output_folders[input_file]}/view{v}_{tpc}.npz",
-                    features=features,
-                    classes=classes,
-                    clusters=clusters,
-                    hits=hits,
-                    merge_tree=merge_tree,
-                    meta=meta
-                )
+                self.meta[tpc][f"view_{v}_topology_points"] = {
+                    key: np.count_nonzero(np.concatenate(topology_label_view) == key)
+                    for key, value in classification_labels["topology"].items()
+                }
+                self.meta[tpc][f"view_{v}_particle_points"] = {
+                    key: np.count_nonzero(np.concatenate(particle_label_view) == key)
+                    for key, value in classification_labels["particle"].items()
+                }
+                self.meta[tpc][f"view_{v}_physics_points"] = {
+                    key: np.count_nonzero(np.concatenate(physics_label_view) == key)
+                    for key, value in classification_labels["physics"].items()
+                }
+                self.meta[tpc][f"view_{v}_total_points"] = len(np.concatenate(features))   
+                self.meta[tpc][f"view_{v}_adc_sum"] = adc_view_sum
+                self.wire_plane_point_clouds[tpc][f'view_{v}_features'] = features
+                self.wire_plane_point_clouds[tpc][f'view_{v}_classes'] = classes
+                self.wire_plane_point_clouds[tpc][f'view_{v}_clusters'] = clusters
+                self.wire_plane_point_clouds[tpc][f'view_{v}_hits'] = hits
     
     def generate_op_det_point_cloud(self,
         input_file: str=''
