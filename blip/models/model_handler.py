@@ -6,9 +6,7 @@ import importlib.util
 import sys
 import inspect
 from blip.utils.logger import Logger
-from blip.models import GenericModel, PointNetPlusPlus
-from blip.models import PointNet, VietorisRipsNet
-from blip.models import SparseUNet, SparseUResNet, SparseUResNeXt
+from blip.models import GenericModel
 from blip.utils.utils import get_method_arguments
 
 class ModelHandler:
