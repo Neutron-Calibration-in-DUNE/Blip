@@ -363,8 +363,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         # set dataset type
         if "dataset_type" not in self.config.keys():
             self.logger.error(f'no dataset_type specified in config!')
-        self.dataset_type = self.config["dataset_type"]
-        if self.dataset_type == 'view':
+        self.meta['dataset_type'] = self.config["dataset_type"]
+        if self.meta['dataset_type'] == 'view':
             self.meta['view'] = self.config['view']
             self.meta['position_type'] = torch.int
         else:
@@ -374,7 +374,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         self.meta['cluster_type'] = torch.long
         self.meta['hit_type'] = torch.float
 
-        self.logger.info(f"setting 'dataset_type: {self.dataset_type}.")
+        self.logger.info(f"setting 'dataset_type: {self.meta['dataset_type']}.")
 
         # default to what's in the configuration file. May decide to deprecate in the future
         if ("dataset_folder" in self.config.keys()) :
@@ -505,7 +505,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                             self.consolidation_map[label][key] = jj
 
     def configure_clustering(self):
-        if self.dataset_type != "cluster":
+        if self.meta['dataset_type'] != "cluster":
             return
         self.dbscan_min_samples = self.config["dbscan_min_samples"]
         self.dbscan_eps = self.config["dbscan_eps"]
@@ -823,7 +823,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 for jj in range(len(self.meta['input_events'][raw_path]))
             ]
             classes_prefix = ""
-            if self.dataset_type == "cluster":
+            if self.meta['dataset_type'] == "cluster":
                 classes_prefix = f"{self.dbscan_eps}_{self.dbscan_min_samples}_"
             output = {
                 f"{classes_prefix}{classes}": [input_dict[classes][event] for event in events]
@@ -832,7 +832,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             output['event_mask'] = self.meta['event_mask'][raw_path]
             output['blip_labels_values_map'] = self.meta['blip_labels_values_map']
             output['blip_labels_values_inverse_map'] = self.meta['blip_labels_values_inverse_map']
-            if self.dataset_type == "cluster":
+            if self.meta['dataset_type'] == "cluster":
                 output[f'{self.dbscan_eps}_{self.dbscan_min_samples}_cluster_ids'] = self.meta['cluster_ids'][raw_path]
                 output[f'{self.dbscan_eps}_{self.dbscan_min_samples}_cluster_indices'] = self.meta['cluster_indices'][raw_path]
             # otherwise add the array and save
