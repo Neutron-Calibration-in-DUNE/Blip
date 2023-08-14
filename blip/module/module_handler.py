@@ -57,6 +57,7 @@ class ModuleHandler:
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
         for module_file in self.module_files:
+            print(module_file)
             if module_file in ["__init__.py", "__pycache__.py", "generic_module.py"]:
                 continue
             try:
@@ -75,10 +76,8 @@ class ModuleHandler:
         sys.modules[f'{module_file.removesuffix(".py")}.name'] = custom_module_file
         spec.loader.exec_module(custom_module_file)
         for name, obj in inspect.getmembers(sys.modules[f'{module_file.removesuffix(".py")}.name']):
-            print(module_file)
-            print(name)
-            print(obj)
             if inspect.isclass(obj):
+                print(name, obj)
                 custom_class = getattr(custom_module_file, name)
                 if issubclass(custom_class, GenericModule):
                     self.available_modules[name] = custom_class
