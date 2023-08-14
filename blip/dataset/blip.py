@@ -575,10 +575,10 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 mask |= (event_classes[:, class_index] == label_value)
         
         # Apply masks
-        event_features = event_features[mask]
-        event_classes = event_classes[mask]
-        event_clusters = event_clusters[mask]
-        event_hits = event_hits[mask]
+        event_features = event_features[mask].dtype(np.float)
+        event_classes = event_classes[mask].dtype(np.float)
+        event_clusters = event_clusters[mask].dtype(np.float)
+        event_hits = event_hits[mask].dtype(np.float)
 
         # Separate positions and features
         event_positions = event_features[:, self.meta['blip_position_indices']]
@@ -788,8 +788,6 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         #     event_classes = self.consolidate_class(classes[ii])
         # else:
         #     event_classes = classes[ii]
-        print(event_positions)
-        print(event_positions.shape)
         event = Data(
             pos=torch.tensor(event_positions).type(self.meta['position_type']),
             x=torch.tensor(event_features).type(self.meta['feature_type']),
