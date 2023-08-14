@@ -1,7 +1,6 @@
 from .generic_model import GenericModel
 from .model_checker import ModelChecker
 from .pointnet import PointNet
-from .sampling_grouping import SamplingAndGrouping
 from .set_abstraction import SetAbstraction
 from .set_abstraction_dbscan import SetAbstractionDBSCAN
 from .feature_propagation import FeaturePropagation
