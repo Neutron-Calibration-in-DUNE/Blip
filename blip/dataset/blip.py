@@ -575,10 +575,10 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 mask |= (event_classes[:, class_index] == label_value)
         
         # Apply masks
-        event_features = event_features[mask].dtype(np.float)
-        event_classes = event_classes[mask].dtype(np.float)
-        event_clusters = event_clusters[mask].dtype(np.float)
-        event_hits = event_hits[mask].dtype(np.float)
+        event_features = event_features[mask].astype(np.float)
+        event_classes = event_classes[mask].astype(np.float)
+        event_clusters = event_clusters[mask].astype(np.float)
+        event_hits = event_hits[mask].astype(np.float)
 
         # Separate positions and features
         event_positions = event_features[:, self.meta['blip_position_indices']]
