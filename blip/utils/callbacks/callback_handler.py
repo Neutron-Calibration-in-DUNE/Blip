@@ -56,12 +56,17 @@ class CallbackHandler:
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
         for callback_file in self.callback_files:
-            if callback_file in ["__init__.py", "__pycache__.py", "generic_callback.py"]:
+            if (
+                ("__init__.py" in callback_file) or 
+                ("__pycache__.py" in callback_file) or 
+                ("generic_callback.py" in callback_file) or 
+                ("__pycache__" in callback_file)
+            ):
                 continue
             try:
                 self.load_callback(callback_file)
             except:
-                pass
+                self.logger.warn(f'problem loading callback from file: {callback_file}')
     
     def load_callback(self,
         callback_file: str

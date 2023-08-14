@@ -64,10 +64,10 @@ class ModuleHandler:
                 ("__pycache__" in module_file)
             ):
                 continue
-            # try:
-            self.load_module(module_file)
-            # except:
-            #     pass
+            try:
+                self.load_module(module_file)
+            except:
+                self.logger.warn(f'problem loading module from file: {module_file}')
     
     def load_module(self,
         module_file: str

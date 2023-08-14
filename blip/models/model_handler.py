@@ -60,12 +60,17 @@ class ModelHandler:
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
         for model_file in self.model_files:
-            if model_file in ["__init__.py", "__pycache__.py", "generic_loss.py"]:
+            if (
+                ("__init__.py" in model_file) or 
+                ("__pycache__.py" in model_file) or 
+                ("generic_model.py" in model_file) or 
+                ("__pycache__" in model_file)
+            ):
                 continue
             try:
                 self.load_model(model_file)
             except:
-                pass
+                self.logger.warn(f'problem loading model from file: {model_file}')
     
     def load_model(self,
         model_file: str

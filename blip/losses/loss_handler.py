@@ -65,12 +65,17 @@ class LossHandler:
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
         for criterion_file in self.criterion_files:
-            if criterion_file in ["__init__.py", "__pycache__.py", "generic_loss.py"]:
+            if (
+                ("__init__.py" in criterion_file) or 
+                ("__pycache__.py" in criterion_file) or 
+                ("generic_criterion.py" in criterion_file) or 
+                ("__pycache__" in criterion_file)
+            ):
                 continue
             try:
                 self.load_loss_function(criterion_file)
             except:
-                pass
+                self.logger.warn(f'problem loading criterion from file: {criterion_file}')
     
     def load_loss_function(self,
         criterion_file: str
