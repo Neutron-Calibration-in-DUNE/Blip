@@ -72,6 +72,7 @@ class ModuleHandler:
             f'{module_file.removesuffix(".py")}.name', 
             module_file
         )
+        print(spec)
         custom_module_file = importlib.util.module_from_spec(spec)
         sys.modules[f'{module_file.removesuffix(".py")}.name'] = custom_module_file
         spec.loader.exec_module(custom_module_file)
