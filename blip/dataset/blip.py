@@ -145,6 +145,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         try:
             self.meta['view_features'] = temp_arrakis_meta[0]['view_features']
             self.meta['edep_features'] = temp_arrakis_meta[0]['edep_features']
+            self.meta['features'] = {**self.meta['view_features'], **self.meta['edep_features']}
             self.meta['classes'] = temp_arrakis_meta[0]['classes']
             self.meta['clusters'] = temp_arrakis_meta[0]['clusters']
             self.meta['hits'] = temp_arrakis_meta[0]['hits']
