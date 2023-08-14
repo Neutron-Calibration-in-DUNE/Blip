@@ -3,7 +3,6 @@ from .model_checker import ModelChecker
 from .pointnet import PointNet
 from .feature_propagation import FeaturePropagation
 from .segmentation import Segmentation
-from .vietoris_rips_net import VietorisRipsNet
 from .unet import UNet
 from .sparse_unet import SparseUNet
 from .sparse_uresnet import SparseUResNet
