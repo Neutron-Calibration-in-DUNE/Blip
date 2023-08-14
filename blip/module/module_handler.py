@@ -56,9 +56,7 @@ class ModuleHandler:
             os.path.dirname(__file__) + '/' + file 
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
-        print(self.module_files)
         for module_file in self.module_files:
-            print(module_file)
             if ("__init__.py" in module_file) or ("__pycache__.py" in module_file) or ("generic_module.py" in module_file) or ("__pycache__" in module_file):
                 continue
             # try:
