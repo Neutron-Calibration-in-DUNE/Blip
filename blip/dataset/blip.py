@@ -560,7 +560,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         self.pre_transform = self.config["pre_transform"]
         self.pre_filter = self.config["pre_filter"]
 
-    def apply_event_masks(self,
+    def apply_view_event_masks(self,
         event_features, event_classes, event_clusters, event_hits
     ):
         mask = np.array([True for ii in range(len(event_features))])
@@ -578,8 +578,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         event_features = event_features[mask]
         event_classes = event_classes[mask]
         event_clusters = event_clusters[mask]
-        if event_hits != None:
-            event_hits = event_hits[mask]
+        event_hits = event_hits[mask]
 
         # Separate positions and features
         event_positions = event_features[:, self.meta['blip_position_indices']]
@@ -595,8 +594,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 event_classes[:, class_index][(event_classes[:, class_index] == key)] = val
         event_classes = event_classes[:, self.meta['blip_classes_indices']]
         event_clusters = event_clusters[:, self.meta['blip_clusters_indices']]
-        if event_hits != None:
-            event_hits = event_hits[:, self.meta['blip_hits_indices']]
+        event_hits = event_hits[:, self.meta['blip_hits_indices']]
 
         # Grab indices of interest
         return event_positions, event_features, event_classes, event_clusters, event_hits, mask
@@ -703,7 +701,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         event_hits,
         raw_path
     ):
-        event_positions, event_features, event_classes, event_clusters, event_hits, mask = self.apply_event_masks(
+        event_positions, event_features, event_classes, event_clusters, event_hits, mask = self.apply_view_event_masks(
             event_features, event_classes, event_clusters, event_hits
         )
         # # check if classes need to be consolidated
@@ -781,7 +779,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         event_hits,
         raw_path
     ):
-        event_positions, event_features, event_classes, event_clusters, event_hits, mask = self.apply_event_masks(
+        event_positions, event_features, event_classes, event_clusters, event_hits, mask = self.apply_view_event_masks(
             event_features, event_classes, event_clusters, event_hits
         )
         self.meta['event_mask'][raw_path].append(mask)
