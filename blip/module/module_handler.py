@@ -59,7 +59,7 @@ class ModuleHandler:
         print(self.module_files)
         for module_file in self.module_files:
             print(module_file)
-            if module_file in ["__init__.py", "__pycache__.py", "generic_module.py"]:
+            if module_file in ["__init__.py", "__pycache__.py", "generic_module.py", "__pycache__"]:
                 continue
             # try:
             self.load_module(module_file)
