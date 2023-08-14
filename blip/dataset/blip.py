@@ -462,15 +462,12 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         else:
             self.class_weights = False
         
-        self.normalized = self.config["normalized"]
-
         self.logger.info(f"setting 'positions':     {self.meta['blip_positions']}.")
         self.logger.info(f"setting 'features':      {self.meta['blip_features']}.")
         self.logger.info(f"setting 'classes':       {self.meta['blip_classes']}.")
         self.logger.info(f"setting 'consolidate_classes':   {self.meta['consolidate_classes']}")
         self.logger.info(f"setting 'sample_weights':{self.meta['sample_weights']}.")
         self.logger.info(f"setting 'class_weights': {self.class_weights}.")
-        self.logger.info(f"setting 'normalize':     {self.normalized}.")
 
         # determine if the list of class labels 
         # contains everything from the dataset list.
@@ -580,7 +577,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         event_features = event_features[mask]
         event_classes = event_classes[mask]
         event_clusters = event_clusters[mask]
-        event_hits = event_hits[mask]
+        if event_hits != None:
+            event_hits = event_hits[mask]
 
         # Separate positions and features
         event_positions = event_features[:, self.meta['blip_position_indices']]
@@ -596,7 +594,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 event_classes[:, class_index][(event_classes[:, class_index] == key)] = val
         event_classes = event_classes[:, self.meta['blip_classes_indices']]
         event_clusters = event_clusters[:, self.meta['blip_clusters_indices']]
-        event_hits = event_hits[:, self.meta['blip_hits_indices']]
+        if event_hits != None:
+            event_hits = event_hits[:, self.meta['blip_hits_indices']]
 
         # Grab indices of interest
         return event_positions, event_features, event_classes, event_clusters, event_hits, mask
