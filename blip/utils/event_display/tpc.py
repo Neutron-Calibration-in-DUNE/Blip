@@ -812,7 +812,7 @@ class TPCDisplay:
                     for ii, val in enumerate(label_vals)
                 }
                 for val in label_vals:   
-                    if self.first_figure_plot_type == "Truth": 
+                    if self.first_figure_plot_option == "Truth": 
                         mask = (self.first_figure_event_clusters[:, label_index] == val)
                     else:
                         if self.first_figure_label not in self.available_wire_plane_prediction_labels:
@@ -837,8 +837,7 @@ class TPCDisplay:
                     for ii, val in enumerate(label_vals.values())
                 }
                 for key, val in label_vals.items():   
-                    print(key, val)
-                    if self.first_figure_plot_type == "Truth": 
+                    if self.first_figure_plot_option == "Truth": 
                         mask = (self.first_figure_event_classes[:, label_index] == key)
                     else:
                         if self.first_figure_label not in self.available_wire_plane_prediction_labels:
@@ -872,9 +871,8 @@ class TPCDisplay:
                     val: Magma256[int(ii % 256)]
                     for ii, val in enumerate(label_vals)
                 }
-                print(label_vals)
                 for val in label_vals:   
-                    if self.second_figure_plot_type == "Truth": 
+                    if self.second_figure_plot_option == "Truth": 
                         mask = (self.second_figure_event_clusters[:, label_index] == val)
                     else:
                         if self.second_figure_label not in self.available_wire_plane_prediction_labels:
@@ -899,7 +897,7 @@ class TPCDisplay:
                     for ii, val in enumerate(label_vals.values())
                 }
                 for key, val in label_vals.items():   
-                    if self.second_figure_plot_type == "Truth": 
+                    if self.second_figure_plot_option == "Truth": 
                         mask = (self.second_figure_event_classes[:, label_index] == key)
                     else:
                         if self.second_figure_label not in self.available_wire_plane_prediction_labels:
