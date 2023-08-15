@@ -69,7 +69,6 @@ class TPCDisplay:
             '...', '...', '...', '...', '...', '...', '...', '...'
         ]
         self.wire_plane_meta_string = ''
-        self.update_meta_string()
         self.edep_meta = {}
         self.edep_available_events = []
         self.edep_event = -1
@@ -219,6 +218,7 @@ class TPCDisplay:
         document
     ):
         # Left hand column
+        # Folder select
         self.wire_plane_file_folder_select = Select(
             title=f"Blip folder: ~/{Path(self.wire_plane_file_folder).parts[-1]}",
             value=".",
@@ -228,6 +228,7 @@ class TPCDisplay:
         self.wire_plane_file_folder_select.on_change(
             "value", self.update_file_folder
         )
+        # File select
         self.file_select = Select(
             title="Blip file:", value="", 
             options=self.wire_plane_available_files,
@@ -239,6 +240,7 @@ class TPCDisplay:
         self.file_select.on_change(
             "value", self.update_input_file
         )
+        # Load File button
         self.load_file_button = Button(
             label="Load file", 
             button_type="success",
@@ -247,6 +249,7 @@ class TPCDisplay:
         self.load_file_button.on_click(
             self.load_input_file
         )
+        # Meta information
         self.wire_plane_meta_pretext = PreText(
             text=self.wire_plane_meta_string,
             width=200,
@@ -372,8 +375,8 @@ class TPCDisplay:
             ),
             column(
                 self.first_figure,
-                self.first_figure_color_select,
                 self.first_figure_radio_group,
+                self.first_figure_color_select,
                 self.first_figure_plot_button,
                 self.simulation_wrangler_pretext,
                 width_policy='fixed', width=600,
@@ -381,8 +384,8 @@ class TPCDisplay:
             ),
             column(
                 self.second_figure,
-                self.second_figure_color_select,
                 self.second_figure_radio_group,
+                self.second_figure_color_select,
                 self.second_figure_plot_button,
                 width_policy='fixed', width=600,
                 height_policy='fixed', height=1000
