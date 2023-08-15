@@ -388,7 +388,7 @@ class TPCDisplay:
                         self.first_figure_plot_type_options,
                         self.first_figure_plot_button
                     ),
-                )
+                ),
                 self.simulation_wrangler_pretext,
                 width_policy='fixed', width=600,
                 height_policy='fixed', height=1000
