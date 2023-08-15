@@ -365,7 +365,7 @@ class TPCDisplay:
             labels = self.plot_options, active=0
         )
         self.second_figure_plot_options.on_change(
-            "active", self.update_second_figure_plot_options
+            "active", self.update_second_figure_radio_group
         )
         # Plot type options
         self.second_figure_plot_type_options = Select(
