@@ -293,7 +293,7 @@ class TPCDisplay:
             labels = self.plot_options, active=0
         )
         self.first_figure_plot_options.on_change(
-            "active", self.update_first_figure_plot_options
+            "active", self.update_first_figure_radio_group
         )
         # Plot type options
         self.first_figure_plot_type_options = Select(
@@ -478,6 +478,17 @@ class TPCDisplay:
         if self.first_figure_radio_group.active == 0:
             self.first_figure_plot_type = "Wire Plane"
             self.first_figure_plot_type_options.options = self.wire_plane_options
+            if self.first_figure_plot_options.active == 0:
+                self.first_figure_plot_option = "Truth"
+                self.first_figure_color_select.options = self.available_wire_plane_truth_labels
+                self.first_figure_color_select.value = self.available_wire_plane_truth_labels[0]
+                self.first_figure_label = self.available_wire_plane_truth_labels[0]
+            elif self.first_figure_plot_options.active == 1:
+                self.first_figure_plot_option = "Predictions"
+                self.first_figure_color_select.options = self.available_prediction_labels
+                if len(self.available_prediction_labels) > 0:
+                    self.first_figure_color_select.value = self.available_prediction_labels[0]
+                    self.first_figure_label = self.available_prediction_labels[0]
         elif self.first_figure_radio_group.active == 1:
             self.first_figure_plot_type = "Wire Channel"
             self.first_figure_plot_type_options.options = self.wire_channel_options
@@ -487,19 +498,18 @@ class TPCDisplay:
         elif self.first_figure_radio_group.active == 3:
             self.first_figure_plot_type = "MergeTree"
             self.first_figure_plot_type_options.options = self.merge_tree_options
-        self.first_figure.title.text = f"Plot I [{self.first_figure_plot_type}]:"
-        self.update_first_figure_plot_options()
+        self.first_figure.title.text = f"Plot I [{self.first_figure_plot_type} {self.first_figure_plot_option}]:"
         
     def update_first_figure_color(self, attr, old, new):
         self.first_figure_label = self.first_figure_color_select.value
 
     def update_first_figure_plot_options(self, attr, old, new):
-        if self.first_figure_radio_group.active == 0:
+        if self.first_figure_plot_options.active == 0:
             self.first_figure_plot_option = "Truth"
             self.first_figure_color_select.options = self.available_wire_plane_truth_labels
             self.first_figure_color_select.value = self.available_wire_plane_truth_labels[0]
             self.first_figure_label = self.available_wire_plane_truth_labels[0]
-        elif self.first_figure_radio_group.active == 1:
+        elif self.first_figure_plot_options.active == 1:
             self.first_figure_plot_option = "Predictions"
             self.first_figure_color_select.options = self.available_prediction_labels
             if len(self.available_prediction_labels) > 0:
