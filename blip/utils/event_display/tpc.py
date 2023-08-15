@@ -837,6 +837,7 @@ class TPCDisplay:
                     for ii, val in enumerate(label_vals.values())
                 }
                 for key, val in label_vals.items():   
+                    print(key, val)
                     if self.first_figure_plot_type == "Truth": 
                         mask = (self.first_figure_event_classes[:, label_index] == key)
                     else:
@@ -844,7 +845,6 @@ class TPCDisplay:
                             continue
                         labels = np.argmax(self.event_predictions[self.first_figure_label], axis=1)
                         mask = (labels == key)
-                    print(np.sum(mask))
                     if np.sum(mask) == 0:
                         continue
                     self.first_scatter[val] = self.first_figure.circle(
