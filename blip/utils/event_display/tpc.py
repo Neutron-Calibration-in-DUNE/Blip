@@ -338,10 +338,26 @@ class TPCDisplay:
         self.second_figure_color_select = Select(
             title="Plot II labeling:", value="",
             options=self.available_prediction_labels,
-            width_policy='fixed', width=100
+            width_policy='fixed', width=150
         )
         self.second_figure_color_select.on_change(
             "value", self.update_second_figure_color
+        )
+        # Plot options (truth/predictions)
+        self.second_figure_plot_options = RadioGroup(
+            labels = self.plot_options, active=0
+        )
+        self.second_figure_plot_options.on_change(
+            "active", self.update_second_figure_plot_options
+        )
+        # Plot type options
+        self.second_figure_plot_type_options = Select(
+            title="Plot I options:", value="",
+            options=self.wire_plane_options,
+            width_policy='fixed', width=150
+        )
+        self.second_figure_plot_type_options.on_change(
+            "value", self.update_second_figure_plot_type_options
         )
         self.second_figure_plot_button = Button(
             label="Plot event",
@@ -390,9 +406,20 @@ class TPCDisplay:
             ),
             column(
                 self.second_figure,
-                self.second_figure_radio_group,
-                self.second_figure_color_select,
-                self.second_figure_plot_button,
+                row(
+                    column(
+                        self.second_figure_radio_group,
+                        self.second_figure_color_select,
+                        self.second_figure_plot_options,
+                        self.second_figure_plot_type_options,
+                        self.second_figure_plot_button,
+                        width_policy='fixed', width=200,
+                    ),
+                    column(
+                        self.simulation_wrangler_pretext,
+                        width_policy='fixed', width=400,
+                    ),
+                ),
                 width_policy='fixed', width=600,
                 height_policy='fixed', height=1000
             )
