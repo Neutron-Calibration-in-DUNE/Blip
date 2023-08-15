@@ -289,7 +289,12 @@ class TPCDisplay:
         # self.first_figure_taptool = TapTool(callback=self.update_first_figure_taptool)
         # self.first_figure.add_tools(self.first_figure_taptool)
         self.first_figure.legend.click_policy="hide"
-        self.first_figure_slider = Slider(start=1, end=10, step=0.1, value=1)
+        self.first_figure_adc_slider_option = CheckboxGroup(labels=["Use ADC Slider"], active=[0])
+        self.first_figure_adc_slider_option.on_click(
+            self.update_first_figure_adc_slider_option
+        )
+        self.first_figure_adc_slider_option_bool = True
+        self.first_figure_slider = Slider(start=0.1, end=1, step=0.1, value=0.1)
         # Plot type radio group
         self.first_figure_plot_type = "Wire Plane"
         self.first_figure_radio_text = PreText(
@@ -529,6 +534,12 @@ class TPCDisplay:
     """
     functions here are for updating the Wire Plane display plots.
     """
+    def update_first_figure_adc_slider_option(self):
+        if self.first_figure_adc_slider_option.active == [0]:
+            self.first_figure_adc_slider_option_bool = True
+        else:
+            self.first_figure_adc_slider_option_bool = False
+
     def update_first_figure_radio_group(self, attr, old, new):
         if self.first_figure_radio_group.active == 0:
             self.first_figure_plot_type = "Wire Plane"
@@ -824,14 +835,22 @@ class TPCDisplay:
                         mask = (labels == val)
                     if np.sum(mask) == 0:
                         continue
-                    self.first_scatter[val] = self.first_figure.circle(
-                        self.first_figure_event_features[:,0][mask],
-                        self.first_figure_event_features[:,1][mask],
-                        legend_label=str(val),
-                        color=self.first_scatter_colors[val],
-                        radius=self.first_figure_event_features[:,2][mask] * 1000
-                    )
-                    self.first_figure_slider.js_link('value', self.first_scatter[val].glyph, 'radius')
+                    if self.first_figure_adc_slider_option_bool == True:
+                        self.first_scatter[val] = self.first_figure.circle(
+                            self.first_figure_event_features[:,0][mask],
+                            self.first_figure_event_features[:,1][mask],
+                            legend_label=str(val),
+                            color=self.first_scatter_colors[val],
+                            radius=self.first_figure_event_features[:,2][mask] * 1000
+                        )
+                        self.first_figure_slider.js_link('value', self.first_scatter[val].glyph, 'radius')
+                    else:
+                        self.first_scatter[val] = self.first_figure.circle(
+                            self.first_figure_event_features[:,0][mask],
+                            self.first_figure_event_features[:,1][mask],
+                            legend_label=str(val),
+                            color=self.first_scatter_colors[val]
+                        )
             else:
                 label_index = self.tpc_meta['classes'][self.first_figure_label]
                 label_vals = self.tpc_meta[f"{self.first_figure_label}_labels"]
@@ -851,13 +870,22 @@ class TPCDisplay:
                         mask = (labels == key)
                     if np.sum(mask) == 0:
                         continue
-                    self.first_scatter[val] = self.first_figure.circle(
-                        self.first_figure_event_features[:,0][mask],
-                        self.first_figure_event_features[:,1][mask],
-                        legend_label=val,
-                        color=self.first_scatter_colors[val],
-                        radius=self.first_figure_event_features[:,2][mask] * 1000
-                    )
+                    if self.first_figure_adc_slider_option_bool == True:
+                        self.first_scatter[val] = self.first_figure.circle(
+                            self.first_figure_event_features[:,0][mask],
+                            self.first_figure_event_features[:,1][mask],
+                            legend_label=str(val),
+                            color=self.first_scatter_colors[val],
+                            radius=self.first_figure_event_features[:,2][mask] * 1000
+                        )
+                        self.first_figure_slider.js_link('value', self.first_scatter[val].glyph, 'radius')
+                    else:
+                        self.first_scatter[val] = self.first_figure.circle(
+                            self.first_figure_event_features[:,0][mask],
+                            self.first_figure_event_features[:,1][mask],
+                            legend_label=str(val),
+                            color=self.first_scatter_colors[val]
+                        )
                     self.first_figure_slider.js_link('value', self.first_scatter[val].glyph, 'radius')
         self.first_figure.legend.click_policy="hide"
         self.first_figure.xaxis[0].axis_label = "Channel [n]"
