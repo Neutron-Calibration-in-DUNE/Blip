@@ -110,17 +110,17 @@ class TPCDisplay:
             'cluster_topology', 'cluster_particle', 'cluster_physics',
             'hit_mean', 'hit_rms', 'hit_amplitude', 'hit_charge'
         ]
-        self.available_wire_plane_prediction_labels = []
-        self.available_wire_channel_truth_labels = []
-        self.available_wire_channel_prediction_labels = []
+        self.available_wire_plane_prediction_labels = ["None"]
+        self.available_wire_channel_truth_labels = ["None"]
+        self.available_wire_channel_prediction_labels = ["None"]
         self.available_edep_truth_labels = [
             'energy', 'num_photons', 'num_electrons', 
             'source', 'topology', 'particle', 'physics', 
             'cluster_topology', 'cluster_particle', 'cluster_physics',
         ]
-        self.available_edep_prediction_labels = []
-        self.available_merge_tree_truth_labels = []
-        self.available_merge_tree_prediction_labels = []
+        self.available_edep_prediction_labels = ["None"]
+        self.available_merge_tree_truth_labels = ["None"]
+        self.available_merge_tree_prediction_labels = ["None"]
 
         self.first_figure_label = 'adc'
         self.first_scatter = {}
