@@ -592,24 +592,24 @@ class TPCDisplay:
         self.first_figure_plot_type_option = self.first_figure_plot_type_options.value
         if self.first_figure_plot_type == "Wire Plane":
             if self.first_figure_plot_type_option == "View 0":
-                self.first_figure_event_features = self.view_0_features
-                self.first_figure_event_classes = self.view_0_classes
-                self.first_figure_event_clusters = self.view_0_clusters
-                self.first_figure_event_hits = self.view_0_hits
+                self.first_figure_event_features = self.view_0_features[self.event]
+                self.first_figure_event_classes = self.view_0_classes[self.event]
+                self.first_figure_event_clusters = self.view_0_clusters[self.event]
+                self.first_figure_event_hits = self.view_0_hits[self.event]
             elif self.first_figure_plot_type_option == "View 1":
-                self.first_figure_event_features = self.view_1_features
-                self.first_figure_event_classes = self.view_1_classes
-                self.first_figure_event_clusters = self.view_1_clusters
-                self.first_figure_event_hits = self.view_1_hits
+                self.first_figure_event_features = self.view_1_features[self.event]
+                self.first_figure_event_classes = self.view_1_classes[self.event]
+                self.first_figure_event_clusters = self.view_1_clusters[self.event]
+                self.first_figure_event_hits = self.view_1_hits[self.event]
             elif self.first_figure_plot_type_option == "View 2":
-                self.first_figure_event_features = self.view_2_features
-                self.first_figure_event_classes = self.view_2_classes
-                self.first_figure_event_clusters = self.view_2_clusters
+                self.first_figure_event_features = self.view_2_features[self.event]
+                self.first_figure_event_classes = self.view_2_classes[self.event]
+                self.first_figure_event_clusters = self.view_2_clusters[self.event]
                 self.first_figure_event_hits = self.view_2_hits
         elif self.first_figure_plot_type == "TPC":
-            self.first_figure_event_features = self.edep_features
-            self.first_figure_event_classes = self.edep_classes
-            self.first_figure_event_clusters = self.edep_clusters
+            self.first_figure_event_features = self.edep_features[self.event]
+            self.first_figure_event_classes = self.edep_classes[self.event]
+            self.first_figure_event_clusters = self.edep_clusters[self.event]
             self.first_figure_event_hits = []
 
     def update_second_figure_radio_group(self, attr, old, new):
@@ -678,24 +678,24 @@ class TPCDisplay:
         self.second_figure_plot_type_option = self.second_figure_plot_type_options.value
         if self.second_figure_plot_type == "Wire Plane":
             if self.second_figure_plot_type_option == "View 0":
-                self.second_figure_event_features = self.view_0_features
-                self.second_figure_event_classes = self.view_0_classes
-                self.second_figure_event_clusters = self.view_0_clusters
-                self.second_figure_event_hits = self.view_0_hits
+                self.second_figure_event_features = self.view_0_features[self.event]
+                self.second_figure_event_classes = self.view_0_classes[self.event]
+                self.second_figure_event_clusters = self.view_0_clusters[self.event]
+                self.second_figure_event_hits = self.view_0_hits[self.event]
             elif self.second_figure_plot_type_option == "View 1":
-                self.second_figure_event_features = self.view_1_features
-                self.second_figure_event_classes = self.view_1_classes
-                self.second_figure_event_clusters = self.view_1_clusters
-                self.second_figure_event_hits = self.view_1_hits
+                self.second_figure_event_features = self.view_1_features[self.event]
+                self.second_figure_event_classes = self.view_1_classes[self.event]
+                self.second_figure_event_clusters = self.view_1_clusters[self.event]
+                self.second_figure_event_hits = self.view_1_hits[self.event]
             elif self.second_figure_plot_type_option == "View 2":
-                self.second_figure_event_features = self.view_2_features
-                self.second_figure_event_classes = self.view_2_classes
-                self.second_figure_event_clusters = self.view_2_clusters
-                self.second_figure_event_hits = self.view_2_hits
+                self.second_figure_event_features = self.view_2_features[self.event]
+                self.second_figure_event_classes = self.view_2_classes[self.event]
+                self.second_figure_event_clusters = self.view_2_clusters[self.event]
+                self.second_figure_event_hits = self.view_2_hits[self.event]
         elif self.second_figure_plot_type == "TPC":
-            self.second_figure_event_features = self.edep_features
-            self.second_figure_event_classes = self.edep_classes
-            self.second_figure_event_clusters = self.edep_clusters
+            self.second_figure_event_features = self.edep_features[self.event]
+            self.second_figure_event_classes = self.edep_classes[self.event]
+            self.second_figure_event_clusters = self.edep_clusters[self.event]
             self.second_figure_event_hits = []
 
     def load_input_file(self):
@@ -904,7 +904,6 @@ class TPCDisplay:
                             continue
                         labels = np.argmax(self.event_predictions[self.second_figure_label], axis=1)
                         mask = (labels == key)
-                    print(self.second_figure_event_features)
                     if np.sum(mask) == 0:
                         continue
                     self.second_scatter[val] = self.second_figure.circle(
