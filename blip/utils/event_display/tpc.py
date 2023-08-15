@@ -260,7 +260,7 @@ class TPCDisplay:
 
         # First plot column
         self.first_figure = figure(
-            title="Plot I [Truth]",
+            title="Plot I",
             x_axis_label="x []",
             y_axis_label="y []",
             tools='pan,wheel_zoom,box_zoom,lasso_select,tap,reset,save'
@@ -273,6 +273,7 @@ class TPCDisplay:
             text="Label type:"
         )
         # Plot type radio group
+        self.first_figure_plot_type = "Wire Plane"
         self.first_figure_radio_group = RadioGroup(
             labels = self.plot_types, active=0
         )
@@ -289,6 +290,7 @@ class TPCDisplay:
             "value", self.update_first_figure_color
         )
         # Plot options (truth/predictions)
+        self.first_figure_plot_option = "Truth"
         self.first_figure_plot_options = RadioGroup(
             labels = self.plot_options, active=0
         )
