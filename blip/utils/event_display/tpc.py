@@ -355,8 +355,18 @@ class TPCDisplay:
             y_axis_label="y []",
             x_range=self.first_figure.x_range,
             y_range=self.first_figure.y_range,
-            tools='pan,wheel_zoom,box_zoom,lasso_select,tap,reset,save'
+            tools='pan,wheel_zoom,box_zoom,lasso_select,tap,reset,save',
+            toolbar_location="below"
         )
+        # Defining properties of color mapper
+        self.second_figure_color_mapper = LinearColorMapper(palette = "Viridis256")
+        self.second_figure_color_bar = ColorBar(
+            color_mapper = self.second_figure_color_mapper,
+            label_standoff = 12,
+            location = (0,0),
+            title = ''
+        )
+        self.second_figure.add_layout(self.second_figure_color_bar, 'right')
         self.second_figure_taptool = self.second_figure.select(type=TapTool)
         self.second_figure_taptool.callback = self.update_second_figure_taptool()
         self.second_figure.legend.click_policy="hide"
