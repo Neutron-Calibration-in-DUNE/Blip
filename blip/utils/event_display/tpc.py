@@ -17,6 +17,7 @@ from bokeh.models import CategoricalColorMapper, Toggle
 from bokeh.models import CheckboxButtonGroup, CustomJS
 from bokeh.models import Paragraph, PreText, Dropdown
 from bokeh.models import ColumnDataSource, RadioGroup
+from bokeh.models import ColorBar
 from bokeh.events import Tap
 from bokeh.palettes import Turbo256, Category20, Category20b, TolRainbow, Magma256
 from bokeh.transform import linear_cmap
@@ -271,8 +272,17 @@ class TPCDisplay:
             title="Plot I [Wire Plane Truth]",
             x_axis_label="x []",
             y_axis_label="y []",
-            tools='pan,wheel_zoom,box_zoom,lasso_select,tap,reset,save'
+            tools='pan,wheel_zoom,box_zoom,lasso_select,tap,reset,save',
+            toolbar_location="below"
         )
+        # Defining properties of color mapper
+        self.first_figure_color_bar = ColorBar(
+            # color_mapper = color_mapper,
+            label_standoff = 12,
+            location = (0,0),
+            title = ''
+        )
+        self.first_figure.add_layout(self.first_figure_color_bar, 'right')
         self.first_figure.on_event(Tap, self.update_first_figure_taptool)
         # self.first_figure_taptool = TapTool(callback=self.update_first_figure_taptool)
         # self.first_figure.add_tools(self.first_figure_taptool)
@@ -426,11 +436,11 @@ class TPCDisplay:
                         self.first_figure_color_select,
                         self.first_figure_plot_type_options,
                         self.first_figure_plot_button,
-                        width_policy='fixed', width=200,
+                        width_policy='fixed', width=300,
                     ),
                     column(
                         self.simulation_wrangler_pretext,
-                        width_policy='fixed', width=400,
+                        width_policy='fixed', width=300,
                     ),
                 ),
                 width_policy='fixed', width=600,
@@ -447,11 +457,11 @@ class TPCDisplay:
                         self.second_figure_color_select,
                         self.second_figure_plot_type_options,
                         self.second_figure_plot_button,
-                        width_policy='fixed', width=200,
+                        width_policy='fixed', width=300,
                     ),
                     column(
                         self.simulation_wrangler_pretext,
-                        width_policy='fixed', width=400,
+                        width_policy='fixed', width=300,
                     ),
                 ),
                 width_policy='fixed', width=600,
