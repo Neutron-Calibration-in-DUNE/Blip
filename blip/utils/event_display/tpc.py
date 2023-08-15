@@ -445,7 +445,11 @@ class TPCDisplay:
             ),
             column(
                 self.first_figure,
-                self.first_figure_slider,
+                row(
+                    self.first_figure_adc_slider_option,
+                    self.first_figure_slider,
+                    width_policy='fixed', width=600,
+                ),
                 row(
                     column(    
                         self.first_figure_radio_text,
