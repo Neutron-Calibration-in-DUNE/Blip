@@ -280,7 +280,7 @@ class TPCDisplay:
         self.first_figure_color_select = Select(
             title="Plot I labeling:", value="",
             options=self.available_wire_plane_truth_labels,
-            width_policy='fixed', width=100
+            width_policy='fixed', width=150
         )
         self.first_figure_color_select.on_change(
             "value", self.update_first_figure_color
@@ -296,7 +296,7 @@ class TPCDisplay:
         self.first_figure_plot_type_options = Select(
             title="Plot I options:", value="",
             options=self.wire_plane_options,
-            width_policy='fixed', width=100
+            width_policy='fixed', width=150
         )
         self.first_figure_plot_type_options.on_change(
             "value", self.update_first_figure_plot_type_options
@@ -378,11 +378,11 @@ class TPCDisplay:
                         self.first_figure_plot_options,
                         self.first_figure_plot_type_options,
                         self.first_figure_plot_button,
-                        width_policy='fixed', width=300,
+                        width_policy='fixed', width=200,
                     ),
                     column(
                         self.simulation_wrangler_pretext,
-                        width_policy='fixed', width=300,
+                        width_policy='fixed', width=400,
                     ),
                 ),
                 width_policy='fixed', width=600,
