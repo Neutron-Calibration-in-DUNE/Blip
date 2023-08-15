@@ -110,20 +110,24 @@ class TPCDisplay:
             'cluster_topology', 'cluster_particle', 'cluster_physics',
             'hit_mean', 'hit_rms', 'hit_amplitude', 'hit_charge'
         ]
+        self.available_wire_plane_prediction_labels = []
         self.available_wire_channel_truth_labels = []
+        self.available_wire_channel_prediction_labels = []
         self.available_edep_truth_labels = [
             'energy', 'num_photons', 'num_electrons', 
             'source', 'topology', 'particle', 'physics', 
             'cluster_topology', 'cluster_particle', 'cluster_physics',
         ]
+        self.available_edep_prediction_labels = []
         self.available_merge_tree_truth_labels = []
+        self.available_merge_tree_prediction_labels = []
 
         self.first_figure_label = 'adc'
         self.first_scatter = {}
         self.first_figure_plot_type = "Wire Plane"
 
         # parameters for second plot
-        self.available_prediction_labels = []
+        self.available_wire_plane_prediction_labels = []
         self.second_figure_label = ''
         self.second_scatter = {}
         self.second_figure_plot_type = "Wire Plane"
@@ -259,6 +263,10 @@ class TPCDisplay:
         )
 
         # First plot column
+        self.first_figure_event_features = []
+        self.first_figure_event_classes = []
+        self.first_figure_event_clusters = []
+        self.first_figure_event_hits = []
         self.first_figure = figure(
             title="Plot I",
             x_axis_label="x []",
@@ -323,6 +331,10 @@ class TPCDisplay:
         )
 
         # Second plot column
+        self.second_figure_event_features = []
+        self.second_figure_event_classes = []
+        self.second_figure_event_clusters = []
+        self.second_figure_event_hits = []
         self.second_figure = figure(
             title="Plot II [Predictions]",
             x_axis_label="x []",
@@ -342,7 +354,7 @@ class TPCDisplay:
         )
         self.second_figure_color_select = Select(
             title="Plot II labeling:", value="",
-            options=self.available_prediction_labels,
+            options=self.available_wire_plane_prediction_labels,
             width_policy='fixed', width=150
         )
         self.second_figure_color_select.on_change(
@@ -487,41 +499,80 @@ class TPCDisplay:
                 self.first_figure_label = self.available_wire_plane_truth_labels[0]
             elif self.first_figure_plot_options.active == 1:
                 self.first_figure_plot_option = "Predictions"
-                self.first_figure_color_select.options = self.available_prediction_labels
-                if len(self.available_prediction_labels) > 0:
-                    self.first_figure_color_select.value = self.available_prediction_labels[0]
-                    self.first_figure_label = self.available_prediction_labels[0]
+                self.first_figure_color_select.options = self.available_wire_plane_prediction_labels
+                if len(self.available_wire_plane_prediction_labels) > 0:
+                    self.first_figure_color_select.value = self.available_wire_plane_prediction_labels[0]
+                    self.first_figure_label = self.available_wire_plane_prediction_labels[0]
         elif self.first_figure_radio_group.active == 1:
             self.first_figure_plot_type = "Wire Channel"
             self.first_figure_plot_type_options.options = self.wire_channel_options
+            if self.first_figure_plot_options.active == 0:
+                self.first_figure_plot_option = "Truth"
+                self.first_figure_color_select.options = self.available_wire_channel_truth_labels
+                self.first_figure_color_select.value = self.available_wire_channel_truth_labels[0]
+                self.first_figure_label = self.available_wire_channel_truth_labels[0]
+            elif self.first_figure_plot_options.active == 1:
+                self.first_figure_plot_option = "Predictions"
+                self.first_figure_color_select.options = self.available_wire_channel_prediction_labels
+                if len(self.available_wire_channel_prediction_labels) > 0:
+                    self.first_figure_color_select.value = self.available_wire_channel_prediction_labels[0]
+                    self.first_figure_label = self.available_wire_channel_prediction_labels[0]
         elif self.first_figure_radio_group.active == 2:
             self.first_figure_plot_type = "TPC"
             self.first_figure_plot_type_options.options = self.tpc_options
+            if self.first_figure_plot_options.active == 0:
+                self.first_figure_plot_option = "Truth"
+                self.first_figure_color_select.options = self.available_edep_truth_labels
+                self.first_figure_color_select.value = self.available_edep_truth_labels[0]
+                self.first_figure_label = self.available_edep_truth_labels[0]
+            elif self.first_figure_plot_options.active == 1:
+                self.first_figure_plot_option = "Predictions"
+                self.first_figure_color_select.options = self.available_edep_prediction_labels
+                if len(self.available_edep_prediction_labels) > 0:
+                    self.first_figure_color_select.value = self.available_edep_prediction_labels[0]
+                    self.first_figure_label = self.available_edep_prediction_labels[0]
         elif self.first_figure_radio_group.active == 3:
             self.first_figure_plot_type = "MergeTree"
             self.first_figure_plot_type_options.options = self.merge_tree_options
+            if self.first_figure_plot_options.active == 0:
+                self.first_figure_plot_option = "Truth"
+                self.first_figure_color_select.options = self.available_merge_tree_truth_labels
+                self.first_figure_color_select.value = self.available_merge_tree_truth_labels[0]
+                self.first_figure_label = self.available_merge_tree_truth_labels[0]
+            elif self.first_figure_plot_options.active == 1:
+                self.first_figure_plot_option = "Predictions"
+                self.first_figure_color_select.options = self.available_merge_tree_prediction_labels
+                if len(self.available_merge_tree_prediction_labels) > 0:
+                    self.first_figure_color_select.value = self.available_merge_tree_prediction_labels[0]
+                    self.first_figure_label = self.available_merge_tree_prediction_labels[0]
         self.first_figure.title.text = f"Plot I [{self.first_figure_plot_type} {self.first_figure_plot_option}]:"
         
     def update_first_figure_color(self, attr, old, new):
         self.first_figure_label = self.first_figure_color_select.value
 
-    def update_first_figure_plot_options(self, attr, old, new):
-        if self.first_figure_plot_options.active == 0:
-            self.first_figure_plot_option = "Truth"
-            self.first_figure_color_select.options = self.available_wire_plane_truth_labels
-            self.first_figure_color_select.value = self.available_wire_plane_truth_labels[0]
-            self.first_figure_label = self.available_wire_plane_truth_labels[0]
-        elif self.first_figure_plot_options.active == 1:
-            self.first_figure_plot_option = "Predictions"
-            self.first_figure_color_select.options = self.available_prediction_labels
-            if len(self.available_prediction_labels) > 0:
-                self.first_figure_color_select.value = self.available_prediction_labels[0]
-                self.first_figure_label = self.available_prediction_labels[0]
-
     def update_first_figure_plot_type_options(self, attr, old, new):
         self.first_figure_plot_type_option = self.first_figure_plot_type_options.value
         if self.first_figure_plot_type == "Wire Plane":
-            pass
+            if self.first_figure_plot_type_option == "View 0":
+                self.first_figure_event_features = self.view_0_features
+                self.first_figure_event_classes = self.view_0_classes
+                self.first_figure_event_clusters = self.view_0_clusters
+                self.first_figure_event_hits = self.view_0_hits
+            elif self.first_figure_plot_type_option == "View 1":
+                self.first_figure_event_features = self.view_1_features
+                self.first_figure_event_classes = self.view_1_classes
+                self.first_figure_event_clusters = self.view_1_clusters
+                self.first_figure_event_hits = self.view_1_hits
+            elif self.first_figure_plot_type_option == "View 2":
+                self.first_figure_event_features = self.view_2_features
+                self.first_figure_event_classes = self.view_2_classes
+                self.first_figure_event_clusters = self.view_2_clusters
+                self.first_figure_event_hits = self.view_2_hits
+        elif self.first_figure_plot_type == "TPC":
+            self.first_figure_event_features = self.edep_features
+            self.first_figure_event_classes = self.edep_classes
+            self.first_figure_event_clusters = self.edep_clusters
+            self.first_figure_event_hits = []
 
     def update_second_figure_radio_group(self, attr, old, new):
         if self.second_figure_radio_group.active == 0:
@@ -531,10 +582,10 @@ class TPCDisplay:
             self.second_figure_label = self.available_wire_plane_truth_labels[0]
         elif self.second_figure_radio_group.active == 1:
             self.second_figure_plot_type = "Wire Channel"
-            self.second_figure_color_select.options = self.available_prediction_labels
-            if len(self.available_prediction_labels) > 0:
-                self.second_figure_color_select.value = self.available_prediction_labels[0]
-                self.second_figure_label = self.available_prediction_labels[0]
+            self.second_figure_color_select.options = self.available_wire_plane_prediction_labels
+            if len(self.available_wire_plane_prediction_labels) > 0:
+                self.second_figure_color_select.value = self.available_wire_plane_prediction_labels[0]
+                self.second_figure_label = self.available_wire_plane_prediction_labels[0]
         elif self.second_figure_radio_group.active == 2:
             self.second_figure_plot_type = "TPC"
         elif self.second_figure_radio_group.active == 3:
@@ -563,7 +614,7 @@ class TPCDisplay:
             self.wire_plane_file_folder + "/" + self.wire_plane_input_file, 
             allow_pickle=True
         )
-        self.available_prediction_labels = []
+        self.available_wire_plane_prediction_labels = []
         if 'meta' in input_file.files:
             self.wire_plane_meta = input_file['meta'].item()
             self.update_meta()
@@ -600,38 +651,38 @@ class TPCDisplay:
             self.view_2_hits = input_file['view_2_hits']
         if 'source' in input_file.files:
             self.predictions['source'] = input_file['source']
-            self.available_prediction_labels.append('source')
+            self.available_wire_plane_prediction_labels.append('source')
         if 'topology' in input_file.files:
             self.predictions['topology'] = input_file['topology']
-            self.available_prediction_labels.append('topology')
+            self.available_wire_plane_prediction_labels.append('topology')
         if 'particle' in input_file.files:
             self.predictions['particle'] = input_file['particle']
-            self.available_prediction_labels.append('particle')
+            self.available_wire_plane_prediction_labels.append('particle')
         if 'physics' in input_file.files:
             self.predictions['physics'] = input_file['physics']
-            self.available_prediction_labels.append('physics')
+            self.available_wire_plane_prediction_labels.append('physics')
         if 'mc_maps' in self.wire_plane_meta.keys():
             self.mc_maps = self.wire_plane_meta['mc_maps']
         if self.first_figure_plot_type == "Predictions":
-            self.first_figure_color_select.options = self.available_prediction_labels
-            if len(self.available_prediction_labels) > 0:
-                self.first_figure_color_select.value = self.available_prediction_labels[0]
-                self.first_figure_label = self.available_prediction_labels[0]
+            self.first_figure_color_select.options = self.available_wire_plane_prediction_labels
+            if len(self.available_wire_plane_prediction_labels) > 0:
+                self.first_figure_color_select.value = self.available_wire_plane_prediction_labels[0]
+                self.first_figure_label = self.available_wire_plane_prediction_labels[0]
         if self.second_figure_plot_type == "Predictions":
-            self.second_figure_color_select.options = self.available_prediction_labels
-            if len(self.available_prediction_labels) > 0:
-                self.second_figure_color_select.value = self.available_prediction_labels[0]
-                self.second_figure_label = self.available_prediction_labels[0]
+            self.second_figure_color_select.options = self.available_wire_plane_prediction_labels
+            if len(self.available_wire_plane_prediction_labels) > 0:
+                self.second_figure_color_select.value = self.available_wire_plane_prediction_labels[0]
+                self.second_figure_label = self.available_wire_plane_prediction_labels[0]
 
     def load_root_file(self):
         pass
 
     def load_event(self):
         if str(self.event) in self.available_events:
-            self.event_features = self.view_0_features[self.event]
-            self.event_classes = self.view_0_classes[self.event]
-            self.event_clusters = self.view_0_clusters[self.event]
-            self.event_hits = self.view_0_hits[self.event]
+            self.first_figure_event_features = self.view_0_features[self.event]
+            self.first_figure_event_classes = self.view_0_classes[self.event]
+            self.first_figure_event_clusters = self.view_0_clusters[self.event]
+            self.first_figure_event_hits = self.view_0_hits[self.event]
             self.event_predictions = {
                 key: val[self.event][0]
                 for key, val in self.predictions.items()
@@ -652,7 +703,7 @@ class TPCDisplay:
         else:
             if 'cluster' in self.first_figure_label:
                 label_index = self.wire_plane_meta['clusters'][self.first_figure_label.replace('cluster_','')]
-                label_vals = np.unique(self.event_clusters[:, label_index])
+                label_vals = np.unique(self.first_figure_event_clusters[:, label_index])
                 self.first_scatter = {}
                 self.first_scatter_colors = {
                     #val: Magma256[len(label_vals)][ii]
@@ -661,17 +712,17 @@ class TPCDisplay:
                 }
                 for val in label_vals:   
                     if self.first_figure_plot_type == "Truth": 
-                        mask = (self.event_clusters[:, label_index] == val)
+                        mask = (self.first_figure_event_clusters[:, label_index] == val)
                     else:
-                        if self.first_figure_label not in self.available_prediction_labels:
+                        if self.first_figure_label not in self.available_wire_plane_prediction_labels:
                             continue
                         labels = np.argmax(self.event_predictions[self.first_figure_label], axis=1)
                         mask = (labels == val)
                     if np.sum(mask) == 0:
                         continue
                     self.first_scatter[val] = self.first_figure.circle(
-                        self.event_features[:,0][mask],
-                        self.event_features[:,1][mask],
+                        self.first_figure_event_features[:,0][mask],
+                        self.first_figure_event_features[:,1][mask],
                         legend_label=str(val),
                         color=self.first_scatter_colors[val]
                     )
@@ -686,17 +737,17 @@ class TPCDisplay:
                 }
                 for key, val in label_vals.items():   
                     if self.first_figure_plot_type == "Truth": 
-                        mask = (self.event_classes[:, label_index] == key)
+                        mask = (self.first_figure_event_classes[:, label_index] == key)
                     else:
-                        if self.first_figure_label not in self.available_prediction_labels:
+                        if self.first_figure_label not in self.available_wire_plane_prediction_labels:
                             continue
                         labels = np.argmax(self.event_predictions[self.first_figure_label], axis=1)
                         mask = (labels == key)
                     if np.sum(mask) == 0:
                         continue
                     self.first_scatter[val] = self.first_figure.circle(
-                        self.event_features[:,0][mask],
-                        self.event_features[:,1][mask],
+                        self.first_figure_event_features[:,0][mask],
+                        self.first_figure_event_features[:,1][mask],
                         legend_label=val,
                         color=self.first_scatter_colors[val]
                     )
@@ -712,7 +763,7 @@ class TPCDisplay:
         else:
             if 'cluster' in self.second_figure_label:
                 label_index = self.wire_plane_meta['clusters'][self.second_figure_label.replace('cluster_','')]
-                label_vals = np.unique(self.event_clusters[:, label_index])
+                label_vals = np.unique(self.second_figure_event_clusters[:, label_index])
                 self.second_scatter = {}
                 self.second_scatter_colors = {
                     #val: Magma256[len(label_vals)][ii]
@@ -722,17 +773,17 @@ class TPCDisplay:
                 print(label_vals)
                 for val in label_vals:   
                     if self.second_figure_plot_type == "Truth": 
-                        mask = (self.event_clusters[:, label_index] == val)
+                        mask = (self.second_figure_event_clusters[:, label_index] == val)
                     else:
-                        if self.second_figure_label not in self.available_prediction_labels:
+                        if self.second_figure_label not in self.available_wire_plane_prediction_labels:
                             continue
                         labels = np.argmax(self.event_predictions[self.second_figure_label], axis=1)
                         mask = (labels == val)
                     if np.sum(mask) == 0:
                         continue
                     self.second_scatter[val] = self.second_figure.circle(
-                        self.event_features[:,0][mask],
-                        self.event_features[:,1][mask],
+                        self.second_figure_event_features[:,0][mask],
+                        self.second_figure_event_features[:,1][mask],
                         legend_label=str(val),
                         color=self.second_scatter_colors[val]
                     )
@@ -747,17 +798,17 @@ class TPCDisplay:
                 }
                 for key, val in label_vals.items():   
                     if self.second_figure_plot_type == "Truth": 
-                        mask = (self.event_classes[:, label_index] == key)
+                        mask = (self.second_figure_event_classes[:, label_index] == key)
                     else:
-                        if self.second_figure_label not in self.available_prediction_labels:
+                        if self.second_figure_label not in self.available_wire_plane_prediction_labels:
                             continue
                         labels = np.argmax(self.event_predictions[self.second_figure_label], axis=1)
                         mask = (labels == key)
                     if np.sum(mask) == 0:
                         continue
                     self.second_scatter[val] = self.second_figure.circle(
-                        self.event_features[:,0][mask],
-                        self.event_features[:,1][mask],
+                        self.second_figure_event_features[:,0][mask],
+                        self.second_figure_event_features[:,1][mask],
                         legend_label=val,
                         color=self.second_scatter_colors[val]
                     )
