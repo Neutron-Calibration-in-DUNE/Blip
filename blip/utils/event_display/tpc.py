@@ -534,7 +534,7 @@ class TPCDisplay:
     """
     functions here are for updating the Wire Plane display plots.
     """
-    def update_first_figure_adc_slider_option(self, attr):
+    def update_first_figure_adc_slider_option(self, attr, old, new):
         if self.first_figure_adc_slider_option.active == [0]:
             self.first_figure_adc_slider_option_bool = True
         else:
