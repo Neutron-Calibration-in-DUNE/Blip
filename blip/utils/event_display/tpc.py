@@ -289,7 +289,7 @@ class TPCDisplay:
         # self.first_figure_taptool = TapTool(callback=self.update_first_figure_taptool)
         # self.first_figure.add_tools(self.first_figure_taptool)
         self.first_figure.legend.click_policy="hide"
-        self.first_figure_slider = Slider(start=1000, end=2000, step=100, value=1000)
+        self.first_figure_slider = Slider(start=1, end=10, step=0.1, value=1)
         # Plot type radio group
         self.first_figure_plot_type = "Wire Plane"
         self.first_figure_radio_text = PreText(
@@ -440,8 +440,8 @@ class TPCDisplay:
             ),
             column(
                 self.first_figure,
+                self.first_figure_slider,
                 row(
-                    self.first_figure_slider,
                     column(    
                         self.first_figure_radio_text,
                         self.first_figure_radio_group,
