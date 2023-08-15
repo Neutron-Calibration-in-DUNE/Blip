@@ -478,6 +478,11 @@ class TPCDisplay:
             column(
                 self.second_figure,
                 row(
+                    self.second_figure_adc_slider_option,
+                    self.second_figure_slider,
+                    width_policy='fixed', width=600,
+                ),
+                row(
                     column(
                         self.second_figure_radio_text,
                         self.second_figure_radio_group,
