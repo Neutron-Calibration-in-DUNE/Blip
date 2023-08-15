@@ -290,7 +290,6 @@ class TPCDisplay:
         # self.first_figure.add_tools(self.first_figure_taptool)
         self.first_figure.legend.click_policy="hide"
         self.first_figure_slider = Slider(start=1, end=1e6, step=100, value=1000)
-        self.first_figure_slider.js_link('value', self.first_figure.glyph, 'radius')
         # Plot type radio group
         self.first_figure_plot_type = "Wire Plane"
         self.first_figure_radio_text = PreText(
@@ -832,6 +831,7 @@ class TPCDisplay:
                         color=self.first_scatter_colors[val],
                         radius=self.first_figure_event_features[:,2][mask] * 1000
                     )
+                    self.first_figure_slider.js_link('value', self.first_scatter[val].glyph, 'radius')
             else:
                 label_index = self.tpc_meta['classes'][self.first_figure_label]
                 label_vals = self.tpc_meta[f"{self.first_figure_label}_labels"]
@@ -858,6 +858,7 @@ class TPCDisplay:
                         color=self.first_scatter_colors[val],
                         radius=self.first_figure_event_features[:,2][mask] * 1000
                     )
+                    self.first_figure_slider.js_link('value', self.first_scatter[val].glyph, 'radius')
         self.first_figure.legend.click_policy="hide"
         self.first_figure.xaxis[0].axis_label = "Channel [n]"
         self.first_figure.yaxis[0].axis_label = "TDC [10ns]"
