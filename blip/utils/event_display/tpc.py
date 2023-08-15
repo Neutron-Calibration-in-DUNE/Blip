@@ -268,7 +268,7 @@ class TPCDisplay:
         self.first_figure_event_clusters = []
         self.first_figure_event_hits = []
         self.first_figure = figure(
-            title="Plot I",
+            title="Plot I [Wire Plane Truth]",
             x_axis_label="x []",
             y_axis_label="y []",
             tools='pan,wheel_zoom,box_zoom,lasso_select,tap,reset,save'
@@ -277,11 +277,11 @@ class TPCDisplay:
         # self.first_figure_taptool = TapTool(callback=self.update_first_figure_taptool)
         # self.first_figure.add_tools(self.first_figure_taptool)
         self.first_figure.legend.click_policy="hide"
-        self.first_figure_radio_text = PreText(
-            text="Label type:"
-        )
         # Plot type radio group
         self.first_figure_plot_type = "Wire Plane"
+        self.first_figure_radio_text = PreText(
+            text="Plot I type:"
+        )
         self.first_figure_radio_group = RadioGroup(
             labels = self.plot_types, active=0
         )
@@ -299,6 +299,9 @@ class TPCDisplay:
         )
         # Plot options (truth/predictions)
         self.first_figure_plot_option = "Truth"
+        self.first_figure_plot_option_text = PreText(
+            text="Truth/Predictions:"
+        )
         self.first_figure_plot_options = RadioGroup(
             labels = self.plot_options, active=0
         )
@@ -346,12 +349,18 @@ class TPCDisplay:
         self.second_figure_taptool = self.second_figure.select(type=TapTool)
         self.second_figure_taptool.callback = self.update_second_figure_taptool()
         self.second_figure.legend.click_policy="hide"
+        # Plot II type
+        self.second_figure_plot_type = "Wire Plane"
+        self.second_figure_radio_text = PreText(
+            text="Plot II type:"
+        )
         self.second_figure_radio_group = RadioGroup(
             labels = self.plot_types, active=1
         )
         self.second_figure_radio_group.on_change(
             "active", self.update_second_figure_radio_group
         )
+        # Plot II labeling
         self.second_figure_color_select = Select(
             title="Plot II labeling:", value="",
             options=self.available_wire_plane_prediction_labels,
@@ -361,6 +370,10 @@ class TPCDisplay:
             "value", self.update_second_figure_color
         )
         # Plot options (truth/predictions)
+        self.second_figure_plot_option = "Truth"
+        self.second_figure_plot_option_text = PreText(
+            text="Truth/Predictions:"
+        )
         self.second_figure_plot_options = RadioGroup(
             labels = self.plot_options, active=0
         )
@@ -406,9 +419,11 @@ class TPCDisplay:
                 self.first_figure,
                 row(
                     column(
+                        self.first_figure_radio_text,
                         self.first_figure_radio_group,
-                        self.first_figure_color_select,
+                        self.first_figure_plot_option_text,
                         self.first_figure_plot_options,
+                        self.first_figure_color_select,
                         self.first_figure_plot_type_options,
                         self.first_figure_plot_button,
                         width_policy='fixed', width=200,
@@ -425,9 +440,11 @@ class TPCDisplay:
                 self.second_figure,
                 row(
                     column(
+                        self.second_figure_radio_text,
                         self.second_figure_radio_group,
-                        self.second_figure_color_select,
+                        self.second_figure_plot_option_text,
                         self.second_figure_plot_options,
+                        self.second_figure_color_select,
                         self.second_figure_plot_type_options,
                         self.second_figure_plot_button,
                         width_policy='fixed', width=200,
