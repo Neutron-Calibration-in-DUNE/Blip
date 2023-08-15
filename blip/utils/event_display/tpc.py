@@ -11,6 +11,7 @@ from bokeh.layouts import row, column, layout
 from bokeh.plotting import figure, show
 from bokeh.models import TabPanel, Tabs, TapTool
 from bokeh.models import Div, RangeSlider, Spinner
+from bokeh.models import Slider
 from bokeh.models import Select, MultiSelect, FileInput
 from bokeh.models import Button, CheckboxGroup, TextInput
 from bokeh.models import CategoricalColorMapper, Toggle
@@ -288,6 +289,8 @@ class TPCDisplay:
         # self.first_figure_taptool = TapTool(callback=self.update_first_figure_taptool)
         # self.first_figure.add_tools(self.first_figure_taptool)
         self.first_figure.legend.click_policy="hide"
+        self.first_figure_slider = Slider(start=1, end=1e6, step=100, value=1000)
+        self.first_figure_slider.js_link('value', self.first_figure.glyph, 'radius')
         # Plot type radio group
         self.first_figure_plot_type = "Wire Plane"
         self.first_figure_radio_text = PreText(
@@ -440,6 +443,7 @@ class TPCDisplay:
                 self.first_figure,
                 row(
                     column(
+                        self.first_figure_slider,
                         self.first_figure_radio_text,
                         self.first_figure_radio_group,
                         self.first_figure_plot_option_text,
@@ -825,7 +829,8 @@ class TPCDisplay:
                         self.first_figure_event_features[:,0][mask],
                         self.first_figure_event_features[:,1][mask],
                         legend_label=str(val),
-                        color=self.first_scatter_colors[val]
+                        color=self.first_scatter_colors[val],
+                        radius=self.first_figure_event_features[:,2][mask] * 1000
                     )
             else:
                 label_index = self.tpc_meta['classes'][self.first_figure_label]
@@ -850,7 +855,8 @@ class TPCDisplay:
                         self.first_figure_event_features[:,0][mask],
                         self.first_figure_event_features[:,1][mask],
                         legend_label=val,
-                        color=self.first_scatter_colors[val]
+                        color=self.first_scatter_colors[val],
+                        radius=self.first_figure_event_features[:,2][mask] * 1000
                     )
         self.first_figure.legend.click_policy="hide"
         self.first_figure.xaxis[0].axis_label = "Channel [n]"
