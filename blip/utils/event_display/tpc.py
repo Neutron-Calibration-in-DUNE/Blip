@@ -374,15 +374,17 @@ class TPCDisplay:
                 row(
                     column(
                         self.first_figure_radio_group,
-                        self.first_figure_color_select
-                    ),
-                    column(
+                        self.first_figure_color_select,
                         self.first_figure_plot_options,
                         self.first_figure_plot_type_options,
-                        self.first_figure_plot_button
+                        self.first_figure_plot_button,
+                        width_policy='fixed', width=300,
+                    ),
+                    column(
+                        self.simulation_wrangler_pretext,
+                        width_policy='fixed', width=300,
                     ),
                 ),
-                self.simulation_wrangler_pretext,
                 width_policy='fixed', width=600,
                 height_policy='fixed', height=1000
             ),
