@@ -558,13 +558,6 @@ class TPCDisplay:
         elif self.first_figure_radio_group.active == 2:
             self.first_figure_plot_type = "TPC"
             self.first_figure_plot_type_options.options = self.tpc_options
-            self.first_figure = figure(
-                title="Plot I test",
-                x_axis_label="x []",
-                y_axis_label="y []",
-                tools='pan,tap,reset,save',
-                toolbar_location="below"
-            )
             if self.first_figure_plot_options.active == 0:
                 self.first_figure_plot_option = "Truth"
                 self.first_figure_color_select.options = self.available_edep_truth_labels
@@ -837,6 +830,7 @@ class TPCDisplay:
             else:
                 label_index = self.tpc_meta['classes'][self.first_figure_label]
                 label_vals = self.tpc_meta[f"{self.first_figure_label}_labels"]
+                print(label_vals)
                 self.first_scatter = {}
                 self.first_scatter_colors = {
                     #val: Magma256[len(label_vals)][ii]
