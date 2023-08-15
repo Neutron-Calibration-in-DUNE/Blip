@@ -169,13 +169,6 @@ class TPCDisplay:
             self.wire_plane_meta_string += str(self.wire_plane_meta_vals[ii])
             self.wire_plane_meta_string += "\n"
     
-        self.edep_meta_string = ''
-        for ii, item in enumerate(self.edep_meta_vars):
-            self.edep_meta_string += item
-            self.edep_meta_string += ":\t"
-            self.edep_meta_string += str(self.edep_meta_vals[ii])
-            self.edep_meta_string += "\n"
-    
     def update_simulation_wrangler_string(self):
         self.simulation_wrangler_string = ''
         for ii, item in enumerate(self.simulation_wrangler_vars):
