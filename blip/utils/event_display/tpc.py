@@ -52,8 +52,8 @@ class TPCDisplay:
         
         # Meta information from blip dataset files (.npz)
         self.wire_plane_meta = {}
-        self.wire_plane_available_events = []
-        self.wire_plane_event = -1
+        self.available_events = []
+        self.event = -1
         self.wire_plane_meta_vars = [
             "input_file", "who_created", "when_created",
             "where_created", "num_events", "view",
@@ -99,6 +99,9 @@ class TPCDisplay:
         ]
         self.plot_options = ["Truth", "Predictions"]
         self.wire_plane_options = ["View 0", "View 1", "View 2"]
+        self.wire_channel_options = []
+        self.tpc_options = []
+        self.merge_tree_options = []
 
         # parameters for wire_plane plots
         self.available_wire_plane_truth_labels = [
@@ -178,11 +181,11 @@ class TPCDisplay:
             self.simulation_wrangler_string += "\n"
 
     def update_available_events(self):
-        self.wire_plane_available_events = [
+        self.available_events = [
             str(ii) for ii in range(int(self.wire_plane_meta["num_events"]))
         ]
-        if len(self.wire_plane_available_events) > 0:
-            self.wire_plane_event = 0
+        if len(self.available_events) > 0:
+            self.event = 0
     
     def update_first_figure_taptool(self, event):
         print(event.x, event.y)
@@ -231,12 +234,12 @@ class TPCDisplay:
             width=200,
             height=200
         )
-        self.wire_plane_event_select = Select(
+        self.event_select = Select(
             title="Event:", value="",
-            options=self.wire_plane_available_events,
+            options=self.available_events,
             width_policy='fixed', width=100
         )
-        self.wire_plane_event_select.on_change(
+        self.event_select.on_change(
             "value", self.update_event
         )
         self.load_event_button = Button(
@@ -380,7 +383,7 @@ class TPCDisplay:
                 self.file_select,
                 self.load_file_button,
                 self.wire_plane_meta_pretext,
-                self.wire_plane_event_select,
+                self.event_select,
                 self.load_event_button,
                 self.link_axes_toggle,
                 width_policy = 'fixed', width=400
@@ -457,11 +460,11 @@ class TPCDisplay:
     
     def update_events(self):
         self.update_available_events()
-        self.wire_plane_event_select.options = self.wire_plane_available_events
-        self.wire_plane_event_select.value = str(self.wire_plane_event)
+        self.event_select.options = self.available_events
+        self.event_select.value = str(self.event)
 
     def update_event(self, attr, old, new):
-        self.wire_plane_event = int(self.wire_plane_event_select.value)
+        self.event = int(self.event_select.value)
     
     def update_link_axes(self, new):
         if self.link_axes_toggle.active:
@@ -473,45 +476,55 @@ class TPCDisplay:
     """
     def update_first_figure_radio_group(self, attr, old, new):
         if self.first_figure_radio_group.active == 0:
-            self.first_figure_plot_type = "Truth"
-            self.first_figure_color_select.options = self.available_wire_plane_truth_labels
-            self.first_figure_color_select.value = self.available_wire_plane_truth_labels[0]
-            self.first_figure_label = self.available_wire_plane_truth_labels[0]
+            self.first_figure_plot_type = "Wire Plane"
+            self.first_figure_plot_type_options.options = self.wire_plane_options
         elif self.first_figure_radio_group.active == 1:
-            self.first_figure_plot_type = "Predictions"
-            self.first_figure_color_select.options = self.available_prediction_labels
-            if len(self.available_prediction_labels) > 0:
-                self.first_figure_color_select.value = self.available_prediction_labels[0]
-                self.first_figure_label = self.available_prediction_labels[0]
+            self.first_figure_plot_type = "Wire Channel"
+            self.first_figure_plot_type_options.options = self.wire_channel_options
         elif self.first_figure_radio_group.active == 2:
-            self.first_figure_plot_type = "Channel"
+            self.first_figure_plot_type = "TPC"
+            self.first_figure_plot_type_options.options = self.tpc_options
         elif self.first_figure_radio_group.active == 3:
             self.first_figure_plot_type = "MergeTree"
+            self.first_figure_plot_type_options.options = self.merge_tree_options
         self.first_figure.title.text = f"Plot I [{self.first_figure_plot_type}]:"
+        self.update_first_figure_plot_options()
         
     def update_first_figure_color(self, attr, old, new):
         self.first_figure_label = self.first_figure_color_select.value
 
     def update_first_figure_plot_options(self, attr, old, new):
-        pass
+        if self.first_figure_radio_group.active == 0:
+            self.first_figure_plot_option = "Truth"
+            self.first_figure_color_select.options = self.available_wire_plane_truth_labels
+            self.first_figure_color_select.value = self.available_wire_plane_truth_labels[0]
+            self.first_figure_label = self.available_wire_plane_truth_labels[0]
+        elif self.first_figure_radio_group.active == 1:
+            self.first_figure_plot_option = "Predictions"
+            self.first_figure_color_select.options = self.available_prediction_labels
+            if len(self.available_prediction_labels) > 0:
+                self.first_figure_color_select.value = self.available_prediction_labels[0]
+                self.first_figure_label = self.available_prediction_labels[0]
 
     def update_first_figure_plot_type_options(self, attr, old, new):
-        pass
+        self.first_figure_plot_type_option = self.first_figure_plot_type_options.value
+        if self.first_figure_plot_type == "Wire Plane":
+            pass
 
     def update_second_figure_radio_group(self, attr, old, new):
         if self.second_figure_radio_group.active == 0:
-            self.second_figure_plot_type = "Truth"
+            self.second_figure_plot_type = "Wire Plane"
             self.second_figure_color_select.options = self.available_wire_plane_truth_labels
             self.second_figure_color_select.value = self.available_wire_plane_truth_labels[0]
             self.second_figure_label = self.available_wire_plane_truth_labels[0]
         elif self.second_figure_radio_group.active == 1:
-            self.second_figure_plot_type = "Predictions"
+            self.second_figure_plot_type = "Wire Channel"
             self.second_figure_color_select.options = self.available_prediction_labels
             if len(self.available_prediction_labels) > 0:
                 self.second_figure_color_select.value = self.available_prediction_labels[0]
                 self.second_figure_label = self.available_prediction_labels[0]
         elif self.second_figure_radio_group.active == 2:
-            self.second_figure_plot_type = "Channel"
+            self.second_figure_plot_type = "TPC"
         elif self.second_figure_radio_group.active == 3:
             self.second_figure_plot_type = "MergeTree"
         self.second_figure.title.text = f"Plot II [{self.second_figure_plot_type}]:"
@@ -543,14 +556,36 @@ class TPCDisplay:
             self.wire_plane_meta = input_file['meta'].item()
             self.update_meta()
             self.update_events()
-        if 'features' in input_file.files:
-            self.features = input_file['features']
-        if 'classes' in input_file.files:
-            self.classes = input_file['classes']
-        if 'clusters' in input_file.files:
-            self.clusters = input_file['clusters']
-        if 'hits' in input_file.files:
-            self.hits = input_file['hits']
+        if 'edep_features' in input_file.files:
+            self.edep_features = input_file['edep_features']
+        if 'edep_classes' in input_file.files:
+            self.edep_classes = input_file['edep_classes']
+        if 'edep_clusters' in input_file.files:
+            self.edep_clusters = input_file['edep_clusters']
+        if 'view_0_features' in input_file.files:
+            self.view_0_features = input_file['view_0_features']
+        if 'view_0_classes' in input_file.files:
+            self.view_0_classes = input_file['view_0_classes']
+        if 'view_0_clusters' in input_file.files:
+            self.view_0_clusters = input_file['view_0_clusters']
+        if 'view_0_hits' in input_file.files:
+            self.view_0_hits = input_file['view_0_hits']
+        if 'view_1_features' in input_file.files:
+            self.view_1_features = input_file['view_1_features']
+        if 'view_1_classes' in input_file.files:
+            self.view_1_classes = input_file['view_1_classes']
+        if 'view_1_clusters' in input_file.files:
+            self.view_1_clusters = input_file['view_1_clusters']
+        if 'view_1_hits' in input_file.files:
+            self.view_1_hits = input_file['view_1_hits']
+        if 'view_2_features' in input_file.files:
+            self.view_2_features = input_file['view_2_features']
+        if 'view_2_classes' in input_file.files:
+            self.view_2_classes = input_file['view_2_classes']
+        if 'view_2_clusters' in input_file.files:
+            self.view_2_clusters = input_file['view_2_clusters']
+        if 'view_2_hits' in input_file.files:
+            self.view_2_hits = input_file['view_2_hits']
         if 'source' in input_file.files:
             self.predictions['source'] = input_file['source']
             self.available_prediction_labels.append('source')
@@ -580,20 +615,20 @@ class TPCDisplay:
         pass
 
     def load_event(self):
-        if str(self.wire_plane_event) in self.wire_plane_available_events:
-            self.wire_plane_event_features = self.features[self.wire_plane_event]
-            self.wire_plane_event_classes = self.classes[self.wire_plane_event]
-            self.wire_plane_event_clusters = self.clusters[self.wire_plane_event]
-            self.wire_plane_event_hits = self.hits[self.wire_plane_event]
-            self.wire_plane_event_predictions = {
-                key: val[self.wire_plane_event][0]
+        if str(self.event) in self.available_events:
+            self.event_features = self.view_0_features[self.event]
+            self.event_classes = self.view_0_classes[self.event]
+            self.event_clusters = self.view_0_clusters[self.event]
+            self.event_hits = self.view_0_hits[self.event]
+            self.event_predictions = {
+                key: val[self.event][0]
                 for key, val in self.predictions.items()
             }
             if 'mc_maps' in self.wire_plane_meta.keys():
-                self.wire_plane_event_pdg_maps = self.mc_maps['pdg_code'][self.wire_plane_event]
-                self.wire_plane_event_parent_track_id_maps = self.mc_maps['parent_track_id'][self.wire_plane_event]
-                self.wire_plane_event_ancestor_track_id_maps = self.mc_maps['ancestor_track_id'][self.wire_plane_event]
-                self.wire_plane_event_ancestor_level_maps = self.mc_maps['ancestor_level'][self.wire_plane_event]
+                self.event_pdg_maps = self.mc_maps['pdg_code'][self.event]
+                self.event_parent_track_id_maps = self.mc_maps['parent_track_id'][self.event]
+                self.event_ancestor_track_id_maps = self.mc_maps['ancestor_track_id'][self.event]
+                self.event_ancestor_level_maps = self.mc_maps['ancestor_level'][self.event]
         else:
             pass
     
@@ -605,7 +640,7 @@ class TPCDisplay:
         else:
             if 'cluster' in self.first_figure_label:
                 label_index = self.wire_plane_meta['clusters'][self.first_figure_label.replace('cluster_','')]
-                label_vals = np.unique(self.wire_plane_event_clusters[:, label_index])
+                label_vals = np.unique(self.event_clusters[:, label_index])
                 self.first_scatter = {}
                 self.first_scatter_colors = {
                     #val: Magma256[len(label_vals)][ii]
@@ -614,17 +649,17 @@ class TPCDisplay:
                 }
                 for val in label_vals:   
                     if self.first_figure_plot_type == "Truth": 
-                        mask = (self.wire_plane_event_clusters[:, label_index] == val)
+                        mask = (self.event_clusters[:, label_index] == val)
                     else:
                         if self.first_figure_label not in self.available_prediction_labels:
                             continue
-                        labels = np.argmax(self.wire_plane_event_predictions[self.first_figure_label], axis=1)
+                        labels = np.argmax(self.event_predictions[self.first_figure_label], axis=1)
                         mask = (labels == val)
                     if np.sum(mask) == 0:
                         continue
                     self.first_scatter[val] = self.first_figure.circle(
-                        self.wire_plane_event_features[:,0][mask],
-                        self.wire_plane_event_features[:,1][mask],
+                        self.event_features[:,0][mask],
+                        self.event_features[:,1][mask],
                         legend_label=str(val),
                         color=self.first_scatter_colors[val]
                     )
@@ -639,17 +674,17 @@ class TPCDisplay:
                 }
                 for key, val in label_vals.items():   
                     if self.first_figure_plot_type == "Truth": 
-                        mask = (self.wire_plane_event_classes[:, label_index] == key)
+                        mask = (self.event_classes[:, label_index] == key)
                     else:
                         if self.first_figure_label not in self.available_prediction_labels:
                             continue
-                        labels = np.argmax(self.wire_plane_event_predictions[self.first_figure_label], axis=1)
+                        labels = np.argmax(self.event_predictions[self.first_figure_label], axis=1)
                         mask = (labels == key)
                     if np.sum(mask) == 0:
                         continue
                     self.first_scatter[val] = self.first_figure.circle(
-                        self.wire_plane_event_features[:,0][mask],
-                        self.wire_plane_event_features[:,1][mask],
+                        self.event_features[:,0][mask],
+                        self.event_features[:,1][mask],
                         legend_label=val,
                         color=self.first_scatter_colors[val]
                     )
@@ -665,7 +700,7 @@ class TPCDisplay:
         else:
             if 'cluster' in self.second_figure_label:
                 label_index = self.wire_plane_meta['clusters'][self.second_figure_label.replace('cluster_','')]
-                label_vals = np.unique(self.wire_plane_event_clusters[:, label_index])
+                label_vals = np.unique(self.event_clusters[:, label_index])
                 self.second_scatter = {}
                 self.second_scatter_colors = {
                     #val: Magma256[len(label_vals)][ii]
@@ -675,17 +710,17 @@ class TPCDisplay:
                 print(label_vals)
                 for val in label_vals:   
                     if self.second_figure_plot_type == "Truth": 
-                        mask = (self.wire_plane_event_clusters[:, label_index] == val)
+                        mask = (self.event_clusters[:, label_index] == val)
                     else:
                         if self.second_figure_label not in self.available_prediction_labels:
                             continue
-                        labels = np.argmax(self.wire_plane_event_predictions[self.second_figure_label], axis=1)
+                        labels = np.argmax(self.event_predictions[self.second_figure_label], axis=1)
                         mask = (labels == val)
                     if np.sum(mask) == 0:
                         continue
                     self.second_scatter[val] = self.second_figure.circle(
-                        self.wire_plane_event_features[:,0][mask],
-                        self.wire_plane_event_features[:,1][mask],
+                        self.event_features[:,0][mask],
+                        self.event_features[:,1][mask],
                         legend_label=str(val),
                         color=self.second_scatter_colors[val]
                     )
@@ -700,17 +735,17 @@ class TPCDisplay:
                 }
                 for key, val in label_vals.items():   
                     if self.second_figure_plot_type == "Truth": 
-                        mask = (self.wire_plane_event_classes[:, label_index] == key)
+                        mask = (self.event_classes[:, label_index] == key)
                     else:
                         if self.second_figure_label not in self.available_prediction_labels:
                             continue
-                        labels = np.argmax(self.wire_plane_event_predictions[self.second_figure_label], axis=1)
+                        labels = np.argmax(self.event_predictions[self.second_figure_label], axis=1)
                         mask = (labels == key)
                     if np.sum(mask) == 0:
                         continue
                     self.second_scatter[val] = self.second_figure.circle(
-                        self.wire_plane_event_features[:,0][mask],
-                        self.wire_plane_event_features[:,1][mask],
+                        self.event_features[:,0][mask],
+                        self.event_features[:,1][mask],
                         legend_label=val,
                         color=self.second_scatter_colors[val]
                     )
