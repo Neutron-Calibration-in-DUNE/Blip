@@ -46,15 +46,9 @@ class TPCDisplay:
         self.wire_plane_file_folder = str(Path().absolute())
         self.wire_plane_available_folders = []
         self.update_wire_plane_available_folders()
-        self.edep_file_folder = str(Path().absolute())
-        self.edep_available_folders = []
-        self.update_edep_available_folders()
         self.wire_plane_input_file = ''
         self.wire_plane_available_files = []
         self.update_wire_plane_available_files()
-        self.edep_available_folders_input_file = ''
-        self.edep_available_folders_files = []
-        self.update_edep_available_files()
         
         # Meta information from blip dataset files (.npz)
         self.wire_plane_meta = {}
@@ -69,18 +63,6 @@ class TPCDisplay:
             '...', '...', '...', '...', '...', '...', '...', '...'
         ]
         self.wire_plane_meta_string = ''
-        self.edep_meta = {}
-        self.edep_available_events = []
-        self.edep_event = -1
-        self.edep_meta_vars = [
-            "input_file", "who_created", "when_created",
-            "where_created", "num_events", "view",
-            "features", "classes"
-        ]
-        self.edep_meta_vals = [
-            '...', '...', '...', '...', '...', '...', '...', '...'
-        ]
-        self.edep_meta_string = ''
         self.update_meta_string()
 
         # Arrakis simulation wrangler mc truth maps
@@ -104,18 +86,21 @@ class TPCDisplay:
         
         # data from blip dataset files for a given 
         # event.
-        self.features = []
+        self.edep_features = []
+        self.view_features = []
         self.classes = []
         self.clusters = []
         self.hits = []
         self.edeps = []
         self.predictions = {}
 
-        self.plot_options = [
+        self.plot_types = [
             "Wire Plane", "Wire Channel", "TPC", "MergeTree"
         ]
+        self.plot_options = ["Truth", "Predictions"]
+        self.wire_plane_options = ["View 0", "View 1", "View 2"]
 
-        # parameters for first plot
+        # parameters for wire_plane plots
         self.available_wire_plane_truth_labels = [
             'adc', 
             'source', 'topology', 'particle', 'physics', 
@@ -129,8 +114,6 @@ class TPCDisplay:
             'cluster_topology', 'cluster_particle', 'cluster_physics',
         ]
         self.available_merge_tree_truth_labels = []
-
-
 
         self.first_figure_label = 'adc'
         self.first_scatter = {}
@@ -293,12 +276,14 @@ class TPCDisplay:
         self.first_figure_radio_text = PreText(
             text="Label type:"
         )
+        # Plot type radio group
         self.first_figure_radio_group = RadioGroup(
-            labels = self.plot_options, active=0
+            labels = self.plot_types, active=0
         )
         self.first_figure_radio_group.on_change(
             "active", self.update_first_figure_radio_group
         )
+        # Plot type labeling options
         self.first_figure_color_select = Select(
             title="Plot I labeling:", value="",
             options=self.available_wire_plane_truth_labels,
@@ -307,6 +292,23 @@ class TPCDisplay:
         self.first_figure_color_select.on_change(
             "value", self.update_first_figure_color
         )
+        # Plot options (truth/predictions)
+        self.first_figure_plot_options = RadioGroup(
+            labels = self.plot_options, active=0
+        )
+        self.first_figure_plot_options.on_change(
+            "active", self.update_first_figure_plot_options
+        )
+        # Plot type options
+        self.first_figure_plot_type_options = Select(
+            title="Plot I options:", value="",
+            options=self.wire_plane_options,
+            width_policy='fixed', width=100
+        )
+        self.first_figure_plot_type_options.on_change(
+            "value", self.update_first_figure_plot_type_options
+        )
+        # Plot button
         self.first_figure_plot_button = Button(
             label="Plot event",
             button_type="success",
@@ -315,6 +317,7 @@ class TPCDisplay:
         self.first_figure_plot_button.on_click(
             self.plot_first_event
         )
+        # Plot text information
         self.simulation_wrangler_pretext = PreText(
             text=self.simulation_wrangler_string,
             width=200,
@@ -334,7 +337,7 @@ class TPCDisplay:
         self.second_figure_taptool.callback = self.update_second_figure_taptool()
         self.second_figure.legend.click_policy="hide"
         self.second_figure_radio_group = RadioGroup(
-            labels = self.plot_options, active=1
+            labels = self.plot_types, active=1
         )
         self.second_figure_radio_group.on_change(
             "active", self.update_second_figure_radio_group
@@ -375,9 +378,17 @@ class TPCDisplay:
             ),
             column(
                 self.first_figure,
-                self.first_figure_radio_group,
-                self.first_figure_color_select,
-                self.first_figure_plot_button,
+                row(
+                    column(
+                        self.first_figure_radio_group,
+                        self.first_figure_color_select
+                    ),
+                    column(
+                        self.first_figure_plot_options,
+                        self.first_figure_plot_type_options,
+                        self.first_figure_plot_button
+                    ),
+                )
                 self.simulation_wrangler_pretext,
                 width_policy='fixed', width=600,
                 height_policy='fixed', height=1000
@@ -459,6 +470,12 @@ class TPCDisplay:
     def update_first_figure_color(self, attr, old, new):
         self.first_figure_label = self.first_figure_color_select.value
 
+    def update_first_figure_plot_options(self, attr, old, new):
+        pass
+
+    def update_first_figure_plot_type_options(self, attr, old, new):
+        pass
+
     def update_second_figure_radio_group(self, attr, old, new):
         if self.second_figure_radio_group.active == 0:
             self.second_figure_plot_type = "Truth"
@@ -479,6 +496,12 @@ class TPCDisplay:
         
     def update_second_figure_color(self, attr, old, new):
         self.second_figure_label = self.second_figure_color_select.value
+    
+    def update_second_figure_plot_options(self, attr, old, new):
+        pass
+
+    def update_second_figure_plot_type_options(self, attr, old, new):
+        pass
 
     def load_input_file(self):
         if self.wire_plane_input_file.endswith(".npz"):
