@@ -830,7 +830,7 @@ class TPCDisplay:
             else:
                 label_index = self.tpc_meta['classes'][self.first_figure_label]
                 label_vals = self.tpc_meta[f"{self.first_figure_label}_labels"]
-                print(label_vals)
+                print(self.first_figure_event_features)
                 self.first_scatter = {}
                 self.first_scatter_colors = {
                     #val: Magma256[len(label_vals)][ii]
