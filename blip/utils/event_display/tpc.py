@@ -830,7 +830,6 @@ class TPCDisplay:
             else:
                 label_index = self.tpc_meta['classes'][self.first_figure_label]
                 label_vals = self.tpc_meta[f"{self.first_figure_label}_labels"]
-                print(self.first_figure_event_features)
                 self.first_scatter = {}
                 self.first_scatter_colors = {
                     #val: Magma256[len(label_vals)][ii]
@@ -845,6 +844,7 @@ class TPCDisplay:
                             continue
                         labels = np.argmax(self.event_predictions[self.first_figure_label], axis=1)
                         mask = (labels == key)
+                    print(np.sum(mask))
                     if np.sum(mask) == 0:
                         continue
                     self.first_scatter[val] = self.first_figure.circle(
