@@ -290,8 +290,8 @@ class TPCDisplay:
         # self.first_figure.add_tools(self.first_figure_taptool)
         self.first_figure.legend.click_policy="hide"
         self.first_figure_adc_slider_option = CheckboxGroup(labels=["Use ADC Slider"], active=[0])
-        self.first_figure_adc_slider_option.on_click(
-            self.update_first_figure_adc_slider_option
+        self.first_figure_adc_slider_option.on_change(
+            'active', self.update_first_figure_adc_slider_option
         )
         self.first_figure_adc_slider_option_bool = True
         self.first_figure_slider = Slider(start=0.1, end=1, step=0.1, value=0.1)
@@ -534,7 +534,7 @@ class TPCDisplay:
     """
     functions here are for updating the Wire Plane display plots.
     """
-    def update_first_figure_adc_slider_option(self):
+    def update_first_figure_adc_slider_option(self, attr):
         if self.first_figure_adc_slider_option.active == [0]:
             self.first_figure_adc_slider_option_bool = True
         else:
