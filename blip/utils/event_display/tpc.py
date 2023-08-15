@@ -17,7 +17,7 @@ from bokeh.models import CategoricalColorMapper, Toggle
 from bokeh.models import CheckboxButtonGroup, CustomJS
 from bokeh.models import Paragraph, PreText, Dropdown
 from bokeh.models import ColumnDataSource, RadioGroup
-from bokeh.models import ColorBar
+from bokeh.models import ColorBar, LinearColorMapper
 from bokeh.events import Tap
 from bokeh.palettes import Turbo256, Category20, Category20b, TolRainbow, Magma256
 from bokeh.transform import linear_cmap
@@ -276,8 +276,9 @@ class TPCDisplay:
             toolbar_location="below"
         )
         # Defining properties of color mapper
+        self.first_figure_color_mapper = LinearColorMapper(palette = "Viridis256")
         self.first_figure_color_bar = ColorBar(
-            # color_mapper = color_mapper,
+            color_mapper = self.first_figure_color_mapper,
             label_standoff = 12,
             location = (0,0),
             title = ''
