@@ -904,6 +904,7 @@ class TPCDisplay:
                             continue
                         labels = np.argmax(self.event_predictions[self.second_figure_label], axis=1)
                         mask = (labels == key)
+                    print(self.second_figure_event_features)
                     if np.sum(mask) == 0:
                         continue
                     self.second_scatter[val] = self.second_figure.circle(
