@@ -59,6 +59,7 @@ class LossCallback(GenericCallback):
             size=(1,0), 
             dtype=torch.float, device=self.device
         )
+        print(self.criterion_handler.batch_loss)
         # run through criteria
         if train_type == 'training':
             for name, loss in self.criterion_handler.batch_loss.items():
