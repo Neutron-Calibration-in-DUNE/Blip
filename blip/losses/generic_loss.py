@@ -79,12 +79,12 @@ class GenericLoss:
     ):
         target = {
             key: data.pos[:, self.target_indicies[ii]]
-            for ii, key in enumerate(self.targets.keys())
+            for ii, key in enumerate(self.targets)
         }
         if self.augmentations > 0:
             target = {
                 key: torch.cat([target[key] for ii in range(self.augmentations)])
-                for key in self.targets.keys()
+                for key in self.targets
             }
         return self._loss(target, outputs)
     
@@ -94,12 +94,12 @@ class GenericLoss:
     ):
         target = {
             key: data.x[:, self.target_indicies[ii]]
-            for ii, key in enumerate(self.targets.keys())
+            for ii, key in enumerate(self.targets)
         }
         if self.augmentations > 0:
             target = {
                 key: torch.cat([target[key] for ii in range(self.augmentations)])
-                for key in self.targets.keys()
+                for key in self.targets
             }
         return self._loss(target, outputs)
 
@@ -109,12 +109,12 @@ class GenericLoss:
     ):
         target = {
             key: data.category[:, self.target_indicies[ii]]
-            for ii, key in enumerate(self.targets.keys())
+            for ii, key in enumerate(self.targets)
         }
         if self.augmentations > 0:
             target = {
                 key: torch.cat([target[key] for ii in range(self.augmentations)])
-                for key in self.targets.keys()
+                for key in self.targets
             }
         return self._loss(target, outputs)
 
@@ -124,12 +124,12 @@ class GenericLoss:
     ):
         target = {
             key: data.clusters[:, self.target_indicies[ii]]
-            for ii, key in enumerate(self.targets.keys())
+            for ii, key in enumerate(self.targets)
         }
         if self.augmentations > 0:
             target = {
                 key: torch.cat([target[key] for ii in range(self.augmentations)])
-                for key in self.targets.keys()
+                for key in self.targets
             }
         return self._loss(target, outputs)
 
@@ -139,11 +139,11 @@ class GenericLoss:
     ):
         target = {
             key: data.hits[:, self.target_indicies[ii]]
-            for ii, key in enumerate(self.targets.keys())
+            for ii, key in enumerate(self.targets)
         }
         if self.augmentations > 0:
             target = {
                 key: torch.cat([target[key] for ii in range(self.augmentations)])
-                for key in self.targets.keys()
+                for key in self.targets
             }
         return self._loss(target, outputs)
