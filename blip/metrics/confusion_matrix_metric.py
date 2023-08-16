@@ -13,7 +13,7 @@ class ConfusionMatrixMetric(GenericMetric):
     
     def __init__(self,
         name:       str='confusion_matrix',
-        mode:       str="voxel",
+        mode:       str="view",
         inputs:             list=[],
         when_to_compute:    str="all",
         meta:   dict={}
@@ -46,13 +46,13 @@ class ConfusionMatrixMetric(GenericMetric):
             else:
                 self.labels[input] = self.meta['dataset'].meta['blip_labels_values'][input]
 
-            if self.mode == "voxel":
+            if self.mode == "view":
                 self.batch_probabilities[input] = torch.empty(
                     size=(0, self.num_classes[ii] + 1),
                     dtype=torch.float, device=self.device
                 )
                 
-            elif self.mode == "cluster":
+            elif self.mode == "view_cluster":
                 self.batch_probabilities[input] = torch.empty(
                     size=(0, self.num_classes[ii] * 2),
                     dtype=torch.float, device=self.device
@@ -64,12 +64,12 @@ class ConfusionMatrixMetric(GenericMetric):
 
     def reset_probabilities(self):
         for ii, input in enumerate(self.inputs):
-            if self.mode == "voxel":
+            if self.mode == "view":
                 self.batch_probabilities[input] = torch.empty(
                     size=(0, self.num_classes[ii] + 1),
                     dtype=torch.float, device=self.device
                 )
-            elif self.mode == "cluster":
+            elif self.mode == "view_cluster":
                 self.batch_probabilities[input] = torch.empty(
                     size=(0, self.num_classes[ii] * 2),
                     dtype=torch.float, device=self.device
@@ -104,7 +104,7 @@ class ConfusionMatrixMetric(GenericMetric):
                 outputs[input], 
                 dim=1, dtype=torch.float
             )
-            if self.mode == "voxel":
+            if self.mode == "view":
                 predictions = torch.cat(
                     (softmax, data.category.unsqueeze(1)),
                     dim=1
@@ -121,7 +121,7 @@ class ConfusionMatrixMetric(GenericMetric):
                     (self.batch_summed_adc, data.summed_adc.unsqueeze(1).to(self.device)),
                     dim=0
                 )
-            elif self.mode == "cluster":
+            elif self.mode == "view_cluster":
                 # convert categories to probabilities.
                 answer = torch.zeros(outputs[input].shape).to(self.device)
                 for jj, batches in enumerate(torch.unique(data.batch)):
