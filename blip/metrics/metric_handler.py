@@ -42,7 +42,7 @@ class MetricHandler:
             self.set_config(config)
         else:
             if len(metrics) == 0:
-                self.logger.error(f"handler received neither a config or metrics!")
+                self.logger.warn(f"handler received neither a config or metrics!")
             self.metrics = {
                 metric.name: metric 
                 for metric in metrics
