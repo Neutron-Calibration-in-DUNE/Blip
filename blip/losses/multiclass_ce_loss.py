@@ -36,8 +36,9 @@ class MultiClassCrossEntropyLoss(GenericLoss):
             key: nn.CrossEntropyLoss(reduction=self.reduction)
             for key in self.targets
         }
+        self._loss = __loss
 
-    def _loss(self,
+    def __loss(self,
         target,
         outputs,
     ):
