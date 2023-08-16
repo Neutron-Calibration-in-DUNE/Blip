@@ -297,6 +297,17 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         except:
             self.logger.error(f'failed to get classes indices from meta!')
         try:    
+            self.meta['blip_clusters_indices'] = [
+                self.meta["clusters"][label]
+                for label in self.meta['blip_clusters']
+            ]
+            self.meta['blip_clusters_indices_by_name'] = {
+                clusters: ii
+                for ii, clusters in enumerate(self.meta['blip_clusters'])
+            }
+        except:
+            self.logger.error(f'failed to get clusters indices from meta!')
+        try:    
             self.meta['blip_hits_indices'] = [
                 self.meta["hits"][label]
                 for label in self.meta['blip_hits']
