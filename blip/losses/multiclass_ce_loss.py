@@ -16,7 +16,7 @@ class MultiClassCrossEntropyLoss(GenericLoss):
         targets:        list=[],
         outputs:        list=[],
         augmentations:  int=0,
-        reduction:      'mean',
+        reduction:      str='mean',
         meta:           dict={}
     ):
         super(MultiClassCrossEntropyLoss, self).__init__(
