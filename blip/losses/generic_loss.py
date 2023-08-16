@@ -49,6 +49,8 @@ class GenericLoss:
             self.target_indicies = [
                 self.meta['dataset'].meta['blip_classes_indices_by_name'][target] for target in self.targets
             ]
+            print(self.loss)
+            print(self.target_indicies)
         elif target_type == 'clusters':
             self.loss = self.cluster_loss
             self.target_indicies = [

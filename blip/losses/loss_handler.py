@@ -142,7 +142,6 @@ class LossHandler:
             self.losses[item] = self.available_criterions[item](**self.config[item], meta=self.meta)
             self.batch_loss[item] = torch.empty(size=(0,1), dtype=torch.float, device=self.device)
             self.logger.info(f'added loss function "{item}" to LossHandler.')
-        print(self.losses)
 
     def set_device(self,
         device
