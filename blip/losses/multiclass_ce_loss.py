@@ -44,5 +44,5 @@ class MultiClassCrossEntropyLoss(GenericLoss):
         """Computes and returns/saves loss information"""
         loss = 0
         for ii, output in enumerate(self.outputs):
-            loss += self.cross_entropy_loss[self.targets[ii]](outputs[output], self.targets[ii])
+            loss += self.cross_entropy_loss[self.targets[ii]](outputs[output], target[self.targets[ii]])
         return self.alpha * loss
