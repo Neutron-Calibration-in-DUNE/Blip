@@ -36,15 +36,13 @@ class MultiClassCrossEntropyLoss(GenericLoss):
             key: nn.CrossEntropyLoss(reduction=self.reduction)
             for key in self.targets
         }
-        self._loss = self.__loss
 
-    def __loss(self,
+    def _loss(self,
         target,
         outputs,
     ):
         """Computes and returns/saves loss information"""
         loss = 0
-        print("here")
         for ii, output in enumerate(self.outputs):
             loss += self.cross_entropy_loss[self.targets[ii]](
                 outputs[output].to(self.device), 

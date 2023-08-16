@@ -175,6 +175,7 @@ class LossHandler:
     ):
         batch_loss = 0
         for name, loss in self.losses.items():
+            print("here")
             temp_loss = loss.loss(outputs, data)
             self.batch_loss[name] = torch.cat(
                 (self.batch_loss[name], torch.tensor([[temp_loss]], device=self.device)), dim=0
