@@ -464,30 +464,6 @@ class Arrakis:
                 hit_amplitude_view = []
                 hit_charge_view = []
 
-                mc_maps = {
-                    'pdg_code': [],
-                    'parent_track_id': [],
-                    'ancestor_track_id': [],
-                    'ancestor_level': []
-                }
-                for event in range(len(channel)):
-                    mc_maps['pdg_code'].append({
-                        self.mc_map['pdg_code_map.first'][event][ii]: self.mc_map['pdg_code_map.second'][event][ii]
-                        for ii in range(len(self.mc_map['pdg_code_map.first'][event]))
-                    })
-                    mc_maps['parent_track_id'].append({
-                        self.mc_map['parent_track_id_map.first'][event][ii]: self.mc_map['parent_track_id_map.second'][event][ii]
-                        for ii in range(len(self.mc_map['parent_track_id_map.first'][event]))
-                    })
-                    mc_maps['ancestor_track_id'].append({
-                        self.mc_map['ancestor_track_id_map.first'][event][ii]: self.mc_map['ancestor_track_id_map.second'][event][ii]
-                        for ii in range(len(self.mc_map['ancestor_track_id_map.first'][event]))
-                    })
-                    mc_maps['ancestor_level'].append({
-                        self.mc_map['ancestor_level_map.first'][event][ii]: self.mc_map['ancestor_level_map.second'][event][ii]
-                        for ii in range(len(self.mc_map['ancestor_level_map.first'][event]))
-                    })
-
                 for event in range(len(channel)):
                     view_mask = (
                         (channel[event] >= tpc_view[0]) & 
