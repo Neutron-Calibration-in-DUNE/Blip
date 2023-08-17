@@ -519,7 +519,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                             self.consolidation_map[label][key] = jj
 
     def configure_clustering(self):
-        if self.meta['dataset_type'] != "cluster":
+        if self.meta['dataset_type'] != "view_cluster":
             return
         self.dbscan_min_samples = self.config["dbscan_min_samples"]
         self.dbscan_eps = self.config["dbscan_eps"]
