@@ -125,7 +125,7 @@ class Arrakis:
                 self.mc_map = self.uproot_file[key].arrays(library="np")
 
     def generate_training_data(self,
-        process_type:   str='all',
+        process_type:  list=['all'],
         input_file:    str=''
     ):
         self.meta = {}
@@ -197,18 +197,22 @@ class Arrakis:
                 'view_2_hits':      []
             }   
 
-        self.generate_mc_maps(input_file)
-
-        if process_type == 'energy_deposit_point_cloud':
-            self.generate_energy_deposit_point_cloud(input_file)
-        elif process_type == 'wire_plane_point_cloud':
-            self.generate_wire_plane_point_cloud(input_file)
-        elif process_type == 'op_det_point_cloud':
-            self.generate_op_det_point_cloud(input_file)
-        elif process_type == 'all':
-            self.generate_energy_deposit_point_cloud(input_file)
-            self.generate_wire_plane_point_cloud(input_file)
-            self.generate_op_det_point_cloud(input_file)
+        for process in process_type:
+            if process == 'energy_deposit_point_cloud':
+                self.generate_energy_deposit_point_cloud(input_file)
+            elif process == 'wire_plane_point_cloud':
+                self.generate_wire_plane_point_cloud(input_file)
+            elif process == 'op_det_point_cloud':
+                self.generate_op_det_point_cloud(input_file)
+            elif process == 'mc_maps':
+                self.generate_mc_maps(input_file)
+            elif process == 'all':
+                self.generate_energy_deposit_point_cloud(input_file)
+                self.generate_wire_plane_point_cloud(input_file)
+                self.generate_op_det_point_cloud(input_file)
+                self.generate_mc_maps(input_file)
+            else:
+                self.logger.error(f'specified process type {process} not allowed!')
 
         for tpc, tpc_ranges in self.protodune_tpc_positions.items():
             np.savez(
