@@ -590,8 +590,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         
         # Apply masks
         event_features = event_features[mask].astype(np.float)
-        event_classes = event_classes[mask].astype(np.float)
-        event_clusters = event_clusters[mask].astype(np.float)
+        event_classes = event_classes[mask].astype(np.int64)
+        event_clusters = event_clusters[mask].astype(np.int64)
         event_hits = event_hits[mask].astype(np.float)
 
         # Separate positions and features
