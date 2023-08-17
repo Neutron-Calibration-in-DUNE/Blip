@@ -378,7 +378,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         if "dataset_type" not in self.config.keys():
             self.logger.error(f'no dataset_type specified in config!')
         self.meta['dataset_type'] = self.config["dataset_type"]
-        if self.meta['dataset_type'] == 'view':
+        if self.meta['dataset_type'] == 'view' or self.meta['dataset_type'] == 'view_cluster':
             self.meta['view'] = self.config['view']
             self.meta['position_type'] = torch.int
         else:
