@@ -158,11 +158,11 @@ class BlipGraph(GenericModel):
             reduction_config['linear_output']
         )
         if reduction_config['reduction_type'] == 'add_pool':
-            _reduction_dict['pooling_layer'] = global_add_pool
+            self.pooling_layer = global_add_pool
         elif reduction_config['reduction_type'] == 'mean_pool':
-            _reduction_dict['pooling_layer'] = global_mean_pool
+            self.pooling_layer = global_mean_pool
         else:
-            _reduction_dict['pooling_layer'] = global_max_pool
+            self.pooling_layer = global_max_pool
 
         # classification layer
         classifcation_config = self.config['classification']
@@ -210,7 +210,7 @@ class BlipGraph(GenericModel):
                 linear_output = self.reduction_dict['linear_layer'](linear_input)
                 
                 # Apply Pooling
-                linear_pool = self.reduction_dict['pooling_layer'](linear_output, batch)
+                linear_pool = self.pooling_layer(linear_output, batch)
 
                 if self.config["add_summed_adc"]:
                     linear_pool = torch.cat([linear_pool, summed_adc.unsqueeze(1)], dim=1)
@@ -239,7 +239,7 @@ class BlipGraph(GenericModel):
 
             # Pass through reduction dictionary
             linear_output = self.reduction_dict['linear_layer'](linear_input)
-            linear_pool = self.reduction_dict['pooling_layer'](linear_output, batch)
+            linear_pool = self.pooling_layer(linear_output, batch)
             
             if self.config["add_summed_adc"]:
                 linear_pool = torch.cat([linear_pool, summed_adc.unsqueeze(1)], dim=1)
