@@ -36,6 +36,8 @@ class NTXEntropyLoss(GenericLoss):
     ):
         """Computes and returns/saves loss information"""
         loss = 0
+        print(target)
+        print(outputs)
         for ii, output in enumerate(self.outputs):
             loss += self.ntx_entropy_loss[self.targets[ii]](
                 outputs[output].to(self.device), 
