@@ -59,6 +59,8 @@ class GenericLoss:
             self.target_indicies = [
                 self.meta['dataset'].meta['blip_hits_indices_by_name'][target] for target in self.targets
             ]
+        elif target_type == 'augment_batch':
+            self.loss = self.augment_batch_loss
         else:
             self.logger.error(f'specified target_type "{target_type}" not allowed!')
 
@@ -146,4 +148,18 @@ class GenericLoss:
                 key: torch.cat([target[key] for ii in range(self.augmentations)])
                 for key in self.targets
             }
+        return self._loss(target, outputs)
+
+    def augment_batch_loss(self,
+        outputs,
+        data,
+    ):
+        indices = torch.arange(0, len(torch.unique(data.batch)), self.device)
+        target = {
+            key: torch.cat([
+                indices
+                for ii in range(int(len(data.batch)/len(torch.unique(data.batch))))
+            ])
+            for ii, key in enumerate(self.targets)
+        }
         return self._loss(target, outputs)

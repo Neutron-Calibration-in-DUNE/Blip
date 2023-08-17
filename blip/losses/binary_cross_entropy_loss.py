@@ -1,41 +1,40 @@
 """
-Wrapper for CrossEntropy loss
+Wrapper for BinaryCrossEntropy loss
 """
 import torch
 import torch.nn as nn
 
 from blip.losses import GenericLoss
 
-class MultiClassCrossEntropyLoss(GenericLoss):
+class BinaryCrossEntropyLoss(GenericLoss):
     """
     """
     def __init__(self,
-        name:           str='multi_class_ce_loss',
+        name:           str='binary_cross_entropy_loss',
         alpha:          float=0.0,
         target_type:    str='classes',
         targets:        list=[],
         outputs:        list=[],
         augmentations:  int=0,
         reduction:      str='mean',
+        sigmoid:        bool=True,
         meta:           dict={}
     ):
-        super(MultiClassCrossEntropyLoss, self).__init__(
+        super(BinaryCrossEntropyLoss, self).__init__(
             name, alpha, target_type, targets, outputs, augmentations, meta
         )
         self.reduction = reduction
-        # if len(class_weights.keys()) > 0:
-        #     self.cross_entropy_loss = {
-        #         key: nn.CrossEntropyLoss(
-        #             weight=self.class_weights[key].to(self.device), 
-        #             reduction=self.reduction
-        #         )
-        #         for key in self.class_weights.keys()
-        #     }
-        # else:
-        self.cross_entropy_loss = {
-            key: nn.CrossEntropyLoss(reduction=self.reduction)
-            for key in self.targets
-        }
+        self.sigmoid = sigmoid
+        if sigmoid:
+            self.cross_entropy_loss = {
+                key: nn.BCEWithLogitsLoss(reduction=self.reduction)
+                for key in self.targets
+            }
+        else:
+            self.cross_entropy_loss = {
+                key: nn.BCELoss(reduction=self.reduction)
+                for key in self.targets
+            }
 
     def _loss(self,
         target,
