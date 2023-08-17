@@ -148,7 +148,7 @@ class BlipGraph(GenericModel):
             _num_embedding_outputs += _input_dimension
 
         if self.config["add_summed_adc"]:
-            self.config['mlp_output_layers'][0] += 1
+            self.config['classification']['mlp_output_layers'][0] += 1
 
         # reduction layer
         reduction_config = self.config['reduction']
