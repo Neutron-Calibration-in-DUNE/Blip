@@ -192,6 +192,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 'view_2_source_points', 'view_2_topology_points', 'view_2_particle_points', 'view_2_physics_points', 'view_2_total_points',
             ]:
                 if point_label in temp_arrakis_meta[ii+1].keys():
+                    print(self.meta[point_label])
                     for key in self.meta[point_label].keys():
                         self.meta[point_label][key] += temp_arrakis_meta[ii+1][point_label][key]
 
