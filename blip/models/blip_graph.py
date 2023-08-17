@@ -144,7 +144,7 @@ class BlipGraph(GenericModel):
                     local_nn=MLP([_input_dimension + self.config['input_dimension']] + embedding_config[embedding]['local_mlp_layers']), 
                     add_self_loops=embedding_config[embedding]['add_self_loops']
                 )
-                _input_dimension = embedding_config['local_mlp_layers'][-1]
+                _input_dimension = embedding_config[embedding]['local_mlp_layers'][-1]
             _num_embedding_outputs += _input_dimension
 
         if self.config["add_summed_adc"]:
@@ -208,6 +208,7 @@ class BlipGraph(GenericModel):
 
                 # Pass through reduction dictionary
                 linear_output = self.reduction_dict['linear_layer'](linear_input)
+                
                 # Apply Pooling
                 linear_pool = self.reduction_dict['pooling_layer'](linear_output, batch)
 
