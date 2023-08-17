@@ -197,6 +197,7 @@ class Trainer:
                     enumerate(self.meta['loader'].train_loader, 0), 
                     total=len(self.meta['loader'].train_loader), 
                     leave=rewrite_bar,
+                    position=0,
                     colour='green'
                 )
             else:
@@ -291,6 +292,7 @@ class Trainer:
                             enumerate(self.meta['loader'].train_loader, 0), 
                             total=len(self.meta['loader'].train_loader), 
                             leave=rewrite_bar,
+                            position=0,
                             colour='green'
                         )
                     else:
@@ -323,6 +325,7 @@ class Trainer:
                     enumerate(self.meta['loader'].validation_loader, 0), 
                     total=len(self.meta['loader'].validation_loader), 
                     leave=rewrite_bar,
+                    position=0,
                     colour='blue'
                 )
             else:
@@ -378,6 +381,7 @@ class Trainer:
                             enumerate(self.meta['loader'].validation_loader, 0), 
                             total=len(self.meta['loader'].validation_loader), 
                             leave=rewrite_bar,
+                            position=0,
                             colour='blue'
                         )
                     else:
@@ -426,6 +430,7 @@ class Trainer:
                 enumerate(self.meta['loader'].test_loader, 0), 
                 total=len(self.meta['loader'].test_loader), 
                 leave=rewrite_bar,
+                position=0,
                 colour='red'
             )
         else:
@@ -485,6 +490,7 @@ class Trainer:
                     enumerate(self.meta['loader'].train_loader, 0), 
                     total=len(self.meta['loader'].train_loader), 
                     leave=rewrite_bar,
+                    position=0,
                     colour='green'
                 )
             else:
@@ -506,6 +512,7 @@ class Trainer:
                         enumerate(self.meta['loader'].train_loader, 0), 
                         total=len(self.meta['loader'].train_loader), 
                         leave=rewrite_bar,
+                        position=0,
                         colour='green'
                     )
                 else:
@@ -522,6 +529,7 @@ class Trainer:
                     enumerate(self.meta['loader'].validation_loader, 0), 
                     total=len(self.meta['loader'].validation_loader), 
                     leave=rewrite_bar,
+                    position=0,
                     colour='blue'
                 )
             else:
@@ -540,6 +548,7 @@ class Trainer:
                             enumerate(self.meta['loader'].validation_loader, 0), 
                             total=len(self.meta['loader'].validation_loader), 
                             leave=rewrite_bar,
+                            position=0,
                             colour='blue'
                         )
                     else:
@@ -565,6 +574,7 @@ class Trainer:
                 enumerate(self.meta['loader'].test_loader, 0), 
                 total=len(self.meta['loader'].test_loader), 
                 leave=rewrite_bar,
+                position=0,
                 colour='red'
             )
         else:
@@ -638,6 +648,7 @@ class Trainer:
                 enumerate(inference_loader, 0), 
                 total=len(list(inference_indices)), 
                 leave=rewrite_bar,
+                position=0,
                 colour='magenta'
             )
         else:
