@@ -750,6 +750,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             cluster_classes = event_classes[cluster_mask]
             cluster_clusters = event_clusters[cluster_mask]
             if self.meta['cluster_category_type'] == 'classification':
+                print(cluster_classes)
                 cluster_classes = [
                     np.bincount(cluster_classes[:, ll]).argmax()
                     for ll in range(len(self.meta['blip_classes_indices']))
