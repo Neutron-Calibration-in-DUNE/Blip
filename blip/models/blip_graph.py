@@ -138,7 +138,7 @@ class BlipGraph(GenericModel):
                     k=embedding_config[embedding]['number_of_neighbors'],
                     aggr=embedding_config[embedding]['aggregation']
                 )
-                _input_dimension = embedding_config['embedding_mlp_layers'][-1]
+                _input_dimension = embedding_config[embedding]['embedding_mlp_layers'][-1]
             elif embedding_config[embedding]['embedding_type'] == 'point_net_conv':
                 _embedding_dict[embedding] = PointNetConv(
                     local_nn=MLP([_input_dimension + self.config['input_dimension']] + embedding_config[embedding]['local_mlp_layers']), 
