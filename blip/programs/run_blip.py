@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from time import time
 from datetime import datetime
 import argparse
+os.environ["TQDM_NOTEBOOK"] = "false"
 
 from blip.utils.logger import Logger, default_logger
 from blip.utils.config import ConfigParser
