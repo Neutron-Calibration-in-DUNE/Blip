@@ -154,7 +154,7 @@ class GenericLoss:
         outputs,
         data,
     ):
-        indices = torch.arange(0, len(torch.unique(data.batch)), self.device)
+        indices = torch.arange(0, len(torch.unique(data.batch)), device=self.device)
         target = {
             key: torch.cat([
                 indices
