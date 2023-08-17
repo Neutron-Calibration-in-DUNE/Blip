@@ -145,6 +145,8 @@ class BlipGraph(GenericModel):
                     add_self_loops=embedding_config[embedding]['add_self_loops']
                 )
                 _input_dimension = embedding_config[embedding]['local_mlp_layers'][-1]
+            else:
+                self.logger.error(f'specified embedding type {embedding_config[embedding]["embedding_type"]} not allowed!')
             _num_embedding_outputs += _input_dimension
 
         if self.config["add_summed_adc"]:
