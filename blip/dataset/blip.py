@@ -727,6 +727,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         event_positions, event_features, event_classes, event_clusters, event_hits, mask = self.apply_view_event_masks(
             event_features, event_classes, event_clusters, event_hits
         )
+        print(event_positions)
         # # check if classes need to be consolidated
         # if self.meta['consolidate_classes'] is not None:
         #     event_classes = self.consolidate_class(classes[ii])
@@ -781,7 +782,6 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 # Cluster ID is unique to clustering events
                 cluster_id=kk
             )
-            print(event)
 
             if self.pre_filter is not None:
                 event = self.pre_filter(event)
