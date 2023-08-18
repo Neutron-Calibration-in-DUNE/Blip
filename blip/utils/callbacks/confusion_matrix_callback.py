@@ -112,7 +112,7 @@ class ConfusionMatrixCallback(GenericCallback):
     def evaluate_training(self):
         for kk, output in enumerate(self.metric.outputs):
             # plot the training confusion matrix
-            if self.metric.consolidate_classes:
+            if self.consolidate_classes:
                 training_display = ConfusionMatrixDisplay(
                     self.training_confusion[output].cpu().numpy()
                 ) 
@@ -133,7 +133,7 @@ class ConfusionMatrixCallback(GenericCallback):
             plt.savefig(f"plots/confusion_matrix/training_confusion_matrix_{output}.png")
             plt.close()
 
-            if self.metric.consolidate_classes:
+            if self.consolidate_classes:
                 validation_display = ConfusionMatrixDisplay(
                     self.validation_confusion[output].cpu().numpy()
                 ) 
@@ -374,7 +374,7 @@ class ConfusionMatrixCallback(GenericCallback):
     def evaluate_testing(self):  
         for kk, output in enumerate(self.metric.outputs):
             # plot the training confusion matrix
-            if self.metric.consolidate_classes:
+            if self.consolidate_classes:
                 test_display = ConfusionMatrixDisplay(
                     self.test_confusion[output].cpu().numpy()
                 ) 
