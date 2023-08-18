@@ -32,21 +32,21 @@ class ConfusionMatrixMetric(GenericMetric):
             for key in self.targets
         }
 
-        def _metric_update(self,
-            target,
-            outputs
-        ):
-            for ii, output in enumerate(self.outputs):
-                self.confusion_matrix_metric[output].update(
-                    nn.functional.softmax(outputs[output], dim=1, dtype=torch.float).to(self.device),
-                    target[self.targets[ii]].to(self.device)
-                )
+    def _metric_update(self,
+        target,
+        outputs
+    ):
+        for ii, output in enumerate(self.outputs):
+            self.confusion_matrix_metric[output].update(
+                nn.functional.softmax(outputs[output], dim=1, dtype=torch.float).to(self.device),
+                target[self.targets[ii]].to(self.device)
+            )
 
-        def _metric_compute(self):
-            return {
-                output: self.confusion_matrix_metric[output].compute()
-                for output in self.outputs
-            }
+    def _metric_compute(self):
+        return {
+            output: self.confusion_matrix_metric[output].compute()
+            for output in self.outputs
+        }
 
     #     self.metrics = {}
     #     self.batch_probabilities = {}
