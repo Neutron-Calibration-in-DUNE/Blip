@@ -74,9 +74,6 @@ class GenericMetric:
         device
     ):  
         self.device = device
-        for name, metric in self.metrics.items():
-            metric.to(self.device)
-        self.reset()
     
     def _metric_update(self, 
         target,
