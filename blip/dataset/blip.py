@@ -616,6 +616,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             for key, val in self.meta['blip_labels_values_map'][classes].items():
                 mask = (event_classes[:, class_index] == key)
                 event_classes[mask, class_index] = val
+        print(event_classes)
         event_classes = event_classes[:, self.meta['blip_classes_indices']]
         print(event_classes)
         event_clusters = event_clusters[:, self.meta['blip_clusters_indices']]
