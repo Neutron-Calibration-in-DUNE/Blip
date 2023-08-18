@@ -39,7 +39,7 @@ class NTXEntropyLoss(GenericLoss):
         print(target)
         print(outputs)
         for ii, output in enumerate(self.outputs):
-            print(ii, output)
+            print(ii, outputs[output].shape, target[self.targets[ii]].shape)
             loss += self.ntx_entropy_loss[self.targets[ii]](
                 outputs[output].to(self.device), 
                 target[self.targets[ii]].to(self.device)
