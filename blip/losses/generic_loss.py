@@ -85,7 +85,7 @@ class GenericLoss:
         }
         if self.augmentations > 0:
             target = {
-                key: torch.cat([target[key] for ii in range(int(len(data.batch)/len(torch.unique(data.batch))))])
+                key: torch.cat([target[key] for ii in range(self.augmentations)])
                 for key in self.targets
             }
         return self._loss(target, outputs)
@@ -100,7 +100,7 @@ class GenericLoss:
         }
         if self.augmentations > 0:
             target = {
-                key: torch.cat([target[key] for ii in range(int(len(data.batch)/len(torch.unique(data.batch))))])
+                key: torch.cat([target[key] for ii in range(self.augmentations)])
                 for key in self.targets
             }
         return self._loss(target, outputs)
@@ -115,7 +115,7 @@ class GenericLoss:
         }
         if self.augmentations > 0:
             target = {
-                key: torch.cat([target[key] for ii in range(int(len(data.batch)/len(torch.unique(data.batch))))])
+                key: torch.cat([target[key] for ii in range(self.augmentations)])
                 for key in self.targets
             }
         return self._loss(target, outputs)
@@ -130,7 +130,7 @@ class GenericLoss:
         }
         if self.augmentations > 0:
             target = {
-                key: torch.cat([target[key] for ii in range(int(len(data.batch)/len(torch.unique(data.batch))))])
+                key: torch.cat([target[key] for ii in range(self.augmentations)])
                 for key in self.targets
             }
         return self._loss(target, outputs)
@@ -145,7 +145,7 @@ class GenericLoss:
         }
         if self.augmentations > 0:
             target = {
-                key: torch.cat([target[key] for ii in range(int(len(data.batch)/len(torch.unique(data.batch))))])
+                key: torch.cat([target[key] for ii in range(self.augmentations)])
                 for key in self.targets
             }
         return self._loss(target, outputs)

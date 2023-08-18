@@ -90,6 +90,9 @@ training:
   gpu_device:   0
   seed:         0
 
+merge_tree:
+  
+
 model:
   # uncomment the line below and specify the model to load from a checkpoint.
   # load_model:   ".checkpoints/checkpoint_200.ckpt"
