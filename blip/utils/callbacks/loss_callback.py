@@ -54,14 +54,14 @@ class LossCallback(GenericCallback):
         )
 
     def evaluate_epoch(self,
-        train_type='training'
+        train_type='train'
     ):  
         temp_losses = torch.empty(
             size=(1,0), 
             dtype=torch.float, device=self.device
         )
         # run through criteria
-        if train_type == 'training':
+        if train_type == 'train':
             for name, loss in self.criterion_handler.batch_loss.items():
                 temp_loss = loss.sum()/self.num_training_batches
                 temp_losses = torch.cat(
