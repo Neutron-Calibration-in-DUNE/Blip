@@ -584,7 +584,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
     def apply_view_event_masks(self,
         event_features, event_classes, event_clusters, event_hits
     ):
-        print(np.unique(event_classes))
+        print(event_classes)
         mask = np.array([True for ii in range(len(event_features))])
         if "classes_mask" in self.config:
             # Apply 'classes_mask' and 'labels_mask'
