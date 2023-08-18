@@ -48,6 +48,14 @@ class ConfusionMatrixCallback(GenericCallback):
 
         if not os.path.isdir("plots/confusion_matrix/"):
             os.makedirs("plots/confusion_matrix/")
+        
+        self.labels = {}
+        for ii, output in enumerate(self.metric.outputs):
+            if self.meta['dataset'].meta['consolidate_classes'] is not None:
+                self.consolidate_classes = True
+                self.labels[output] = self.meta['dataset'].meta['consolidate_classes'][output]
+            else:
+                self.labels[output] = self.meta['dataset'].meta['blip_labels_values'][output]
 
         # if not os.path.isdir("plots/roc/"):
         #     os.makedirs("plots/roc/")
@@ -111,13 +119,13 @@ class ConfusionMatrixCallback(GenericCallback):
             else:
                 training_display = ConfusionMatrixDisplay(
                     self.training_confusion[output].cpu().numpy(),
-                    display_labels = self.metric.labels[output]
+                    display_labels = self.labels[output]
                 ) 
                 training_display.plot(
                     xticks_rotation="vertical"
                 ) 
-                training_display.figure_.set_figwidth(len(self.metric.labels[output]))
-                training_display.figure_.set_figheight(len(self.metric.labels[output]))
+                training_display.figure_.set_figwidth(len(self.labels[output]))
+                training_display.figure_.set_figheight(len(self.labels[output]))
                      
             plt.suptitle(f"Training Confusion Matrix\nClass {output}")
             plt.tight_layout()
@@ -132,13 +140,13 @@ class ConfusionMatrixCallback(GenericCallback):
             else:
                 validation_display = ConfusionMatrixDisplay(
                     self.validation_confusion[output].cpu().numpy(),
-                    display_labels = self.metric.labels[output]
+                    display_labels = self.labels[output]
                 ) 
                 validation_display.plot(
                     xticks_rotation="vertical"
                 ) 
-                validation_display.figure_.set_figwidth(len(self.metric.labels[output]))
-                validation_display.figure_.set_figheight(len(self.metric.labels[output]))
+                validation_display.figure_.set_figwidth(len(self.labels[output]))
+                validation_display.figure_.set_figheight(len(self.labels[output]))
             
             plt.suptitle(f"Validation Confusion Matrix\nClass {output}")
             plt.tight_layout()
@@ -146,11 +154,11 @@ class ConfusionMatrixCallback(GenericCallback):
             plt.close()
             
             # # plot statistics on categorical probabilities
-            # for ii, outer_label in enumerate(self.metric.labels[input]):
+            # for ii, outer_label in enumerate(self.labels[input]):
             #     fig, axs = plt.subplots(figsize=(10,6))
             #     temp_train_probs = self.training_probabilities[input][:,ii]
             #     temp_train_labels = self.training_probabilities[input][:,self.metric.num_classes[kk]]
-            #     for jj, inner_label in enumerate(self.metric.labels[input]):
+            #     for jj, inner_label in enumerate(self.labels[input]):
             #         axs.hist(
             #             temp_train_probs[(temp_train_labels == jj)].cpu(),
             #             bins=100,
@@ -169,7 +177,7 @@ class ConfusionMatrixCallback(GenericCallback):
             #     plt.close()
             
             # # generate ROC curves for each class
-            # for ii, outer_label in enumerate(self.metric.labels[input]):
+            # for ii, outer_label in enumerate(self.labels[input]):
             #     fig, axs = plt.subplots()
             #     temp_train_probs = self.training_probabilities[input][:,ii]
             #     temp_train_labels = self.training_probabilities[input][:,self.metric.num_classes[kk]]
@@ -215,7 +223,7 @@ class ConfusionMatrixCallback(GenericCallback):
             #     plt.close()
             
             # # generate summed ADC plots for each signal acceptance value
-            # for ii, outer_label in enumerate(self.metric.labels[input]):
+            # for ii, outer_label in enumerate(self.labels[input]):
             #     fig, axs = plt.subplots()
             #     temp_train_probs = self.training_probabilities[input][:,ii]
             #     temp_train_labels = self.training_probabilities[input][:,self.metric.num_classes[kk]]
@@ -254,11 +262,11 @@ class ConfusionMatrixCallback(GenericCallback):
             #     plt.close()
             
             # # plot statistics on categorical probabilities
-            # for ii, outer_label in enumerate(self.metric.labels[input]):
+            # for ii, outer_label in enumerate(self.labels[input]):
             #     fig, axs = plt.subplots(figsize=(10,6))
             #     temp_train_probs = self.validation_probabilities[input][:,ii]
             #     temp_train_labels = self.validation_probabilities[input][:,self.metric.num_classes[kk]]
-            #     for jj, inner_label in enumerate(self.metric.labels[input]):
+            #     for jj, inner_label in enumerate(self.labels[input]):
             #         axs.hist(
             #             temp_train_probs[(temp_train_labels == jj)].cpu(),
             #             bins=100,
@@ -277,7 +285,7 @@ class ConfusionMatrixCallback(GenericCallback):
             #     plt.close()
             
             # # generate ROC curves for each class
-            # for ii, outer_label in enumerate(self.metric.labels[input]):
+            # for ii, outer_label in enumerate(self.labels[input]):
             #     fig, axs = plt.subplots()
             #     temp_train_probs = self.validation_probabilities[input][:,ii]
             #     temp_train_labels = self.validation_probabilities[input][:,self.metric.num_classes[kk]]
@@ -323,7 +331,7 @@ class ConfusionMatrixCallback(GenericCallback):
             #     plt.close()
             
             # # generate summed ADC plots for each signal acceptance value
-            # for ii, outer_label in enumerate(self.metric.labels[input]):
+            # for ii, outer_label in enumerate(self.labels[input]):
             #     fig, axs = plt.subplots()
             #     temp_train_probs = self.validation_probabilities[input][:,ii]
             #     temp_train_labels = self.validation_probabilities[input][:,self.metric.num_classes[kk]]
@@ -373,13 +381,13 @@ class ConfusionMatrixCallback(GenericCallback):
             else:
                 test_display = ConfusionMatrixDisplay(
                     self.test_confusion[output].cpu().numpy(),
-                    display_labels = self.metric.labels[output]
+                    display_labels = self.labels[output]
                 ) 
                 test_display.plot(
                     xticks_rotation="vertical"
                 )
-                test_display.figure_.set_figwidth(len(self.metric.labels[output]))
-                test_display.figure_.set_figheight(len(self.metric.labels[output]))
+                test_display.figure_.set_figwidth(len(self.labels[output]))
+                test_display.figure_.set_figheight(len(self.labels[output]))
                       
             plt.suptitle(f"Test Confusion Matrix\nClass {output}")
             plt.tight_layout()
@@ -387,11 +395,11 @@ class ConfusionMatrixCallback(GenericCallback):
             plt.close()
     
             # # plot statistics on categorical probabilities
-            # for ii, outer_label in enumerate(self.metric.labels[input]):
+            # for ii, outer_label in enumerate(self.labels[input]):
             #     fig, axs = plt.subplots(figsize=(10,6))
             #     temp_train_probs = self.test_probabilities[input][:,ii]
             #     temp_train_labels = self.test_probabilities[input][:,self.metric.num_classes[kk]]
-            #     for jj, inner_label in enumerate(self.metric.labels[input]):
+            #     for jj, inner_label in enumerate(self.labels[input]):
             #         axs.hist(
             #             temp_train_probs[(temp_train_labels == jj)].cpu(),
             #             bins=100,
@@ -410,7 +418,7 @@ class ConfusionMatrixCallback(GenericCallback):
             #     plt.close()
             
             # # generate ROC curves for each class
-            # for ii, outer_label in enumerate(self.metric.labels[input]):
+            # for ii, outer_label in enumerate(self.labels[input]):
             #     fig, axs = plt.subplots()
             #     temp_train_probs = self.test_probabilities[input][:,ii]
             #     temp_train_labels = self.test_probabilities[input][:,self.metric.num_classes[kk]]
@@ -456,7 +464,7 @@ class ConfusionMatrixCallback(GenericCallback):
             #     plt.close()
             
             # # generate summed ADC plots for each signal acceptance value
-            # for ii, outer_label in enumerate(self.metric.labels[input]):
+            # for ii, outer_label in enumerate(self.labels[input]):
             #     fig, axs = plt.subplots()
             #     temp_train_probs = self.test_probabilities[input][:,ii]
             #     temp_train_labels = self.test_probabilities[input][:,self.metric.num_classes[kk]]
@@ -512,11 +520,11 @@ class ConfusionMatrixCallback(GenericCallback):
         plt.close()
 
         # plot statistics on categorical probabilities
-        for ii, outer_label in enumerate(self.metric.labels[input]):
+        for ii, outer_label in enumerate(self.labels[input]):
             fig, axs = plt.subplots(figsize=(10,6))
             temp_train_probs = probabilities[:,ii]
             temp_train_labels = probabilities[:,self.metric.num_classes[kk]]
-            for jj, inner_label in enumerate(self.metric.labels[input]):
+            for jj, inner_label in enumerate(self.labels[input]):
                 axs.hist(
                     temp_train_probs[(temp_train_labels == jj)],
                     bins=100,
@@ -535,7 +543,7 @@ class ConfusionMatrixCallback(GenericCallback):
             plt.close()
         
         # generate ROC curves for each class
-        for ii, outer_label in enumerate(self.metric.labels[input]):
+        for ii, outer_label in enumerate(self.labels[input]):
             fig, axs = plt.subplots()
             temp_train_probs = probabilities[:,ii]
             temp_train_labels = probabilities[:,self.metric.num_classes[kk]]
@@ -581,7 +589,7 @@ class ConfusionMatrixCallback(GenericCallback):
             plt.close()
         
         # generate summed ADC plots for each signal acceptance value
-        for ii, outer_label in enumerate(self.metric.labels[input]):
+        for ii, outer_label in enumerate(self.labels[input]):
             fig, axs = plt.subplots()
             temp_train_probs = probabilities[:,ii]
             temp_train_labels = probabilities[:,self.metric.num_classes[kk]]
