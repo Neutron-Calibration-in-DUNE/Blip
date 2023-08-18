@@ -344,7 +344,6 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                     ii: val 
                     for ii, val in enumerate(self.meta['blip_labels_values'][classes])
                 }
-            print(self.meta['blip_labels_values_map'])
         except:
             self.logger.error(f'failed to arange classes labels from meta!')
         try:
@@ -609,7 +608,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             event_features = event_features[:, self.meta['blip_features_indices']]
         else:
             event_features = np.ones((len(event_features),1))
-
+        print(event_classes)
         # Convert class labels to ordered list
         temp_classes = event_classes.copy()
         for classes in self.meta['blip_classes']:
