@@ -735,6 +735,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
 
         # create clusters using DBSCAN
         if np.sum(mask) == 0:
+            print(mask)
             return
         cluster_labels = self.dbscan.fit(
             event_positions[:, self.meta['cluster_position_indices']]
@@ -745,7 +746,6 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         self.meta['cluster_ids'][raw_path].append(cluster_labels)
         input_events = []
         cluster_indices = []
-        print(unique_labels)
 
         # for each unique cluster label, 
         # create a separate dataset.
