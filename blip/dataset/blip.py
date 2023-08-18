@@ -620,6 +620,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 print(key, val)
 
                 event_classes[:, class_index][(event_classes[:, class_index] == key)] = val
+        print(len(event_classes))
         print("after before", np.unique(event_classes))
         print(self.meta['blip_classes_indices'])
         event_classes = event_classes[:, self.meta['blip_classes_indices']]
