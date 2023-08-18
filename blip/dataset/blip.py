@@ -810,6 +810,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         #     event_classes = self.consolidate_class(classes[ii])
         # else:
         #     event_classes = classes[ii]
+        print(np.unique(event_classes))
         event = Data(
             pos=torch.tensor(event_positions).type(self.meta['position_type']),
             x=torch.tensor(event_features).type(self.meta['feature_type']),
