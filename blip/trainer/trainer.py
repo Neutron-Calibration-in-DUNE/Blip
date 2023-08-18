@@ -312,7 +312,7 @@ class Trainer:
             # evaluate callbacks
             self.timers.timers['training_callbacks'].start()
             self.memory_trackers.memory_trackers['training_callbacks'].start()
-            self.callbacks.evaluate_epoch(train_type='training')
+            self.callbacks.evaluate_epoch(train_type='train')
             self.memory_trackers.memory_trackers['training_callbacks'].end()
             self.timers.timers['training_callbacks'].end()
 
@@ -523,7 +523,7 @@ class Trainer:
                     self.metrics.update(outputs, data, train_type="train")
                     if (progress_bar == 'all' or progress_bar == 'train'):
                         metrics_training_loop.set_description(f"Training Metrics: Epoch [{epoch+1}/{epochs}]")
-            self.callbacks.evaluate_epoch(train_type='training')
+            self.callbacks.evaluate_epoch(train_type='train')
             if (progress_bar == 'all' or progress_bar == 'validation'):
                 validation_loop = tqdm(
                     enumerate(self.meta['loader'].validation_loader, 0), 

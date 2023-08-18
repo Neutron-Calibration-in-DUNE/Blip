@@ -170,7 +170,7 @@ class CallbackHandler:
     def evaluate_epoch(self,
         train_type='train',
     ):
-        if train_type not in ['training', 'validation', 'test', 'cluster']:
+        if train_type not in ['train', 'validation', 'test', 'all']:
             self.logger.error(f"specified train_type: '{train_type}' not allowed!")
         for name, callback in self.callbacks.items():
             callback.evaluate_epoch(train_type)
@@ -186,7 +186,3 @@ class CallbackHandler:
     def evaluate_inference(self):
         for name, callback in self.callbacks.items():
             callback.evaluate_inference()
-    
-    def evaluate_clustering(self):
-        for name, callback in self.callbacks.items():
-            callback.evaluate_clustering()
