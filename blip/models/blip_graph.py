@@ -227,6 +227,7 @@ class BlipGraph(GenericModel):
                 for jj, classification in enumerate(self.classification_dict.keys())
             }
             outputs['reductions'] = torch.cat(reductions)
+            outputs['augmentations'] = self.number_of_augmentations
         else:
             pos = data.pos.to(self.device)
             batch = data.batch.to(self.device)
@@ -250,4 +251,5 @@ class BlipGraph(GenericModel):
                 for classifications in self.classification_dict.keys()
             }
             outputs['reductions'] = linear_pool
+            outputs['augmentations'] = 1
         return outputs
