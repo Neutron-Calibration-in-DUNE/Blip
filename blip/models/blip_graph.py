@@ -192,7 +192,7 @@ class BlipGraph(GenericModel):
         Iterate over the model dictionary
         """
         if self.training:
-            reductions, classifications = [], [[]]
+            reductions, classifications = [], [[] for kk in self.number_of_augmentations]
             for kk in range(self.number_of_augmentations):
                 # Create augmentations
                 augmentations = self.augmentations(data).to(self.device)
