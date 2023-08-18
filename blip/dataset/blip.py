@@ -608,7 +608,6 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             event_features = event_features[:, self.meta['blip_features_indices']]
         else:
             event_features = np.ones((len(event_features),1))
-        print(event_classes)
         # Convert class labels to ordered list
         temp_classes = event_classes.copy()
         for classes in self.meta['blip_classes']:
@@ -782,6 +781,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 # Cluster ID is unique to clustering events
                 cluster_id=kk
             )
+            print(event)
 
             if self.pre_filter is not None:
                 event = self.pre_filter(event)
