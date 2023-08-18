@@ -141,7 +141,7 @@ class MetricHandler:
     ):  
         for name, metric in self.metrics.items():
             metric.set_device(device)
-            metric.reset()
+            metric.reset_batch()
         self.device = device
 
     def reset_batch(self):  
