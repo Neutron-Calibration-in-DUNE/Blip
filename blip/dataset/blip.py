@@ -344,6 +344,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                     ii: val 
                     for ii, val in enumerate(self.meta['blip_labels_values'][classes])
                 }
+            print(self.meta['blip_labels_values_map'])
         except:
             self.logger.error(f'failed to arange classes labels from meta!')
         try:
