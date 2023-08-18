@@ -1,6 +1,7 @@
 """
 Wrapper for CrossEntropy loss
 """
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -44,8 +45,9 @@ class CrossEntropyLoss(GenericLoss):
         """Computes and returns/saves loss information"""
         loss = 0
         for ii, output in enumerate(self.outputs):
-            print(outputs[output])
-            print(target[self.targets[ii]])
+            print(output)
+            print(outputs[output].shape)
+            print(np.unique(target[self.targets[ii]]))
             loss += self.cross_entropy_loss[self.targets[ii]](
                 outputs[output].to(self.device), 
                 target[self.targets[ii]].to(self.device)
