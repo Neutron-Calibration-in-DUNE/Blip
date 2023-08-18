@@ -85,9 +85,6 @@ class GenericMetric:
         outputs
     ):
         self.logger.error(f'"_metric_update" not implemented in Metric!')
-    
-    def _metric_compute(self):
-        pass
 
     def position_metric_update(self,
         outputs,
@@ -178,8 +175,8 @@ class GenericMetric:
         }
         return self._metric_update(target, outputs)
 
+    def _metric_compute(self):
+        pass
+    
     def compute(self):
-        return {
-            output: self._metric_compute() 
-            for output in self.outputs
-        }
+        return self._metric_compute() 
