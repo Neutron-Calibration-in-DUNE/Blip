@@ -56,6 +56,8 @@ class ModelChecker:
                 + f"  Perhaps you forgot 'x = x.to(self.device)'?: {e}"
             )
         for classes in output.keys():
+            if classes == 'augmentations':
+                continue
             self.shapes["output"][classes] = output[classes][0].shape
 
         # confirm shapes and behavior with criterion
