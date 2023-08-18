@@ -613,8 +613,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         for classes in self.meta['blip_classes']:
             class_index = self.meta["classes"][classes]
             for key, val in self.meta['blip_labels_values_map'][classes].items():
-                mask = (temp_classes[:, class_index] == key)
-                event_classes[mask, class_index] = val
+                temp_mask = (temp_classes[:, class_index] == key)
+                event_classes[temp_mask, class_index] = val
         event_classes = event_classes[:, self.meta['blip_classes_indices']]
         event_clusters = event_clusters[:, self.meta['blip_clusters_indices']]
         event_hits = event_hits[:, self.meta['blip_hits_indices']]
@@ -735,7 +735,6 @@ class BlipDataset(InMemoryDataset, GenericDataset):
 
         # create clusters using DBSCAN
         if np.sum(mask) == 0:
-            print(mask)
             return
         cluster_labels = self.dbscan.fit(
             event_positions[:, self.meta['cluster_position_indices']]
