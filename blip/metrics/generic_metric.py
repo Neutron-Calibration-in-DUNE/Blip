@@ -66,14 +66,16 @@ class GenericMetric:
         else:
             self.logger.error(f'specified target_type "{target_type}" not allowed!')
 
-    def reset(self):
-        for name, metric in self.metrics.items():
-            metric.reset()
-
     def set_device(self,
         device
     ):  
         self.device = device
+
+    def _reset_batch(self):
+        pass
+
+    def reset_batch(self):
+        self._reset_batch()
     
     def _metric_update(self, 
         target,
