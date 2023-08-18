@@ -585,7 +585,6 @@ class BlipDataset(InMemoryDataset, GenericDataset):
     def apply_view_event_masks(self,
         event_features, event_classes, event_clusters, event_hits
     ):
-        print("before", np.unique(event_classes[:,3]))
         mask = np.array([True for ii in range(len(event_features))])
         if "classes_mask" in self.config:
             # Apply 'classes_mask' and 'labels_mask'
@@ -603,7 +602,6 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         event_classes = event_classes[mask].astype(np.int64)
         event_clusters = event_clusters[mask].astype(np.int64)
         event_hits = event_hits[mask].astype(np.float)
-        print("after", np.unique(event_classes[:,3]))
 
         # Separate positions and features
         event_positions = event_features[:, self.meta['blip_position_indices']]
@@ -620,13 +618,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 mask = (event_classes[:, class_index] == key)
                 print(key, val)
                 print(event_classes[mask])
-                event_classes[mask][:, class_index] = val
+                event_classes[mask, class_index] = val
                 print(event_classes[mask])
-        print(len(event_classes))
-        print("after before", np.unique(event_classes[:,3]))
-        print(len(event_classes))
-        print(event_classes.shape)
-        print(self.meta['blip_classes_indices'])
         event_classes = event_classes[:, self.meta['blip_classes_indices']]
         event_clusters = event_clusters[:, self.meta['blip_clusters_indices']]
         event_hits = event_hits[:, self.meta['blip_hits_indices']]
