@@ -50,6 +50,7 @@ class ConfusionMatrixCallback(GenericCallback):
             os.makedirs("plots/confusion_matrix/")
         
         self.labels = {}
+        self.consolidate_classes = False
         for ii, output in enumerate(self.metric.outputs):
             if self.meta['dataset'].meta['consolidate_classes'] is not None:
                 self.consolidate_classes = True
