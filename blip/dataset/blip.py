@@ -364,6 +364,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 classes: self.meta['classes'][classes]
                 for classes in self.meta['blip_classes_mask']
             }
+        else:
+            self.meta['blip_classes_mask_indices'] = {}
         if "labels_mask" in self.config:
             self.meta['blip_classes_labels_mask_values'] = {
                 classes: [
@@ -372,6 +374,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 ]
                 for ii, classes in enumerate(self.meta['blip_classes_mask'])
             }
+        else:
+            self.meta['blip_classes_labels_indices'] = {}
 
     def configure_dataset(self):
         # set dataset type
