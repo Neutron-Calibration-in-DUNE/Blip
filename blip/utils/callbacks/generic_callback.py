@@ -24,6 +24,7 @@ class GenericCallback:
         self.plot_colors = random.shuffle(
             list(mcolors.CSS4_COLORS.values())
         )
+        print(self.plot_colors)
 
         self.criterion_handler = criterion_handler
         self.metrics_handler = metrics_handler
