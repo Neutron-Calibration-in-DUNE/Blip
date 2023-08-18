@@ -114,7 +114,6 @@ class GenericLoss:
         outputs,
         data,
     ):
-        print(data.category)
         target = {
             key: data.category[:, self.target_indicies[ii]]
             for ii, key in enumerate(self.targets)

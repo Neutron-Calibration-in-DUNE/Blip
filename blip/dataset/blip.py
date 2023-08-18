@@ -585,15 +585,16 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         event_features, event_classes, event_clusters, event_hits
     ):
         mask = np.array([True for ii in range(len(event_features))])
-        # Apply 'classes_mask' and 'labels_mask'
-        for classes, class_index in self.meta['blip_classes_mask_indices'].items():
-            for jj, label_value in enumerate(self.meta['blip_classes_labels_mask_values'][classes]):
-                mask &= (event_classes[:, class_index] == label_value)
-        # Apply mask for 'labels'
-        for classes in self.meta['blip_classes']:
-            class_index = self.meta["classes"][classes]
-            for jj, label_value in enumerate(self.meta['blip_labels_values'][classes]):
-                mask |= (event_classes[:, class_index] == label_value)
+        if "classes_mask" in self.config:
+            # Apply 'classes_mask' and 'labels_mask'
+            for classes, class_index in self.meta['blip_classes_mask_indices'].items():
+                for jj, label_value in enumerate(self.meta['blip_classes_labels_mask_values'][classes]):
+                    mask &= (event_classes[:, class_index] == label_value)
+            # Apply mask for 'labels'
+            for classes in self.meta['blip_classes']:
+                class_index = self.meta["classes"][classes]
+                for jj, label_value in enumerate(self.meta['blip_labels_values'][classes]):
+                    mask |= (event_classes[:, class_index] == label_value)
         
         # Apply masks
         event_features = event_features[mask].astype(np.float)
