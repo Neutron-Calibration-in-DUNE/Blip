@@ -587,6 +587,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         mask = np.array([True for ii in range(len(event_features))])
         if "classes_mask" in self.config:
             # Apply 'classes_mask' and 'labels_mask'
+            print("HERE")
             for classes, class_index in self.meta['blip_classes_mask_indices'].items():
                 for jj, label_value in enumerate(self.meta['blip_classes_labels_mask_values'][classes]):
                     mask &= (event_classes[:, class_index] == label_value)
@@ -810,7 +811,6 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         #     event_classes = self.consolidate_class(classes[ii])
         # else:
         #     event_classes = classes[ii]
-        print(np.unique(event_classes))
         event = Data(
             pos=torch.tensor(event_positions).type(self.meta['position_type']),
             x=torch.tensor(event_features).type(self.meta['feature_type']),
