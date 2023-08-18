@@ -618,7 +618,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             print(class_index)
             for key, val in self.meta['blip_labels_values_map'][classes].items():
                 print(key, val)
-                print(sum((event_classes[:, class_index] == key)))
+                print(len(event_classes[:, class_index][(event_classes[:, class_index] == key)]))
                 event_classes[:, class_index][(event_classes[:, class_index] == key)] = val
         print(len(event_classes))
         print("after before", np.unique(event_classes[:,3]))
