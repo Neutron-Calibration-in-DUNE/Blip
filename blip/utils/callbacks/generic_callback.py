@@ -1,6 +1,8 @@
 """
 Functions for evaluating and storing training information.
 """
+import matplotlib.colors as mcolors
+import random
 
 from blip.utils.logger import Logger
 from blip.losses.loss_handler import LossHandler
@@ -19,6 +21,7 @@ class GenericCallback:
         self.num_training_batches = None
         self.num_validation_batches = None
         self.num_test_batches = None
+        self.plot_colors = random.shuffle(mcolors.CSS4_COLORS)
 
         self.criterion_handler = criterion_handler
         self.metrics_handler = metrics_handler
