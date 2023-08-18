@@ -21,6 +21,7 @@ class GenericCallback:
         self.num_training_batches = None
         self.num_validation_batches = None
         self.num_test_batches = None
+        print(mcolors.CSS4_COLORS)
         self.plot_colors = random.shuffle(mcolors.CSS4_COLORS)
 
         self.criterion_handler = criterion_handler
