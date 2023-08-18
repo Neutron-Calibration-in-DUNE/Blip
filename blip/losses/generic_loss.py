@@ -3,6 +3,8 @@ Generic losses for blip.
 """
 import torch
 
+from blip.utils.logger import Logger
+
 class GenericLoss:
     """
     Abstract base class for Blip losses.  The inputs are
@@ -24,6 +26,7 @@ class GenericLoss:
         meta:           dict={}
     ):
         self.name = name
+        self.logger = Logger(self.name, output="both", file_mode="w")
         self.alpha = alpha
         self.target_type = target_type
         self.targets = targets

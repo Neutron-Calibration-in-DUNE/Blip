@@ -3,6 +3,8 @@ Generic metric class for blip.
 """
 import torch
 
+from blip.utils.logger import Logger
+
 class GenericMetric:
     """
     Abstract base class for Blip metrics.  The inputs are
@@ -24,6 +26,7 @@ class GenericMetric:
         meta:           dict={}
     ):
         self.name = name
+        self.logger = Logger(self.name, output="both", file_mode="w")
         self.target_type = target_type
         self.when_to_compute = when_to_compute
         self.targets = targets
@@ -81,7 +84,7 @@ class GenericMetric:
         target,
         outputs
     ):
-        self.logger.error(f'"_metric_update" not implemented in Loss!')
+        self.logger.error(f'"_metric_update" not implemented in Metric!')
     
     def _metric_compute(self):
         pass
