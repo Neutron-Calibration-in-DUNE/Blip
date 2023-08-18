@@ -111,6 +111,7 @@ class ConfusionMatrixCallback(GenericCallback):
 
     def evaluate_training(self):
         for kk, output in enumerate(self.metric.outputs):
+            print(output, self.training_confusion[output])
             # plot the training confusion matrix
             if self.consolidate_classes:
                 training_display = ConfusionMatrixDisplay(
