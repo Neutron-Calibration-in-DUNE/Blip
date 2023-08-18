@@ -27,7 +27,8 @@ class ConfusionMatrixMetric(GenericMetric):
         )
         self.confusion_matrix_metric = {
             key: MulticlassConfusionMatrix(
-                num_classes=len(self.meta['dataset'].meta['blip_labels_values'][key])
+                num_classes=len(self.meta['dataset'].meta['blip_labels_values'][key]),
+                device=self.device
             )
             for key in self.targets
         }
