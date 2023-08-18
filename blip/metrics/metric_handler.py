@@ -146,7 +146,7 @@ class MetricHandler:
 
     def reset_batch(self):  
         for name, metric in self.metrics.items():
-            metric.reset()
+            metric.reset_batch()
 
     def add_metric(self,
         metric:   GenericMetric
