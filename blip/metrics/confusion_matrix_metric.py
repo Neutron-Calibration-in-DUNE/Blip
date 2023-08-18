@@ -27,8 +27,7 @@ class ConfusionMatrixMetric(GenericMetric):
         )
         self.confusion_matrix_metric = {
             key: MulticlassConfusionMatrix(
-                num_classes=len(self.meta['dataset'].meta['blip_labels_values'][key]),
-                device=self.device
+                num_classes=len(self.meta['dataset'].meta['blip_labels_values'][key])
             )
             for key in self.targets
         }
@@ -39,7 +38,7 @@ class ConfusionMatrixMetric(GenericMetric):
     ):
         for ii, output in enumerate(self.outputs):
             self.confusion_matrix_metric[output].update(
-                nn.functional.softmax(outputs[output], dim=1, dtype=torch.float).to(self.device),
+                nn.functional.softmax(outputs[output].to(self.device), dim=1, dtype=torch.float),
                 target[self.targets[ii]].to(self.device)
             )
 
