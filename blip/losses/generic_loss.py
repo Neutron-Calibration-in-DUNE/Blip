@@ -154,12 +154,13 @@ class GenericLoss:
         outputs,
         data,
     ):
-        indices = torch.arange(0, len(torch.unique(data.batch)), device=self.device)
+        indices = torch.arange(0, len(data.category), device=self.device)
         target = {
             key: torch.cat([
                 indices
-                for ii in range(int(len(data.batch)/len(torch.unique(data.batch))))
+                for ii in range(int(len(outputs['reductions'])/len(data.category)))
             ])
             for ii, key in enumerate(self.targets)
         }
         return self._loss(target, outputs)
+    
