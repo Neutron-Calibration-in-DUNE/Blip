@@ -56,7 +56,7 @@ class ConfusionMatrixCallback(GenericCallback):
                 self.consolidate_classes = True
                 self.labels[output] = self.meta['dataset'].meta['consolidate_classes'][output]
             else:
-                self.labels[output] = self.meta['dataset'].meta['blip_labels_values'][output]
+                self.labels[output] = self.meta['dataset'].meta['classes_labels_names'][output]
 
         # if not os.path.isdir("plots/roc/"):
         #     os.makedirs("plots/roc/")
