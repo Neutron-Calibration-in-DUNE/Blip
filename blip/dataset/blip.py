@@ -611,14 +611,13 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             event_features = np.ones((len(event_features),1))
 
         # Convert class labels to ordered list
+        temp_classes = event_classes.copy()
         for classes in self.meta['blip_classes']:
             class_index = self.meta["classes"][classes]
             for key, val in self.meta['blip_labels_values_map'][classes].items():
-                mask = (event_classes[:, class_index] == key)
+                mask = (temp_classes[:, class_index] == key)
                 event_classes[mask, class_index] = val
-        print(event_classes)
         event_classes = event_classes[:, self.meta['blip_classes_indices']]
-        print(event_classes)
         event_clusters = event_clusters[:, self.meta['blip_clusters_indices']]
         event_hits = event_hits[:, self.meta['blip_hits_indices']]
 
