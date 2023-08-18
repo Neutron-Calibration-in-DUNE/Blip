@@ -5,20 +5,21 @@ import numpy as np
 import torch
 from matplotlib import pyplot as plt
 
+from blip.losses.loss_handler import LossHandler
+from blip.metrics.metric_handler import MetricHandler
 from blip.utils.callbacks import GenericCallback
 
 class LossCallback(GenericCallback):
     """
     """
     def __init__(self,
+        name:   str='loss_callback',
         criterion_handler: list=[],
         metrics_handler: list=[],
         meta:   dict={}
     ):
         super(LossCallback, self).__init__(
-            criterion_handler,
-            metrics_handler, 
-            meta
+            name, criterion_handler, metrics_handler, meta
         )
 
         self.criterion_handler = criterion_handler
