@@ -896,7 +896,7 @@ class TPCDisplay:
                 random.shuffle(self.first_scatter_random_colors)
                 self.first_scatter_colors = {
                     val: Magma256[int(self.first_scatter_random_colors[ii] % 256)]
-                    for ii, val in enumerate(label_vals)
+                    for ii, val in enumerate(label_vals.values())
                 }
                 print(self.first_scatter_colors)
                 for key, val in label_vals.items():   
@@ -993,7 +993,7 @@ class TPCDisplay:
                 random.shuffle(self.second_scatter_random_colors)
                 self.second_scatter_colors = {
                     val: Magma256[int(self.second_scatter_random_colors[ii] % 256)]
-                    for ii, val in enumerate(label_vals)
+                    for ii, val in enumerate(label_vals.values())
                 }
                 for key, val in label_vals.items():   
                     if self.second_figure_plot_option == "Truth": 
