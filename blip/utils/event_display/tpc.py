@@ -3,6 +3,7 @@ Tools for displaying events
 """
 import numpy as np
 from matplotlib import pyplot as plt
+import random
 
 from bokeh.io import curdoc, output_notebook, show
 from bokeh.application import Application
@@ -20,7 +21,7 @@ from bokeh.models import Paragraph, PreText, Dropdown
 from bokeh.models import ColumnDataSource, RadioGroup
 from bokeh.models import ColorBar, LinearColorMapper
 from bokeh.events import Tap
-from bokeh.palettes import Turbo256, Category20, Category20b, TolRainbow, Category20b
+from bokeh.palettes import Turbo256, Category20, Category20b, TolRainbow, Magma256
 from bokeh.transform import linear_cmap
 from bokeh.transform import factor_cmap, factor_mark
 from bokeh.server.server import Server
@@ -841,9 +842,10 @@ class TPCDisplay:
                 label_index = self.tpc_meta['clusters'][self.first_figure_label.replace('cluster_','')]
                 label_vals = np.unique(self.first_figure_event_clusters[:, label_index])
                 self.first_scatter = {}
+                self.first_scatter_random_colors = [ii for ii in range(256)]
+                random.shuffle(self.first_scatter_random_colors)
                 self.first_scatter_colors = {
-                    #val: Category20b[len(label_vals)][ii]
-                    val: Category20b[int(ii % 20)]
+                    val: Magma256[int(self.first_scatter_random_colors[ii] % 256)]
                     for ii, val in enumerate(label_vals)
                 }
                 for val in label_vals:   
@@ -878,23 +880,23 @@ class TPCDisplay:
                     self.first_figure_event_features[:,0][mask],
                     self.first_figure_event_features[:,1][mask],
                     legend_label='induction',
-                    color=Category20b[0]
+                    color='#DD4968'
                 )
                 mask = (self.first_figure_event_hits[:,0] != -1)
                 self.first_scatter['hit'] = self.first_figure.circle(
                     self.first_figure_event_features[:,0][mask],
                     self.first_figure_event_features[:,1][mask],
                     legend_label='hits',
-                    color=Category20b[-1]
+                    color='#3B0F6F'
                 )
             else:
                 label_index = self.tpc_meta['classes'][self.first_figure_label]
                 label_vals = self.tpc_meta[f"{self.first_figure_label}_labels"]
-                self.first_scatter = {}
+                self.first_scatter_random_colors = [ii for ii in range(256)]
+                random.shuffle(self.first_scatter_random_colors)
                 self.first_scatter_colors = {
-                    #val: Category20b[len(label_vals)][ii]
-                    val: Category20b[int(ii*20/len(label_vals))]
-                    for ii, val in enumerate(label_vals.values())
+                    val: Magma256[int(self.first_scatter_random_colors[ii] % 256)]
+                    for ii, val in enumerate(label_vals)
                 }
                 for key, val in label_vals.items():   
                     if self.first_figure_plot_option == "Truth": 
@@ -936,9 +938,10 @@ class TPCDisplay:
                 label_index = self.tpc_meta['clusters'][self.second_figure_label.replace('cluster_','')]
                 label_vals = np.unique(self.second_figure_event_clusters[:, label_index])
                 self.second_scatter = {}
+                self.second_scatter_random_colors = [ii for ii in range(256)]
+                random.shuffle(self.second_scatter_random_colors)
                 self.second_scatter_colors = {
-                    #val: Category20b[len(label_vals)][ii]
-                    val: Category20b[int(ii % 20)]
+                    val: Magma256[int(self.second_scatter_random_colors[ii] % 256)]
                     for ii, val in enumerate(label_vals)
                 }
                 for val in label_vals:   
@@ -973,23 +976,23 @@ class TPCDisplay:
                     self.second_figure_event_features[:,0][mask],
                     self.second_figure_event_features[:,1][mask],
                     legend_label='induction',
-                    color=Category20b[0]
+                    color='#DD4968'
                 )
                 mask = (self.second_figure_event_hits[:,0] != -1)
                 self.second_scatter['hit'] = self.second_figure.circle(
                     self.second_figure_event_features[:,0][mask],
                     self.second_figure_event_features[:,1][mask],
                     legend_label='hits',
-                    color=Category20b[-1]
+                    color='#3B0F6F'
                 )
             else:
                 label_index = self.tpc_meta['classes'][self.second_figure_label]
                 label_vals = self.tpc_meta[f"{self.second_figure_label}_labels"]
-                self.second_scatter = {}
+                self.second_scatter_random_colors = [ii for ii in range(256)]
+                random.shuffle(self.second_scatter_random_colors)
                 self.second_scatter_colors = {
-                    #val: Category20b[len(label_vals)][ii]
-                    val: Category20b[int(ii*20/len(label_vals))]
-                    for ii, val in enumerate(label_vals.values())
+                    val: Magma256[int(self.second_scatter_random_colors[ii] % 256)]
+                    for ii, val in enumerate(label_vals)
                 }
                 for key, val in label_vals.items():   
                     if self.second_figure_plot_option == "Truth": 
