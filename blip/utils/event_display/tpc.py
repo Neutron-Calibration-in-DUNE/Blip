@@ -874,6 +874,7 @@ class TPCDisplay:
                         )
             elif 'hit' in self.first_figure_label:
                 mask = (self.first_figure_event_hits[:,0] == -1)
+                print(self.first_figure_event_hits)
                 self.first_scatter['hit'] = self.first_figure.circle(
                     self.first_figure_event_features[:,0][mask],
                     self.first_figure_event_features[:,1][mask],
