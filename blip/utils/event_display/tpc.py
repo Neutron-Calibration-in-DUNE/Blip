@@ -843,7 +843,7 @@ class TPCDisplay:
                 self.first_scatter = {}
                 self.first_scatter_colors = {
                     #val: Category20[len(label_vals)][ii]
-                    val: Category20[int(ii % 20)]
+                    val: Category20[int(ii % 20)+1]
                     for ii, val in enumerate(label_vals)
                 }
                 for val in label_vals:   
@@ -878,14 +878,14 @@ class TPCDisplay:
                     self.first_figure_event_features[:,0][mask],
                     self.first_figure_event_features[:,1][mask],
                     legend_label='induction',
-                    color=Category20[0]
+                    color=Category20[1]
                 )
                 mask = (self.first_figure_event_hits[:,0] != -1)
                 self.first_scatter['hit'] = self.first_figure.circle(
                     self.first_figure_event_features[:,0][mask],
                     self.first_figure_event_features[:,1][mask],
                     legend_label='hits',
-                    color=Category20[-1]
+                    color=Category20[2]
                 )
             else:
                 label_index = self.tpc_meta['classes'][self.first_figure_label]
@@ -893,7 +893,7 @@ class TPCDisplay:
                 self.first_scatter = {}
                 self.first_scatter_colors = {
                     #val: Category20[len(label_vals)][ii]
-                    val: Category20[int(ii*256/len(label_vals))]
+                    val: Category20[int(ii*20/len(label_vals))+1]
                     for ii, val in enumerate(label_vals.values())
                 }
                 for key, val in label_vals.items():   
@@ -938,7 +938,7 @@ class TPCDisplay:
                 self.second_scatter = {}
                 self.second_scatter_colors = {
                     #val: Category20[len(label_vals)][ii]
-                    val: Category20[int(ii % 20)]
+                    val: Category20[int(ii % 20)+1]
                     for ii, val in enumerate(label_vals)
                 }
                 for val in label_vals:   
@@ -973,14 +973,14 @@ class TPCDisplay:
                     self.second_figure_event_features[:,0][mask],
                     self.second_figure_event_features[:,1][mask],
                     legend_label='induction',
-                    color=Category20[0]
+                    color=Category20[1]
                 )
                 mask = (self.second_figure_event_hits[:,0] != -1)
                 self.second_scatter['hit'] = self.second_figure.circle(
                     self.second_figure_event_features[:,0][mask],
                     self.second_figure_event_features[:,1][mask],
                     legend_label='hits',
-                    color=Category20[-1]
+                    color=Category20[2]
                 )
             else:
                 label_index = self.tpc_meta['classes'][self.second_figure_label]
@@ -988,7 +988,7 @@ class TPCDisplay:
                 self.second_scatter = {}
                 self.second_scatter_colors = {
                     #val: Category20[len(label_vals)][ii]
-                    val: Category20[int(ii*256/len(label_vals))]
+                    val: Category20[int(ii*20/len(label_vals))+1]
                     for ii, val in enumerate(label_vals.values())
                 }
                 for key, val in label_vals.items():   
