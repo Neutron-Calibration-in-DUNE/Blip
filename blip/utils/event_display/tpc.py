@@ -289,7 +289,7 @@ class TPCDisplay:
         # self.first_figure_taptool = TapTool(callback=self.update_first_figure_taptool)
         # self.first_figure.add_tools(self.first_figure_taptool)
         self.first_figure.legend.click_policy="hide"
-        self.first_figure_adc_slider_option = CheckboxGroup(labels=["Use ADC Slider"], active=[0])
+        self.first_figure_adc_slider_option = CheckboxGroup(labels=["Use ADC Slider"], active=[])
         self.first_figure_adc_slider_option.on_change(
             'active', self.update_first_figure_adc_slider_option
         )
@@ -376,7 +376,7 @@ class TPCDisplay:
         self.second_figure.add_layout(self.second_figure_color_bar, 'right')
         self.second_figure_taptool = self.second_figure.select(type=TapTool)
         self.second_figure_taptool.callback = self.update_second_figure_taptool()
-        self.second_figure_adc_slider_option = CheckboxGroup(labels=["Use ADC Slider"], active=[0])
+        self.second_figure_adc_slider_option = CheckboxGroup(labels=["Use ADC Slider"], active=[])
         self.second_figure_adc_slider_option.on_change(
             'active', self.update_second_figure_adc_slider_option
         )
@@ -872,6 +872,22 @@ class TPCDisplay:
                             legend_label=str(val),
                             color=self.first_scatter_colors[val]
                         )
+            elif 'hit' in self.first_figure_label:
+                label_index = self.tpc_meta['classes'][self.first_figure_label]
+                mask = (self.first_figure_event_hits[:,0] == -1)
+                self.first_scatter[val] = self.first_figure.circle(
+                    self.first_figure_event_features[:,0][mask],
+                    self.first_figure_event_features[:,1][mask],
+                    legend_label='induction',
+                    color=self.first_scatter_colors[val]
+                )
+                mask = (self.first_figure_event_hits[:,0] != -1)
+                self.first_scatter[val] = self.first_figure.circle(
+                    self.first_figure_event_features[:,0][mask],
+                    self.first_figure_event_features[:,1][mask],
+                    legend_label='hits',
+                    color=self.first_scatter_colors[val]
+                )
             else:
                 label_index = self.tpc_meta['classes'][self.first_figure_label]
                 label_vals = self.tpc_meta[f"{self.first_figure_label}_labels"]
