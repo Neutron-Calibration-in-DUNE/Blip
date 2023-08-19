@@ -885,7 +885,7 @@ class TPCDisplay:
                     self.first_figure_event_features[:,0][mask],
                     self.first_figure_event_features[:,1][mask],
                     legend_label='hits',
-                    color=Magma256[1]
+                    color=Magma256[-1]
                 )
             else:
                 label_index = self.tpc_meta['classes'][self.first_figure_label]
@@ -980,7 +980,7 @@ class TPCDisplay:
                     self.second_figure_event_features[:,0][mask],
                     self.second_figure_event_features[:,1][mask],
                     legend_label='hits',
-                    color=Magma256[1]
+                    color=Magma256[-1]
                 )
             else:
                 label_index = self.tpc_meta['classes'][self.second_figure_label]
