@@ -879,14 +879,14 @@ class TPCDisplay:
                     self.first_figure_event_features[:,0][mask],
                     self.first_figure_event_features[:,1][mask],
                     legend_label='induction',
-                    color='k'
+                    # color='k'
                 )
                 mask = (self.first_figure_event_hits[:,0] != -1)
                 self.first_scatter['hit'] = self.first_figure.circle(
                     self.first_figure_event_features[:,0][mask],
                     self.first_figure_event_features[:,1][mask],
                     legend_label='hits',
-                    color='r'
+                    # color='r'
                 )
             else:
                 label_index = self.tpc_meta['classes'][self.first_figure_label]
