@@ -634,7 +634,7 @@ class TPCDisplay:
                 self.first_figure_event_features = self.view_2_features[self.event]
                 self.first_figure_event_classes = self.view_2_classes[self.event]
                 self.first_figure_event_clusters = self.view_2_clusters[self.event]
-                self.first_figure_event_hits = self.view_2_hits
+                self.first_figure_event_hits = self.view_2_hits[self.event]
         elif self.first_figure_plot_type == "TPC":
             self.first_figure_event_features = self.edep_features[self.event]
             self.first_figure_event_classes = self.edep_classes[self.event]
@@ -874,7 +874,7 @@ class TPCDisplay:
                         )
             elif 'hit' in self.first_figure_label:
                 mask = (self.first_figure_event_hits[:,0] == -1)
-                print(self.first_figure_event_hits)
+                print(sum(mask))
                 self.first_scatter['hit'] = self.first_figure.circle(
                     self.first_figure_event_features[:,0][mask],
                     self.first_figure_event_features[:,1][mask],
