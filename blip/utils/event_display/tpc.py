@@ -20,7 +20,7 @@ from bokeh.models import Paragraph, PreText, Dropdown
 from bokeh.models import ColumnDataSource, RadioGroup
 from bokeh.models import ColorBar, LinearColorMapper
 from bokeh.events import Tap
-from bokeh.palettes import Turbo256, Category20, Category20b, TolRainbow, Category2b
+from bokeh.palettes import Turbo256, Category20, Category20b, TolRainbow, Category20b
 from bokeh.transform import linear_cmap
 from bokeh.transform import factor_cmap, factor_mark
 from bokeh.server.server import Server
@@ -842,8 +842,8 @@ class TPCDisplay:
                 label_vals = np.unique(self.first_figure_event_clusters[:, label_index])
                 self.first_scatter = {}
                 self.first_scatter_colors = {
-                    #val: Category2b[len(label_vals)][ii]
-                    val: Category2b[int(ii % 20)]
+                    #val: Category20b[len(label_vals)][ii]
+                    val: Category20b[int(ii % 20)]
                     for ii, val in enumerate(label_vals)
                 }
                 for val in label_vals:   
@@ -878,22 +878,22 @@ class TPCDisplay:
                     self.first_figure_event_features[:,0][mask],
                     self.first_figure_event_features[:,1][mask],
                     legend_label='induction',
-                    color=Category2b[0]
+                    color=Category20b[0]
                 )
                 mask = (self.first_figure_event_hits[:,0] != -1)
                 self.first_scatter['hit'] = self.first_figure.circle(
                     self.first_figure_event_features[:,0][mask],
                     self.first_figure_event_features[:,1][mask],
                     legend_label='hits',
-                    color=Category2b[-1]
+                    color=Category20b[-1]
                 )
             else:
                 label_index = self.tpc_meta['classes'][self.first_figure_label]
                 label_vals = self.tpc_meta[f"{self.first_figure_label}_labels"]
                 self.first_scatter = {}
                 self.first_scatter_colors = {
-                    #val: Category2b[len(label_vals)][ii]
-                    val: Category2b[int(ii*20/len(label_vals))]
+                    #val: Category20b[len(label_vals)][ii]
+                    val: Category20b[int(ii*20/len(label_vals))]
                     for ii, val in enumerate(label_vals.values())
                 }
                 for key, val in label_vals.items():   
@@ -937,8 +937,8 @@ class TPCDisplay:
                 label_vals = np.unique(self.second_figure_event_clusters[:, label_index])
                 self.second_scatter = {}
                 self.second_scatter_colors = {
-                    #val: Category2b[len(label_vals)][ii]
-                    val: Category2b[int(ii % 20)]
+                    #val: Category20b[len(label_vals)][ii]
+                    val: Category20b[int(ii % 20)]
                     for ii, val in enumerate(label_vals)
                 }
                 for val in label_vals:   
@@ -973,22 +973,22 @@ class TPCDisplay:
                     self.second_figure_event_features[:,0][mask],
                     self.second_figure_event_features[:,1][mask],
                     legend_label='induction',
-                    color=Category2b[0]
+                    color=Category20b[0]
                 )
                 mask = (self.second_figure_event_hits[:,0] != -1)
                 self.second_scatter['hit'] = self.second_figure.circle(
                     self.second_figure_event_features[:,0][mask],
                     self.second_figure_event_features[:,1][mask],
                     legend_label='hits',
-                    color=Category2b[-1]
+                    color=Category20b[-1]
                 )
             else:
                 label_index = self.tpc_meta['classes'][self.second_figure_label]
                 label_vals = self.tpc_meta[f"{self.second_figure_label}_labels"]
                 self.second_scatter = {}
                 self.second_scatter_colors = {
-                    #val: Category2b[len(label_vals)][ii]
-                    val: Category2b[int(ii*20/len(label_vals))]
+                    #val: Category20b[len(label_vals)][ii]
+                    val: Category20b[int(ii*20/len(label_vals))]
                     for ii, val in enumerate(label_vals.values())
                 }
                 for key, val in label_vals.items():   
