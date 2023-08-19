@@ -898,6 +898,7 @@ class TPCDisplay:
                     val: Magma256[int(self.first_scatter_random_colors[ii] % 256)]
                     for ii, val in enumerate(label_vals)
                 }
+                print(self.first_scatter_colors)
                 for key, val in label_vals.items():   
                     if self.first_figure_plot_option == "Truth": 
                         mask = (self.first_figure_event_classes[:, label_index] == key)
