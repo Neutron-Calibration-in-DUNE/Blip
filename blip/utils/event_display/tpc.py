@@ -874,19 +874,18 @@ class TPCDisplay:
                         )
             elif 'hit' in self.first_figure_label:
                 mask = (self.first_figure_event_hits[:,0] == -1)
-                print(sum(mask))
                 self.first_scatter['hit'] = self.first_figure.circle(
                     self.first_figure_event_features[:,0][mask],
                     self.first_figure_event_features[:,1][mask],
                     legend_label='induction',
-                    # color='k'
+                    color=Magma256[0]
                 )
                 mask = (self.first_figure_event_hits[:,0] != -1)
                 self.first_scatter['hit'] = self.first_figure.circle(
                     self.first_figure_event_features[:,0][mask],
                     self.first_figure_event_features[:,1][mask],
                     legend_label='hits',
-                    # color='r'
+                    color=Magma256[1]
                 )
             else:
                 label_index = self.tpc_meta['classes'][self.first_figure_label]
@@ -968,6 +967,21 @@ class TPCDisplay:
                             legend_label=str(val),
                             color=self.second_scatter_colors[val]
                         )
+            elif 'hit' in self.second_figure_label:
+                mask = (self.second_figure_event_hits[:,0] == -1)
+                self.second_scatter['hit'] = self.second_figure.circle(
+                    self.second_figure_event_features[:,0][mask],
+                    self.second_figure_event_features[:,1][mask],
+                    legend_label='induction',
+                    color=Magma256[0]
+                )
+                mask = (self.second_figure_event_hits[:,0] != -1)
+                self.second_scatter['hit'] = self.second_figure.circle(
+                    self.second_figure_event_features[:,0][mask],
+                    self.second_figure_event_features[:,1][mask],
+                    legend_label='hits',
+                    color=Magma256[1]
+                )
             else:
                 label_index = self.tpc_meta['classes'][self.second_figure_label]
                 label_vals = self.tpc_meta[f"{self.second_figure_label}_labels"]
