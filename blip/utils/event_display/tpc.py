@@ -874,14 +874,14 @@ class TPCDisplay:
                         )
             elif 'hit' in self.first_figure_label:
                 mask = (self.first_figure_event_hits[:,0] == -1)
-                self.first_scatter[val] = self.first_figure.circle(
+                self.first_scatter['hit'] = self.first_figure.circle(
                     self.first_figure_event_features[:,0][mask],
                     self.first_figure_event_features[:,1][mask],
                     legend_label='induction',
                     color='k'
                 )
                 mask = (self.first_figure_event_hits[:,0] != -1)
-                self.first_scatter[val] = self.first_figure.circle(
+                self.first_scatter['hit'] = self.first_figure.circle(
                     self.first_figure_event_features[:,0][mask],
                     self.first_figure_event_features[:,1][mask],
                     legend_label='hits',
@@ -922,7 +922,6 @@ class TPCDisplay:
                             legend_label=str(val),
                             color=self.first_scatter_colors[val]
                         )
-                    self.first_figure_slider.js_link('value', self.first_scatter[val].glyph, 'radius')
         self.first_figure.legend.click_policy="hide"
         self.first_figure.xaxis[0].axis_label = "Channel [n]"
         self.first_figure.yaxis[0].axis_label = "TDC [10ns]"
