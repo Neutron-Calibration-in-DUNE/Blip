@@ -1,5 +1,68 @@
 """
 """
+from enum import Enum
+
+class TopologyLabel(Enum):
+    Undefined = -1
+    Noise = 0
+    Blip = 1
+    Track = 2
+    Shower = 3
+
+class ParticleLabel(Enum):
+    Undefined = -1
+    Noise = 0
+    Electron = 11
+    Positron = -11
+    ElectronNeutrino = 12,
+    AntiElectronNeutrino = -12,
+    Muon = 13,
+    AntiMuon = -13,
+    MuonNeutrino = 14,
+    AntiMuonNeutrino = -14,
+    Tauon = 15,
+    AntiTauon = -15,
+    TauonNeutrino = 16,
+    AntiTauonNeutrino = -16,
+    Gamma = 22,
+    Pion0 = 111,
+    PionPlus = 211,
+    PionMinus = -211,
+    Kaon0 = 311,
+    KaonPlus = 321,
+    KaonMinus = -321,
+    Neutron = 2112,
+    AntiNeutron = -2112,
+    Proton = 2212,
+    AntiProton = -2212,
+    Deuteron = 1000010020,
+    Triton = 1000010030,
+    Alpha = 1000020040
+
+class PhysicsLabel(Enum):
+    Undefined = -1,
+    Noise = 0,
+    MIPIonization = 1,
+    HIPIonization = 2,
+    DeltaElectron = 3,
+    MichelElectron = 4,
+    ElectronShower = 5,
+    PositronShower = 6,
+    PhotonShower = 7,
+    NeutronCaptureGamma474 = 8,
+    NeutronCaptureGamma336 = 9,
+    NeutronCaptureGamma256 = 10,
+    NeutronCaptureGamma118 = 11,
+    NeutronCaptureGamma083 = 12,
+    NeutronCaptureGamma051 = 13,
+    NeutronCaptureGamma016 = 14,
+    NeutronCaptureGammaOther = 15,
+    Ar39 = 16,
+    Ar42 = 17,
+    Kr85 = 18,
+    Rn222 = 19,
+    NuclearRecoil = 20,
+    ElectronRecoil = 21
 
 classification_labels = {
     "source":  {

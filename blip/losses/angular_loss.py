@@ -3,11 +3,11 @@ Wrapper for NTXent loss
 """
 import torch
 import torch.nn as nn
-from pytorch_metric_learning.losses import NTXentLoss
+from pytorch_metric_learning.losses import AngularLoss as angular_loss
 
 from blip.losses import GenericLoss
 
-class NTXEntropyLoss(GenericLoss):
+class AngularLoss(GenericLoss):
     """
     """
     def __init__(self,
@@ -18,15 +18,15 @@ class NTXEntropyLoss(GenericLoss):
         outputs:        list=[],
         augmentations:  int=0,
         reduction:      str='mean',
-        temperature:    float=0.10,
+        beta:           float=40,
         meta:           dict={}
     ):
-        super(NTXEntropyLoss, self).__init__(
+        super(AngularLoss, self).__init__(
             name, alpha, target_type, targets, outputs, augmentations, meta
         )
-        self.temperature = temperature
+        self.beta = beta
         self.ntx_entropy_loss = {
-            key: NTXentLoss(temperature=temperature)
+            key: angular_loss(alpha=self.beta)
             for key in self.targets
         }
 

@@ -44,20 +44,14 @@ class DiceLoss(GenericLoss):
         target
     ):
         output = F.sigmoid(output)
-        output = output.view(-1)
-        target = target.view(-1)
-        intersection = (output * target).sum()
-        dice = (2.0 * intersection + self.smooth) / (output.sum() + input.sum() + self.smooth)
-        return 1.0 - dice   
+        return self.non_sigmoid_dice(output, target)   
 
     def non_sigmoid_dice(self,
         output,
         target
     ):
-        output = output.view(-1)
-        target = target.view(-1)
-        intersection = (output * target).sum()
-        dice = (2.0 * intersection + self.smooth) / (output.sum() + input.sum() + self.smooth)
+        intersection = torch.sum(output * target)
+        dice = (2.0 * intersection + self.smooth) / (torch.sum(output) + torch.sum(target) + self.smooth)
         return 1.0 - dice
 
     def _loss(self,
@@ -67,8 +61,12 @@ class DiceLoss(GenericLoss):
         """Computes and returns/saves loss information"""
         loss = 0
         for ii, output in enumerate(self.outputs):
-            loss += self.dice_loss[self.targets[ii]](
+            temp_loss = self.dice_loss[self.targets[ii]](
                 outputs[output].to(self.device), 
-                target[self.targets[ii]].to(self.device)
+                F.one_hot(target[self.targets[ii]], num_classes=self.number_of_target_labels[ii]).to(self.device)
+            )
+            loss += temp_loss
+            self.batch_loss[self.targets[ii]] = torch.cat(
+                (self.batch_loss[self.targets[ii]], torch.tensor([[temp_loss]], device=self.device)), dim=0
             )
         return self.alpha * loss

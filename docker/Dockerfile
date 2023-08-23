@@ -30,7 +30,7 @@ ENV MAX_JOBS=4
 RUN git clone --recursive "https://github.com/NVIDIA/MinkowskiEngine"
 RUN cd MinkowskiEngine; python setup.py install --force_cuda --blas=openblas
 
-RUN pip install torch_geometric matplotlib scipy scikit-learn uproot pandas seaborn bokeh imageio pytorch-metric-learning torchmetrics ripser torch-cluster h5py
+RUN pip install torch_geometric matplotlib scipy scikit-learn uproot pandas seaborn bokeh imageio pytorch-metric-learning torchmetrics ripser torch-cluster torch-scatter h5py
 
 RUN cd ..
 RUN git clone --recursive "https://github.com/Neutron-Calibration-in-DUNE/Blip"

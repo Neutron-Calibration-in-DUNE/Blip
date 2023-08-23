@@ -103,16 +103,16 @@ class Trainer:
         # add timing info
         self.timers = Timers(gpu=self.gpu)
         self.timer_callback = TimingCallback(
-            self.timing_dir,
-            self.timers
+            output_dir=self.timing_dir,
+            timers=self.timers
         )
         self.callbacks.add_callback(self.timer_callback)
 
         # add memory info
         self.memory_trackers = MemoryTrackers(gpu=self.gpu)
         self.memory_callback = MemoryTrackerCallback(
-            self.memory_dir,
-            self.memory_trackers
+            output_dir=self.memory_dir,
+            memory_trackers=self.memory_trackers
         )
         self.callbacks.add_callback(self.memory_callback)
 

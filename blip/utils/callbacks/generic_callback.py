@@ -12,23 +12,24 @@ class GenericCallback:
     """
     """
     def __init__(self,
-        name:   str='generic',
-        criterion_handler: LossHandler=None,
-        metrics_handler: MetricHandler=None,
-        meta:   dict={}
+        name:               str='generic',
+        criterion_handler:  LossHandler=None,
+        metrics_handler:    MetricHandler=None,
+        meta:               dict={}
     ):
+        self.name = name
+        self.criterion_handler = criterion_handler
+        self.metrics_handler = metrics_handler
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
+
         self.epochs = None
         self.num_training_batches = None
         self.num_validation_batches = None
         self.num_test_batches = None
         self.plot_colors = list(mcolors.CSS4_COLORS.values())
         random.shuffle(self.plot_colors)
-
-        self.criterion_handler = criterion_handler
-        self.metrics_handler = metrics_handler
-        self.meta = meta
-        if "device" in self.meta:
-            self.device = self.meta['device']
 
     def set_device(self,
         device

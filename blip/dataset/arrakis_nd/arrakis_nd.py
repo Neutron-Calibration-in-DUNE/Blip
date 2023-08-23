@@ -11,6 +11,7 @@ import h5py
 import numpy.lib.recfunctions as rfn
 from collections import defaultdict
 import json
+from tqdm import tqdm
 
 from h5flow.core import H5FlowStage, resources
 
@@ -19,7 +20,8 @@ from blip.dataset.common import *
 from blip.dataset.arrakis_nd.simulation_wrangler import SimulationWrangler
 from blip.dataset.arrakis_nd.simulation_labeling_logic import SimulationLabelingLogic
 
-class ArrakisND(H5FlowStage):
+# class ArrakisND(H5FlowStage):
+class ArrakisND:
     class_version = '0.0.0' # keep track of a version number for each class
 
     default_custom_param = None
@@ -168,7 +170,7 @@ class ArrakisND(H5FlowStage):
         meta:   dict={},
         **params
     ):
-        super(ArrakisND, self).__init__(**params)
+        # super(ArrakisND, self).__init__(**params)
         self.name = name + '_dataset'
         self.config = config
         self.meta = meta
@@ -194,14 +196,6 @@ class ArrakisND(H5FlowStage):
             "tpc1": [[-359.2651,   -0.1651],[0., 607.49875],[-0.49375, 231.16625]],
             "tpc2": [[0.1651, 359.2651],    [0., 607.49875],[-0.49375, 231.16625]],
             "tpc3": [[366.8851, 376.8501],  [0., 607.49875],[-0.49375, 231.16625]],
-            "tpc4": [[-376.8501, -366.8851],[0., 607.49875],[231.56625, 463.22625]],
-            "tpc5": [[-359.2651, -0.1651],  [0., 607.49875],[231.56625, 463.22625]],
-            "tpc6": [[0.1651, 359.2651],    [0., 607.49875],[231.56625, 463.22625]],
-            "tpc7": [[366.8851, 376.8501],  [0., 607.49875],[231.56625, 463.22625]],
-            "tpc8": [[-376.8501, -366.8851],[0., 607.49875],[463.62625, 695.28625]],
-            "tpc9": [[-359.2651, -0.1651],  [0., 607.49875],[463.62625, 695.28625]],
-            "tpc10": [[0.1651, 359.2651],   [0., 607.49875],[463.62625, 695.28625]],
-            "tpc11": [[366.8851, 376.8501], [0., 607.49875],[463.62625, 695.28625]],
         }
         self.simulation_wrangler = SimulationWrangler()
         self.simulation_labeling_logic = SimulationLabelingLogic(self.simulation_wrangler)
@@ -225,88 +219,327 @@ class ArrakisND(H5FlowStage):
         self.parse_config()
     
     def parse_config(self):
-        """
-        """
-        self.check_config()
-        self.parse_input_files()
-        self.run_arrakis_nd()
-
-    def check_config(self):
-        pass
-
-    def parse_input_files(self):
-        # default to what's in the configuration file. May decide to deprecate in the future
-        if ("simulation_folder" in self.config['arrakis_nd']):
-            self.simulation_folder = self.config['arrakis_nd']["simulation_folder"]
-            self.logger.info(
-                f"Set simulation file folder from configuration. " +
-                f" simulation_folder : {self.simulation_folder}"
-            )
-        elif ('ARRAKIS_ND_SIMULATION_PATH' in os.environ ):
-            self.logger.debug(f'Found ARRAKIS_ND_SIMULATION_PATH in environment')
-            self.simulation_folder = os.environ['ARRAKIS_ND_SIMULATION_PATH']
-            self.logger.info(
-                f"Setting simulation path from Enviroment." +
-                f" ARRAKIS_ND_SIMULATION_PATH = {self.simulation_folder}"
-            )
-        else:
-            self.logger.error(f'No simluation_folder specified in environment or configuration file!')
-        if not os.path.isdir(self.simulation_folder):
-            self.logger.error(f'Specified simulation folder "{self.simulation_folder}" does not exist!')
-        if ('simulation_files' not in self.config['arrakis_nd']):
-            self.logger.error(f'No simulation files specified in configuration file!')
-        self.simulation_files = self.config['arrakis_nd']['simulation_files']
-        for ii, simulation_file in enumerate(self.simulation_files):
-            if not os.path.isfile(self.simulation_folder + '/' + simulation_file):
-                self.logger.error(f'Specified file "{self.simulation_folder}/{simulation_file}" does not exist!')
+        if "simulation_folder" not in self.config.keys():
+            self.logger.warn(f'simulation_folder not specified in config! Setting to "./".')
+            self.config['simulation_folder'] = './'
+        self.simulation_folder = self.config['simulation_folder']
+        if "simulation_files" not in self.config.keys():
+            self.logger.warn(f'simulation_files not specified in config!')
+            self.config['simulation_files'] = []
+        self.simulation_files = self.config['simulation_files']
+        self.output_folders = {
+            self.simulation_folder + simulation_file: simulation_file.replace('.root','') 
+            for simulation_file in self.simulation_files
+        }
+        for output_folder in self.output_folders.values():
+            if not os.path.isdir(f"data/{output_folder}"):
+                os.makedirs(f"data/{output_folder}")
+        if "process_type" not in self.config.keys():
+            self.logger.warn(f'process_type not specified in config! Setting to "all".')
+            self.config["process_type"] = "all"
+        self.process_type = self.config["process_type"]
+        if "process_simulation" in self.config.keys():
+            if self.config["process_simulation"]:
+                for ii, input_file in enumerate(self.simulation_files):
+                    self.run_arrakis_nd(input_file)
+                    self.generate_training_data(self.process_type, input_file)
 
     def run(self, source_name, source_slice):
         # load, process, and save new data objects
         pass
 
-    def run_arrakis_nd(self):
-        for ii, simulation_file in enumerate(self.simulation_files):
-            flow_file = h5py.File(self.simulation_folder + '/' + simulation_file, 'r')
-            try:
-                charge = flow_file['charge']
-                combined = flow_file['combined']
-                geometry_info = flow_file['geometry_info']
-                lar_info = flow_file['lar_info']
-                light = flow_file['light']
-                mc_truth = flow_file['mc_truth']
-                run_info = flow_file['run_info']
-            except:
-                self.logger.error(f'there was a problem processing flow file {simulation_file}')
-            
-            trajectories = mc_truth['trajectories']['data']
-            segments = mc_truth['segments']['data']
-            stacks = mc_truth['stack']['data']
-            hits_back_track = mc_truth['calib_final_hit_backtrack']['data']
-            hits = charge['calib_final_hits']['data']
+    def run_arrakis_nd(self,
+        simulation_file
+    ):
+        flow_file = h5py.File(self.simulation_folder + '/' + simulation_file, 'r')
+        try:
+            charge = flow_file['charge']
+            combined = flow_file['combined']
+            geometry_info = flow_file['geometry_info']
+            lar_info = flow_file['lar_info']
+            light = flow_file['light']
+            mc_truth = flow_file['mc_truth']
+            run_info = flow_file['run_info']
+        except:
+            self.logger.error(f'there was a problem processing flow file {simulation_file}')
+        
+        trajectories = mc_truth['trajectories']['data']
+        segments = mc_truth['segments']['data']
+        stacks = mc_truth['stack']['data']
+        hits_back_track = mc_truth['calib_final_hit_backtrack']['data']
+        hits = charge['calib_final_hits']['data']
 
-            trajectory_events = trajectories['event_id']
-            segment_events = segments['event_id']
-            stack_events = stacks['event_id']
+        trajectory_events = trajectories['event_id']
+        segment_events = segments['event_id']
+        stack_events = stacks['event_id']
 
-            unique_events = np.unique(segment_events)
+        unique_events = np.unique(segment_events)
+
+        event_loop = tqdm(
+            enumerate(unique_events, 0), 
+            total=len(unique_events), 
+            leave=True,
+            position=0,
+            colour='green'
+        )
+        for ii, event in event_loop:
+            trajectory_event_mask = (trajectory_events == event)
+            segment_event_mask = (segment_events == event)
+            stack_event_mask = (stack_events == event)
             
-            for event in unique_events:
-                trajectory_event_mask = (trajectory_events == event)
-                segment_event_mask = (segment_events == event)
-                stack_event_mask = (stack_events == event)
-                
-                hits_back_track_mask = np.any(
-                    np.isin(hits_back_track['segment_id'], segments[segment_event_mask]['segment_id']), 
-                    axis=1
+            hits_back_track_mask = np.any(
+                np.isin(hits_back_track['segment_id'], segments[segment_event_mask]['segment_id']), 
+                axis=1
+            )
+            self.simulation_wrangler.process_event(
+                event,
+                event_trajectories=trajectories[trajectory_event_mask],
+                event_segments=segments[segment_event_mask],
+                event_stacks=stacks[stack_event_mask],
+                hits_back_track=hits_back_track[hits_back_track_mask],
+                hits=hits[hits_back_track_mask]
+            )
+            self.simulation_labeling_logic.process_event()
+            self.simulation_wrangler.save_event()
+            event_loop.set_description(f"Running ArrakisND - Event: [{ii+1}/{len(unique_events)}]")
+    
+    def generate_training_data(self,
+        process_type:  list=['all'],
+        simulation_file:    str=''
+    ):
+        self.meta = {}
+        self.mc_maps = {}
+        self.segment_point_clouds = {}
+        self.hits_point_clouds = {}
+        self.op_det_point_clouds = {}
+
+        for tpc, tpc_ranges in self.nd_2x2_tpc_positions.items():
+            self.meta[tpc] = {
+                "who_created":      getpass.getuser(),
+                "when_created":     datetime.now().strftime("%m-%d-%Y-%H:%M:%S"),
+                "where_created":    socket.gethostname(),
+                "simulation_file":  simulation_file,
+                # "segment_features": {
+                #     "channel": 0, "tdc": 1, "adc": 2
+                # },
+                "hits_features": {
+                    "x": 0, "y": 1, "z": 2, "t_drift": 3, "ts_pps": 4, "Q": 5, "E": 6
+                },
+                "classes": {
+                    "source": 0, "topology": 1, "particle": 2, "physics": 3
+                },
+                "clusters": {
+                    "topology":  0, "particle": 1, "physics": 2
+                },
+                "source_labels": {
+                    key: value
+                    for key, value in classification_labels["source"].items()
+                },
+                "topology_labels": {
+                    key: value
+                    for key, value in classification_labels["topology"].items()
+                },
+                "particle_labels": {
+                    key: value
+                    for key, value in classification_labels["particle"].items()
+                },      
+                "physics_labels": {
+                    key: value
+                    for key, value in classification_labels["physics"].items()
+                },      
+            }
+            self.mc_maps[tpc] = {
+                'pdg_code': [],
+                'parent_track_id': [],
+                'ancestor_track_id': [],
+                'ancestor_level': []
+            }
+            # self.segment_point_clouds[tpc] = {
+            #     'segment_features': [],
+            #     'segment_classes':  [],
+            #     'segment_clusters': [],                
+            # }
+            self.hits_point_clouds[tpc] = {
+                'hits_features':  [],
+                'hits_classes':   [],
+                'hits_clusters':  [],
+            }   
+
+        for process in process_type:
+            if process == 'segment_point_cloud':
+                self.generate_segment_point_cloud(simulation_file)
+            elif process == 'hits_point_cloud':
+                self.generate_hits_point_cloud(simulation_file)
+            elif process == 'mc_maps':
+                self.generate_mc_maps(simulation_file)
+            elif process == 'all':
+                self.generate_segment_point_cloud(simulation_file)
+                self.generate_hits_point_cloud(simulation_file)
+                self.generate_mc_maps(simulation_file)
+            else:
+                self.logger.error(f'specified process type {process} not allowed!')
+        
+        for tpc, tpc_ranges in self.nd_2x2_tpc_positions.items():
+            np.savez(
+                f"data/{self.output_folders[self.simulation_folder + simulation_file]}/{tpc}.npz",
+                hits_features=self.hits_point_clouds[tpc]['tpc_features'],
+                hits_classes=self.hits_point_clouds[tpc]['tpc_classes'],
+                hits_clusters=self.hits_point_clouds[tpc]['tpc_clusters'],
+                mc_maps=self.mc_maps[tpc],
+                meta=self.meta[tpc]
+            )
+    
+
+    def generate_mc_maps(self,
+        input_file: str=''
+    ):
+        pass
+
+    def generate_segment_point_cloud(self,
+        input_file: str=''
+    ):
+        pass
+    
+    def generate_hits_point_cloud(self,
+        input_file: str=''
+    ):
+        """
+        We iterate over each tpc and collect all
+        points for each point cloud into a features
+        array, together with (source, topology, particle) as
+        the categorical information and (topology, particle) as clustering
+        information.
+        """
+        self.logger.info(
+            f"generating 'simulation_wrangler.det_point_clouds' training data from file: {input_file}"
+        )
+        det_point_cloud = self.simulation_wrangler.det_point_clouds
+        print(det_point_cloud)
+
+        for tpc, tpc_ranges in self.nd_2x2_tpc_positions.items():
+            self.simulation_wrangler.det_point_clouds[tpc] = {}
+            """
+            For each point cloud, we want to normalize adc against
+            all point clouds in the data set, so that it is independent 
+            of the specific detector readout.
+            """
+
+            x_view = []
+            y_view = []
+            z_view = []
+            t_drift_view = []
+            ts_pps_view = []
+            Q_view = []
+            E_view = []
+            source_label_view = []
+            topology_label_view = []
+            particle_label_view = []
+            physics_label_view = []
+            unique_topology_label_view = []
+            unique_particle_label_view = []
+            unique_physics_label_view = []
+
+            for event, point_cloud in det_point_cloud.items():
+                print(event)
+                print(point_cloud)
+                view_mask = (
+                    (det_point_cloud[event].x >= tpc_ranges[0][0]) & 
+                    (det_point_cloud[event].x <  tpc_ranges[0][1]) & 
+                    (det_point_cloud[event].y >= tpc_ranges[1][0]) & 
+                    (det_point_cloud[event].y <  tpc_ranges[1][1]) &
+                    (det_point_cloud[event].z >= tpc_ranges[2][0]) & 
+                    (det_point_cloud[event].z <  tpc_ranges[2][1])
+                    # (det_point_cloud[event].topology_label >= 0) &
+                    # (det_point_cloud[event].particle_label >= 0)
                 )
-                self.simulation_wrangler.process_event(
-                    event_trajectories=trajectories[trajectory_event_mask],
-                    event_segments=segments[segment_event_mask],
-                    event_stacks=stacks[stack_event_mask],
-                    hits_back_track=hits_back_track[hits_back_track_mask],
-                    hits=hits[hits_back_track_mask]
-                )
-                self.simulation_labeling_logic.process_event()
+                if np.sum(view_mask) > 0:
+                    x_view.append(det_point_cloud[event].x[view_mask])
+                    y_view.append(det_point_cloud[event].y[view_mask])
+                    z_view.append(det_point_cloud[event].z[view_mask])
+                    t_drift_view.append(det_point_cloud[event].t_drift[view_mask])
+                    ts_pps_view.append(det_point_cloud[event].ts_pps[view_mask])
+                    Q_view.append(det_point_cloud[event].Q[view_mask])
+                    E_view.append(det_point_cloud[event].E[view_mask])
+                    source_label_view.append(det_point_cloud[event].source_label[view_mask])
+                    topology_label_view.append(det_point_cloud[event].topology_label[view_mask])
+                    particle_label_view.append(det_point_cloud[event].particle_label[view_mask])
+                    physics_label_view.append(det_point_cloud[event].physics_label[view_mask])
+                    unique_topology_label_view.append(det_point_cloud[event].unique_topologies[view_mask])
+                    unique_particle_label_view.append(det_point_cloud[event].unique_particles[view_mask])
+                    unique_physics_label_view.append(det_point_cloud[event].unique_physicses[view_mask])
+
+            x_view = np.array(x_view, dtype=object)
+            y_view = np.array(y_view, dtype=object)
+            z_view = np.array(z_view, dtype=object)
+            t_drift_view = np.array(t_drift_view, dtype=object)
+            ts_pps_view = np.array(ts_pps_view, dtype=object)
+            Q_view = np.array(Q_view, dtype=object)
+            E_view = np.array(E_view, dtype=object)
+            source_label_view = np.array(source_label_view, dtype=object)
+            topology_label_view = np.array(topology_label_view, dtype=object)
+            particle_label_view = np.array(particle_label_view, dtype=object)
+            physics_label_view = np.array(physics_label_view, dtype=object)
+            unique_topology_label_view = np.array(unique_topology_label_view, dtype=object)
+            unique_particle_label_view = np.array(unique_particle_label_view, dtype=object)
+            unique_physics_label_view = np.array(unique_physics_label_view, dtype=object)
+
+            if len(x_view.flatten()) == 0:
+                continue
+            features = np.array([
+                np.vstack((
+                    x_view[ii], y_view[ii], z_view[ii], 
+                    t_drift_view[ii], ts_pps_view[ii], 
+                    Q_view[ii], E_view[ii]
+                )).T
+                for ii in range(len(x_view))],
+                dtype=object
+            )
+            classes = np.array([
+                np.vstack((
+                    source_label_view[ii], 
+                    topology_label_view[ii], 
+                    particle_label_view[ii], 
+                    physics_label_view[ii])).T
+                for ii in range(len(x_view))],
+                dtype=object
+            )          
+            clusters = np.array([
+                np.vstack((
+                    unique_topology_label_view[ii], 
+                    unique_particle_label_view[ii],
+                    unique_physics_label_view[ii])).T
+                for ii in range(len(x_view))],
+                dtype=object
+            )
+
+            self.meta[tpc]["num_events"] = len(features)
+            self.meta[tpc][f"tpc_source_points"] = {
+                key: np.count_nonzero(np.concatenate(source_label_view) == key)
+                for key, value in classification_labels["source"].items()
+            }
+            self.meta[tpc][f"tpc_topology_points"] = {
+                key: np.count_nonzero(np.concatenate(topology_label_view) == key)
+                for key, value in classification_labels["topology"].items()
+            }
+            self.meta[tpc][f"tpc_particle_points"] = {
+                key: np.count_nonzero(np.concatenate(particle_label_view) == key)
+                for key, value in classification_labels["particle"].items()
+            }
+            self.meta[tpc][f"tpc_physics_points"] = {
+                key: np.count_nonzero(np.concatenate(physics_label_view) == key)
+                for key, value in classification_labels["physics"].items()
+            }
+            self.meta[tpc][f"tpc_total_points"] = len(np.concatenate(features))   
+            self.hits_point_clouds[tpc][f'tpc_features'] = features
+            self.hits_point_clouds[tpc][f'tpc_classes'] = classes
+            self.hits_point_clouds[tpc][f'tpc_clusters'] = clusters
+    
+    def generate_op_det_point_cloud(self,
+        input_file: str=''
+    ):
+        """
+        """
+        pass
 
 
 

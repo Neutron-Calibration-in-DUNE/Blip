@@ -7,22 +7,23 @@ from matplotlib import pyplot as plt
 
 from blip.utils.timing import Timers
 from blip.utils.callbacks import GenericCallback
+from blip.losses.loss_handler import LossHandler
+from blip.metrics.metric_handler import MetricHandler
 
 class TimingCallback(GenericCallback):
     """
     """
     def __init__(self,
-        output_dir: str,
-        timers: Timers,
-        criterion_handler: list=[],
-        metrics_handler: list=[],
-        meta:   dict={}
+        name:               str='timing_callback',
+        criterion_handler:  list=[],
+        metrics_handler:    list=[],
+        meta:               dict={},
+        output_dir:         str='',
+        timers:             Timers=None,
     ):
         self.name = "timing"
         super(TimingCallback, self).__init__(
-            criterion_handler,
-            metrics_handler, 
-            meta
+            name, criterion_handler, metrics_handler, meta
         )
         self.output_dir = output_dir
         self.timers = timers

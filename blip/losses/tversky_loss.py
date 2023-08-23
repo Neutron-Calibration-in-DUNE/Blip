@@ -48,31 +48,31 @@ class TverskyLoss(GenericLoss):
         target
     ):
         output = F.sigmoid(output)
-        true_positives = torch.sum(input + output)
-        false_positives = torch.sum(input * (1 - output))
-        false_negatives = torch.sum((1 - input) * output)
-        tversky_loss = (true_positives + self.smooth) / (true_positives + self.beta * false_positives + self.gamma * false_negatives + self.smooth)
-        return 1.0 - tversky_loss
+        return self.non_sigmoid_tversky(output, target)
 
     def non_sigmoid_tversky(self,
         output,
         target
     ):
-        true_positives = torch.sum(input + output)
-        false_positives = torch.sum(input * (1 - output))
-        false_negatives = torch.sum((1 - input) * output)
+        true_positives = torch.sum(target + output)
+        false_positives = torch.sum(target * (1 - output))
+        false_negatives = torch.sum((1 - target) * output)
         tversky_loss = (true_positives + self.smooth) / (true_positives + self.beta * false_positives + self.gamma * false_negatives + self.smooth)
         return 1.0 - tversky_loss
 
-    def loss(self,
+    def _loss(self,
         target,
         outputs,
     ):
         """Computes and returns/saves loss information"""
         loss = 0
         for ii, output in enumerate(self.outputs):
-            loss += self.tversky_loss[self.targets[ii]](
+            temp_loss = self.tversky_loss[self.targets[ii]](
                 outputs[output].to(self.device), 
-                target[self.targets[ii]].to(self.device)
+                F.one_hot(target[self.targets[ii]], num_classes=self.number_of_target_labels[ii]).to(self.device)
+            )
+            loss += temp_loss
+            self.batch_loss[self.targets[ii]] = torch.cat(
+                (self.batch_loss[self.targets[ii]], torch.tensor([[temp_loss]], device=self.device)), dim=0
             )
         return self.alpha * loss

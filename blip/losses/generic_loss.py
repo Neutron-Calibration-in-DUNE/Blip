@@ -41,26 +41,31 @@ class GenericLoss:
 
         if target_type == 'positions':
             self.loss = self.position_loss
+            self.number_of_target_labels = [-1 for target in self.targets]
             self.target_indicies = [
                 self.meta['dataset'].meta['blip_position_indices_by_name'][target] for target in self.targets
             ]
         elif target_type == 'features':
             self.loss = self.feature_loss
+            self.number_of_target_labels = [-1 for target in self.targets]
             self.target_indicies = [
                 self.meta['dataset'].meta['blip_features_indices_by_name'][target] for target in self.targets
             ]
         elif target_type == 'classes':
             self.loss = self.classes_loss
+            self.number_of_target_labels = [len(self.meta['dataset'].meta['blip_labels_values'][target]) for target in self.targets]
             self.target_indicies = [
                 self.meta['dataset'].meta['blip_classes_indices_by_name'][target] for target in self.targets
             ]
         elif target_type == 'clusters':
             self.loss = self.cluster_loss
+            self.number_of_target_labels = [-1 for target in self.targets]
             self.target_indicies = [
                 self.meta['dataset'].meta['blip_clusters_indices_by_name'][target] for target in self.targets
             ]
         elif target_type == 'hit':
             self.loss = self.hit_loss
+            self.number_of_target_labels = [-1 for target in self.targets]
             self.target_indicies = [
                 self.meta['dataset'].meta['blip_hits_indices_by_name'][target] for target in self.targets
             ]
@@ -68,11 +73,23 @@ class GenericLoss:
             self.loss = self.augment_batch_loss
         else:
             self.logger.error(f'specified target_type "{target_type}" not allowed!')
+        
+        # construct batch loss dictionaries
+        self.batch_loss = {
+            key: torch.empty(size=(0,1), dtype=torch.float, device=self.device)
+            for key in self.targets
+        }
+    
+    def reset_batch(self):  
+        for key in self.batch_loss.keys():
+            self.batch_loss[key] = torch.empty(size=(0,1), dtype=torch.float, device=self.device)
 
     def set_device(self,
         device
     ):  
         self.device = device
+        for key in self.batch_loss.keys():
+            self.batch_loss[key] = torch.empty(size=(0,1), dtype=torch.float, device=self.device)
 
     def _loss(self, 
         target,

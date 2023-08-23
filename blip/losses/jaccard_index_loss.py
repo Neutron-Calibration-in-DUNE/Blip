@@ -44,22 +44,14 @@ class JaccardIndexLoss(GenericLoss):
         target
     ):
         output = F.sigmoid(output)
-        output = output.view(-1)
-        target = target.view(-1)
-        intersection = (output * target).sum()
-        total = (output + target).sum()
-        union = total - intersection
-        intersection_over_union = (intersection + self.smooth) / (union + self.smooth)
-        return 1.0 - intersection_over_union
+        return self.non_sigmoid_jaccard_index(output, target)
 
     def non_sigmoid_jaccard_index(self,
         output,
         target
     ):
-        output = output.view(-1)
-        target = target.view(-1)
-        intersection = (output * target).sum()
-        total = (output + target).sum()
+        intersection = torch.sum(output * target)
+        total = torch.sum(output + target)
         union = total - intersection
         intersection_over_union = (intersection + self.smooth) / (union + self.smooth)
         return 1.0 - intersection_over_union
@@ -71,8 +63,12 @@ class JaccardIndexLoss(GenericLoss):
         """Computes and returns/saves loss information"""
         loss = 0
         for ii, output in enumerate(self.outputs):
-            loss += self.jaccard_index_loss[self.targets[ii]](
+            temp_loss = self.jaccard_index_loss[self.targets[ii]](
                 outputs[output].to(self.device), 
-                target[self.targets[ii]].to(self.device)
+                F.one_hot(target[self.targets[ii]], num_classes=self.number_of_target_labels[ii]).to(self.device)
+            )
+            loss += temp_loss
+            self.batch_loss[self.targets[ii]] = torch.cat(
+                (self.batch_loss[self.targets[ii]], torch.tensor([[temp_loss]], device=self.device)), dim=0
             )
         return self.alpha * loss

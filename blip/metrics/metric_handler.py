@@ -170,12 +170,9 @@ class MetricHandler:
             if train_type == metric.when_to_compute or metric.when_to_compute == 'all':
                 metric.update(outputs, data)
     
-    def compute(self,
-        outputs,
-        data
-    ):
+    def compute(self):
         metrics = {
-            name: metric.compute(outputs, data) 
+            name: metric.compute() 
             for name, metric in self.metrics.items()
         }
         return metrics

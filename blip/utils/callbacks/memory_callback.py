@@ -12,17 +12,16 @@ class MemoryTrackerCallback(GenericCallback):
     """
     """
     def __init__(self,
-        output_dir: str,
-        memory_trackers: MemoryTrackers,
-        criterion_handler: list=[],
-        metrics_handler: list=[],
-        meta:   dict={}
+        name:               str='memory_callback',
+        criterion_handler:  list=[],
+        metrics_handler:    list=[],
+        meta:               dict={},
+        output_dir:         str='',
+        memory_trackers:    MemoryTrackers=None,
     ):
         self.name = "memory"
         super(MemoryTrackerCallback, self).__init__(
-            criterion_handler,
-            metrics_handler, 
-            meta
+            name, criterion_handler, metrics_handler, meta
         )
         self.output_dir = output_dir
         self.memory_trackers = memory_trackers
