@@ -364,6 +364,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 classes: self.meta['classes'][classes]
                 for classes in self.meta['blip_classes_mask']
             }
+        else:
+            self.meta['blip_classes_mask_indices'] = {}
         if "labels_mask" in self.config:
             self.meta['blip_classes_labels_mask_values'] = {
                 classes: [
@@ -372,6 +374,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 ]
                 for ii, classes in enumerate(self.meta['blip_classes_mask'])
             }
+        else:
+            self.meta['blip_classes_labels_indices'] = {}
 
     def configure_dataset(self):
         # set dataset type
@@ -581,15 +585,16 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         event_features, event_classes, event_clusters, event_hits
     ):
         mask = np.array([True for ii in range(len(event_features))])
-        # Apply 'classes_mask' and 'labels_mask'
-        for classes, class_index in self.meta['blip_classes_mask_indices'].items():
-            for jj, label_value in enumerate(self.meta['blip_classes_labels_mask_values'][classes]):
-                mask &= (event_classes[:, class_index] == label_value)
-        # Apply mask for 'labels'
-        for classes in self.meta['blip_classes']:
-            class_index = self.meta["classes"][classes]
-            for jj, label_value in enumerate(self.meta['blip_labels_values'][classes]):
-                mask |= (event_classes[:, class_index] == label_value)
+        if "classes_mask" in self.config:
+            # Apply 'classes_mask' and 'labels_mask'
+            for classes, class_index in self.meta['blip_classes_mask_indices'].items():
+                for jj, label_value in enumerate(self.meta['blip_classes_labels_mask_values'][classes]):
+                    mask &= (event_classes[:, class_index] == label_value)
+            # Apply mask for 'labels'
+            for classes in self.meta['blip_classes']:
+                class_index = self.meta["classes"][classes]
+                for jj, label_value in enumerate(self.meta['blip_labels_values'][classes]):
+                    mask |= (event_classes[:, class_index] == label_value)
         
         # Apply masks
         event_features = event_features[mask].astype(np.float)
@@ -603,12 +608,13 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             event_features = event_features[:, self.meta['blip_features_indices']]
         else:
             event_features = np.ones((len(event_features),1))
-
         # Convert class labels to ordered list
+        temp_classes = event_classes.copy()
         for classes in self.meta['blip_classes']:
             class_index = self.meta["classes"][classes]
             for key, val in self.meta['blip_labels_values_map'][classes].items():
-                event_classes[:, class_index][(event_classes[:, class_index] == key)] = val
+                temp_mask = (temp_classes[:, class_index] == key)
+                event_classes[temp_mask, class_index] = val
         event_classes = event_classes[:, self.meta['blip_classes_indices']]
         event_clusters = event_clusters[:, self.meta['blip_clusters_indices']]
         event_hits = event_hits[:, self.meta['blip_hits_indices']]

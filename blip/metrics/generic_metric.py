@@ -41,26 +41,31 @@ class GenericMetric:
 
         if target_type == 'positions':
             self.update = self.position_metric_update
+            self.number_of_target_labels = [-1 for target in self.targets]
             self.target_indicies = [
                 self.meta['dataset'].meta['blip_position_indices_by_name'][target] for target in self.targets
             ]
         elif target_type == 'features':
             self.update = self.feature_metric_update
+            self.number_of_target_labels = [-1 for target in self.targets]
             self.target_indicies = [
                 self.meta['dataset'].meta['blip_features_indices_by_name'][target] for target in self.targets
             ]
         elif target_type == 'classes':
             self.update = self.classes_metric_update
+            self.number_of_target_labels = [len(self.meta['dataset'].meta['blip_labels_values'][target]) for target in self.targets]
             self.target_indicies = [
                 self.meta['dataset'].meta['blip_classes_indices_by_name'][target] for target in self.targets
             ]
         elif target_type == 'clusters':
             self.update = self.cluster_metric_update
+            self.number_of_target_labels = [-1 for target in self.targets]
             self.target_indicies = [
                 self.meta['dataset'].meta['blip_clusters_indices_by_name'][target] for target in self.targets
             ]
         elif target_type == 'hit':
             self.update = self.hit_metric_update
+            self.number_of_target_labels = [-1 for target in self.targets]
             self.target_indicies = [
                 self.meta['dataset'].meta['blip_hits_indices_by_name'][target] for target in self.targets
             ]

@@ -3,11 +3,11 @@ Wrapper for NTXent loss
 """
 import torch
 import torch.nn as nn
-from pytorch_metric_learning.losses import NTXentLoss
+from pytorch_metric_learning.losses import ContrastiveLoss as contrastive_loss
 
 from blip.losses import GenericLoss
 
-class NTXEntropyLoss(GenericLoss):
+class ContrastiveLoss(GenericLoss):
     """
     """
     def __init__(self,
@@ -18,15 +18,17 @@ class NTXEntropyLoss(GenericLoss):
         outputs:        list=[],
         augmentations:  int=0,
         reduction:      str='mean',
-        temperature:    float=0.10,
+        pos_margin:     float=0,
+        neg_margin:     float=1,
         meta:           dict={}
     ):
-        super(NTXEntropyLoss, self).__init__(
+        super(ContrastiveLoss, self).__init__(
             name, alpha, target_type, targets, outputs, augmentations, meta
         )
-        self.temperature = temperature
+        self.pos_margin = pos_margin
+        self.neg_margin = neg_margin
         self.ntx_entropy_loss = {
-            key: NTXentLoss(temperature=temperature)
+            key: contrastive_loss(pos_margin=self.pos_margin, neg_margin=self.neg_margin)
             for key in self.targets
         }
 

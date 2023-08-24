@@ -155,6 +155,7 @@ class LossHandler:
     def reset_batch(self):  
         for name, loss in self.losses.items():
             self.batch_loss[name] = torch.empty(size=(0,1), dtype=torch.float, device=self.device)
+            loss.reset_batch()
 
     def add_loss(self,
         loss:   GenericLoss

@@ -16,4 +16,5 @@ dataset:
   process_simulation: True
   simulation_type:    'larnd-sim'
   simulation_folder:  "/data/"
+  process_type:       "h5py"
   simulation_files:   ["labeling_sim_arrakis.h5"]
