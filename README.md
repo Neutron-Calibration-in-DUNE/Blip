@@ -20,6 +20,7 @@ Blip is a collection of machine learning tools for reconstructing, classifying a
 	* [ MinkowskiEngine ](#minkowski)
 	* [ Blip ](#blip)
 	* [ Installing on the Wilson Cluster ](#wilson)
+  * [ Installing on NERSC ](#nersc)
 3. [ Usage ](#usage)
 	* [ Modules ](#modules)
 	* [ Event Display ](#eventdisplay)

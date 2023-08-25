@@ -25,6 +25,8 @@ from bokeh.server.server import Server
 from bokeh.command.util import build_single_handler_applications
 from bokeh.document import Document
 
+import panel as pn
+
 import pandas as pd
 
 import os

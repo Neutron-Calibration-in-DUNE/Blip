@@ -149,6 +149,7 @@ class SimulationWrangler:
             self.trackid_ancestorlevel[track_id] = level
             self.trackid_ancestry[track_id] = ancestry
             self.trackid_hit[track_id] = []
+            self.trackid_segmentid[track_id] = []
 
     def process_event_stacks(self,
         event_stacks
@@ -159,7 +160,7 @@ class SimulationWrangler:
         event_segments
     ):
         for ii, segment in enumerate(event_segments):
-            self.trackid_segmentid[segment['traj_id']] = segment['segment_id']
+            self.trackid_segmentid[segment['traj_id']].append(segment['segment_id'])
             self.segmentid_trackid[segment['segment_id']] = segment['traj_id']
             self.segmentid_hit[segment['segment_id']] = []
     
@@ -186,6 +187,14 @@ class SimulationWrangler:
                     self.segmentid_hit[segmentid].append(ii)
                     self.trackid_hit[self.segmentid_trackid[segmentid]].append(ii)
     
+    def get_total_hit_energy(self, 
+        hits
+    ):
+        energy = 0.0
+        for hit in hits:
+            energy += self.det_point_cloud.E[hit]
+        return energy
+
     def get_primaries_generator_label(self,
         label
     ):
@@ -200,6 +209,33 @@ class SimulationWrangler:
                 primaries.append(track_id)
         return primaries
 
+    def get_primaries_abs_pdg_code(self,
+        pdg
+    ):
+        primaries = []
+        for track_id, parent_id in self.trackid_parentid.items():
+            if parent_id == 0 and abs(self.trackid_pdgcode[track_id]) == abs(pdg):
+                primaries.append(track_id)
+        return primaries
+    
+    def get_hits_trackid(self,
+        trackids
+    ):
+        hits = [
+            self.trackid_hit[track_id]
+            for track_id in trackids
+        ]
+        return hits
+    
+    def get_segments_trackid(self,
+        trackids
+    ):
+        segments = [
+            self.trackid_segmentid[track_id]
+            for track_id in trackids
+        ]
+        return segments
+
     def get_trackid_pdg_code(self,
         pdg
     ):
@@ -208,14 +244,122 @@ class SimulationWrangler:
             if pdg_code == pdg:
                 trackid.append(track_id)
         return trackid   
-
-    def filter_trackid_abs_pdg_codese(self,
+    
+    def get_daughters_trackid(self,
+        trackids
+    ):
+        daughters = [
+            self.trackid_daughters[track_id]
+            for track_id in trackids
+        ]
+        return daughters
+    
+    def filter_trackid_not_pdg_code(self,
         trackids, pdg
     ):
-        trackid = []
-        for track_id in trackids:
-            if self.trackid_pdgcode[track_id] == pdg:
-                trackid.append(track_id)
+        trackid = [
+            track_id for track_id in trackids
+            if self.trackid_pdgcode[track_id] != pdg
+        ]
+        return trackid
+
+    def filter_trackid_pdg_code(self,
+        trackids, pdg
+    ):
+        trackid = [
+            track_id for track_id in trackids
+            if self.trackid_pdgcode[track_id] == pdg
+        ]
+        return trackid
+
+    def filter_trackid_not_abs_pdg_code(self,
+        trackids, pdg
+    ):
+        trackid = [
+            track_id for track_id in trackids
+            if abs(self.trackid_pdgcode[track_id]) != abs(pdg)
+        ]
+        return trackid
+
+    def filter_trackid_abs_pdg_code(self,
+        trackids, pdg
+    ):
+        trackid = [
+            track_id for track_id in trackids
+            if abs(self.trackid_pdgcode[track_id]) == abs(pdg)
+        ]
+        return trackid
+
+    def filter_trackid_not_process(self,
+        trackids, process
+    ):
+        trackid = [
+            track_id for track_id in trackids
+            if self.trackid_process[track_id] != process
+        ]
+        return trackid
+
+    def filter_trackid_process(self,
+        trackids, process
+    ):
+        trackid = [
+            track_id for track_id in trackids
+            if self.trackid_process[track_id] == process
+        ]
+        return trackid
+    
+    def filter_trackid_not_subprocess(self,
+        trackids, subprocess
+    ):
+        trackid = [
+            track_id for track_id in trackids
+            if self.trackid_subprocess[track_id] != subprocess
+        ]
+        return trackid
+
+    def filter_trackid_subprocess(self,
+        trackids, subprocess
+    ):
+        trackid = [
+            track_id for track_id in trackids
+            if self.trackid_subprocess[track_id] == subprocess
+        ]
+        return trackid
+
+    def filter_trackid_not_endprocess(self,
+        trackids, endprocess
+    ):
+        trackid = [
+            track_id for track_id in trackids
+            if self.trackid_endprocess[track_id] != endprocess
+        ]
+        return trackid
+
+    def filter_trackid_endprocess(self,
+        trackids, endprocess
+    ):
+        trackid = [
+            track_id for track_id in trackids
+            if self.trackid_endprocess[track_id] == endprocess
+        ]
+        return trackid
+    
+    def filter_trackid_not_endsubprocess(self,
+        trackids, endsubprocess
+    ):
+        trackid = [
+            track_id for track_id in trackids
+            if self.trackid_endsubprocess[track_id] != endsubprocess
+        ]
+        return trackid
+
+    def filter_trackid_endsubprocess(self,
+        trackids, endsubprocess
+    ):
+        trackid = [
+            track_id for track_id in trackids
+            if self.trackid_endsubprocess[track_id] == endsubprocess
+        ]
         return trackid
     
     def get_index_trackid(self,

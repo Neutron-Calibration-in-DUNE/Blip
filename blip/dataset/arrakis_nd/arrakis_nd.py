@@ -380,11 +380,12 @@ class ArrakisND:
                 self.logger.error(f'specified process type {process} not allowed!')
         
         for tpc, tpc_ranges in self.nd_2x2_tpc_positions.items():
+            print(self.hits_point_clouds[tpc].items())
             np.savez(
                 f"data/{self.output_folders[self.simulation_folder + simulation_file]}/{tpc}.npz",
-                hits_features=self.hits_point_clouds[tpc]['tpc_features'],
-                hits_classes=self.hits_point_clouds[tpc]['tpc_classes'],
-                hits_clusters=self.hits_point_clouds[tpc]['tpc_clusters'],
+                hits_features=self.hits_point_clouds[tpc]['hits_features'],
+                hits_classes=self.hits_point_clouds[tpc]['hits_classes'],
+                hits_clusters=self.hits_point_clouds[tpc]['hits_clusters'],
                 mc_maps=self.mc_maps[tpc],
                 meta=self.meta[tpc]
             )
@@ -414,10 +415,8 @@ class ArrakisND:
             f"generating 'simulation_wrangler.det_point_clouds' training data from file: {input_file}"
         )
         det_point_cloud = self.simulation_wrangler.det_point_clouds
-        print(det_point_cloud)
 
         for tpc, tpc_ranges in self.nd_2x2_tpc_positions.items():
-            self.simulation_wrangler.det_point_clouds[tpc] = {}
             """
             For each point cloud, we want to normalize adc against
             all point clouds in the data set, so that it is independent 
@@ -440,33 +439,31 @@ class ArrakisND:
             unique_physics_label_view = []
 
             for event, point_cloud in det_point_cloud.items():
-                print(event)
-                print(point_cloud)
                 view_mask = (
-                    (det_point_cloud[event].x >= tpc_ranges[0][0]) & 
-                    (det_point_cloud[event].x <  tpc_ranges[0][1]) & 
-                    (det_point_cloud[event].y >= tpc_ranges[1][0]) & 
-                    (det_point_cloud[event].y <  tpc_ranges[1][1]) &
-                    (det_point_cloud[event].z >= tpc_ranges[2][0]) & 
-                    (det_point_cloud[event].z <  tpc_ranges[2][1])
-                    # (det_point_cloud[event].topology_label >= 0) &
-                    # (det_point_cloud[event].particle_label >= 0)
+                    (point_cloud.x >= tpc_ranges[0][0]) & 
+                    (point_cloud.x <  tpc_ranges[0][1]) & 
+                    (point_cloud.y >= tpc_ranges[1][0]) & 
+                    (point_cloud.y <  tpc_ranges[1][1]) &
+                    (point_cloud.z >= tpc_ranges[2][0]) & 
+                    (point_cloud.z <  tpc_ranges[2][1])
+                    # (point_cloud.topology_label >= 0) &
+                    # (point_cloud.particle_label >= 0)
                 )
                 if np.sum(view_mask) > 0:
-                    x_view.append(det_point_cloud[event].x[view_mask])
-                    y_view.append(det_point_cloud[event].y[view_mask])
-                    z_view.append(det_point_cloud[event].z[view_mask])
-                    t_drift_view.append(det_point_cloud[event].t_drift[view_mask])
-                    ts_pps_view.append(det_point_cloud[event].ts_pps[view_mask])
-                    Q_view.append(det_point_cloud[event].Q[view_mask])
-                    E_view.append(det_point_cloud[event].E[view_mask])
-                    source_label_view.append(det_point_cloud[event].source_label[view_mask])
-                    topology_label_view.append(det_point_cloud[event].topology_label[view_mask])
-                    particle_label_view.append(det_point_cloud[event].particle_label[view_mask])
-                    physics_label_view.append(det_point_cloud[event].physics_label[view_mask])
-                    unique_topology_label_view.append(det_point_cloud[event].unique_topologies[view_mask])
-                    unique_particle_label_view.append(det_point_cloud[event].unique_particles[view_mask])
-                    unique_physics_label_view.append(det_point_cloud[event].unique_physicses[view_mask])
+                    x_view.append(point_cloud.x[view_mask])
+                    y_view.append(point_cloud.y[view_mask])
+                    z_view.append(point_cloud.z[view_mask])
+                    t_drift_view.append(point_cloud.t_drift[view_mask])
+                    ts_pps_view.append(point_cloud.ts_pps[view_mask])
+                    Q_view.append(point_cloud.Q[view_mask])
+                    E_view.append(point_cloud.E[view_mask])
+                    source_label_view.append(point_cloud.source_label[view_mask])
+                    topology_label_view.append(point_cloud.topology_label[view_mask])
+                    particle_label_view.append(point_cloud.particle_label[view_mask])
+                    physics_label_view.append(point_cloud.physics_label[view_mask])
+                    unique_topology_label_view.append(point_cloud.unique_topologies[view_mask])
+                    unique_particle_label_view.append(point_cloud.unique_particles[view_mask])
+                    unique_physics_label_view.append(point_cloud.unique_physicses[view_mask])
 
             x_view = np.array(x_view, dtype=object)
             y_view = np.array(y_view, dtype=object)
@@ -530,9 +527,9 @@ class ArrakisND:
                 for key, value in classification_labels["physics"].items()
             }
             self.meta[tpc][f"tpc_total_points"] = len(np.concatenate(features))   
-            self.hits_point_clouds[tpc][f'tpc_features'] = features
-            self.hits_point_clouds[tpc][f'tpc_classes'] = classes
-            self.hits_point_clouds[tpc][f'tpc_clusters'] = clusters
+            self.hits_point_clouds[tpc][f'hits_features'] = features
+            self.hits_point_clouds[tpc][f'hits_classes'] = classes
+            self.hits_point_clouds[tpc][f'hits_clusters'] = clusters
     
     def generate_op_det_point_cloud(self,
         input_file: str=''
