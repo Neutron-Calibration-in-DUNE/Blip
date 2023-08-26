@@ -53,11 +53,11 @@ class Trainer:
         # Check for compatability with parameters
 
         # define directories
-        self.predictions_dir = f'predictions/{model.name}/'
-        self.manifold_dir    = f'plots/{model.name}/manifold/'
-        self.features_dir    = f'plots/{model.name}/features/'
-        self.timing_dir    = f'plots/{model.name}/timing/'
-        self.memory_dir    = f'plots/{model.name}/memory/'
+        self.predictions_dir = f'{self.meta["local_scratch"]}/predictions/{model.name}/'
+        self.manifold_dir    = f'{self.meta["local_scratch"]}/plots/{model.name}/manifold/'
+        self.features_dir    = f'{self.meta["local_scratch"]}/plots/{model.name}/features/'
+        self.timing_dir    = f'{self.meta["local_scratch"]}/plots/{model.name}/timing/'
+        self.memory_dir    = f'{self.meta["local_scratch"]}/plots/{model.name}/memory/'
 
         # create directories
         if not os.path.isdir(self.predictions_dir):
@@ -407,11 +407,11 @@ class Trainer:
 
             # save weights if at checkpoint step
             if epoch % checkpoint == 0:
-                if not os.path.exists(".checkpoints/"):
-                    os.makedirs(".checkpoints/")
+                if not os.path.exists(f"{self.meta['local_scratch']}/.checkpoints/"):
+                    os.makedirs(f"{self.meta['local_scratch']}/.checkpoints/")
                 torch.save(
                     self.model.state_dict(), 
-                    f".checkpoints/checkpoint_{epoch}.ckpt"
+                    f"{self.meta['local_scratch']}/.checkpoints/checkpoint_{epoch}.ckpt"
                 )
             # free up gpu resources
             torch.cuda.empty_cache()
@@ -561,11 +561,11 @@ class Trainer:
                             metrics_validation_loop.set_description(f"Validation Metrics: Epoch [{epoch+1}/{epochs}]")
             self.callbacks.evaluate_epoch(train_type='validation')
             if epoch % checkpoint == 0:
-                if not os.path.exists(".checkpoints/"):
-                    os.makedirs(".checkpoints/")
+                if not os.path.exists(f"{self.meta['local_scratch']}/.checkpoints/"):
+                    os.makedirs(f"{self.meta['local_scratch']}/.checkpoints/")
                 torch.save(
                     self.model.state_dict(), 
-                    f".checkpoints/checkpoint_{epoch}.ckpt"
+                    f"{self.meta['local_scratch']}/.checkpoints/checkpoint_{epoch}.ckpt"
                 )
         self.callbacks.evaluate_training()
         self.logger.info(f"training finished.")

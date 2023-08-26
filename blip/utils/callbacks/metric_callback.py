@@ -258,7 +258,7 @@ class MetricCallback(GenericCallback):
             plt.title("metric vs. epoch (training)")
             plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
             plt.tight_layout()
-            plt.savefig("plots/epoch_training_metrics.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_training_metrics.png")
         
         if len(self.validation_metrics) != 0:
             fig, axs = plt.subplots(figsize=(15, 10))
@@ -282,7 +282,7 @@ class MetricCallback(GenericCallback):
             plt.title("metric vs. epoch (validation)")
             plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
             plt.tight_layout()
-            plt.savefig("plots/epoch_validation_metrics.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_validation_metrics.png")
 
         if len(self.training_metrics) != 0 and len(self.validation_metrics) != 0:
             fig, axs = plt.subplots(figsize=(15, 10))
@@ -336,7 +336,7 @@ class MetricCallback(GenericCallback):
             plt.title("metric vs. epoch")
             plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
             plt.tight_layout()
-            plt.savefig("plots/epoch_metrics.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_metrics.png")
 
         ########### Plots for each metric with target contributions ##########
         for name, metric in self.metrics_handler.metrics.items():
@@ -362,7 +362,7 @@ class MetricCallback(GenericCallback):
                 plt.title(f"{name} - metric vs. epoch")
                 plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
                 plt.tight_layout()
-                plt.savefig(f"plots/epoch_metric_{name}.png")
+                plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_metric_{name}.png")
 
     def evaluate_inference(self):
         pass

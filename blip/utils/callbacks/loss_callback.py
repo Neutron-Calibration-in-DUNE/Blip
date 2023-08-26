@@ -222,7 +222,7 @@ class LossCallback(GenericCallback):
             plt.title("loss vs. epoch (training)")
             plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
             plt.tight_layout()
-            plt.savefig("plots/epoch_training_loss.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_training_loss.png")
         # validation plot
         if self.num_validation_batches != 0:
             fig, axs = plt.subplots(figsize=(15, 10))
@@ -254,7 +254,7 @@ class LossCallback(GenericCallback):
             plt.title("loss vs. epoch (validation)")
             plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
             plt.tight_layout()
-            plt.savefig("plots/epoch_validation_loss.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_validation_loss.png")
         # plot both
         if self.num_training_batches != 0 and self.num_validation_batches != 0:
             fig, axs = plt.subplots(figsize=(15, 10))
@@ -319,7 +319,7 @@ class LossCallback(GenericCallback):
             plt.title("loss vs. epoch")
             plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
             plt.tight_layout()
-            plt.savefig("plots/epoch_loss.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_loss.png")
 
         ########### Plots for each loss with target contributions ##########
         for name, loss in self.criterion_handler.losses.items():
@@ -340,7 +340,7 @@ class LossCallback(GenericCallback):
                 plt.title(f"{name} - loss vs. epoch")
                 plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
                 plt.tight_layout()
-                plt.savefig(f"plots/epoch_loss_{name}.png")
+                plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_loss_{name}.png")
 
     def evaluate_inference(self):
         pass

@@ -59,12 +59,14 @@ class ModelHandler:
             os.path.dirname(__file__) + '/' + file 
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
+        self.model_files.extend(self.meta['local_blip_files'])
         for model_file in self.model_files:
             if (
                 ("__init__.py" in model_file) or 
                 ("__pycache__.py" in model_file) or 
                 ("generic_model.py" in model_file) or 
-                ("__pycache__" in model_file)
+                ("__pycache__" in model_file) or
+                (".py" not in model_file)
             ):
                 continue
             try:

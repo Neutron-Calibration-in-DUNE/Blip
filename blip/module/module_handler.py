@@ -56,12 +56,14 @@ class ModuleHandler:
             os.path.dirname(__file__) + '/' + file 
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
+        self.module_files.extend(self.meta['local_blip_files'])
         for module_file in self.module_files:
             if (
                 ("__init__.py" in module_file) or 
                 ("__pycache__.py" in module_file) or 
                 ("generic_module.py" in module_file) or 
-                ("__pycache__" in module_file)
+                ("__pycache__" in module_file) or
+                (".py" not in module_file)
             ):
                 continue
             try:

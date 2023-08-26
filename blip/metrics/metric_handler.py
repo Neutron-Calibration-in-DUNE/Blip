@@ -58,12 +58,14 @@ class MetricHandler:
             os.path.dirname(__file__) + '/' + file 
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
+        self.metric_files.extend(self.meta['local_blip_files'])
         for metric_file in self.metric_files:
             if (
                 ("__init__.py" in metric_file) or 
                 ("__pycache__.py" in metric_file) or 
                 ("generic_metric.py" in metric_file) or 
-                ("__pycache__" in metric_file)
+                ("__pycache__" in metric_file) or
+                (".py" not in metric_file)
             ):
                 continue
             try:

@@ -35,12 +35,43 @@ def run():
         '-n', dest='name', default='arrakis',
         help='name for this run (default "arrakis").'
     )
+    parser.add_argument(
+        '-scratch', dest='local_scratch', default='/local_scratch',
+        help='location for the local scratch directory.'
+    )
+    parser.add_argument(
+        '-blip', dest='local_blip', default='/local_blip',
+        help='location for the local blip directory.'
+    )
+    parser.add_argument(
+        '-data', dest='local_data', default='/local_data',
+        help='location for the local data directory.'
+    )
     args = parser.parse_args()
     # Setup config file.
     name = args.name
+    if not os.path.isdir(args.local_scratch):
+        args.local_scratch = './'
+    if not os.path.isdir(args.local_blip):
+        args.local_blip = './'
+    local_blip_files = [
+        args.local_blip + '/' + file 
+        for file in os.listdir(path=os.path.dirname(args.local_blip))
+    ]
+    if not os.path.isdir(args.local_data):
+        args.local_data = './'
+    local_data_files = [
+        args.local_data + '/' + file 
+        for file in os.listdir(path=os.path.dirname(args.local_data))
+    ]
+    os.environ['LOCAL_SCRATCH'] = args.local_scratch
+    os.environ['LOCAL_BLIP'] = args.local_blip
+    os.environ['LOCAL_DATA'] = args.local_data
+    
+    config = ConfigParser(args.config_file).data
     logger = Logger(name, output="both", file_mode="w")
     logger.info("configuring arrakis...")
-    config = ConfigParser(args.config_file).data
+    
     if "module" not in config.keys():
         logger.error(f'"module" section not specified in config!')
     if "dataset" not in config.keys():
@@ -48,9 +79,20 @@ def run():
     system_info = logger.get_system_info()
     for key, value in system_info.items():
         logger.info(f"system_info - {key}: {value}")
+   
     meta = {
-        'config_file':  args.config_file
+        'config_file':  args.config_file,
+        'local_scratch':    args.local_scratch,
+        'local_blip':       args.local_blip,
+        'local_data':       args.local_data,
+        'local_blip_files': local_blip_files,
+        'local_data_files': local_data_files
     }
+    logger.info(f'"local_scratch" directory set to: {args.local_scratch}.')
+    logger.info(f'"local_blip" directory set to: {args.local_blip}.')
+    logger.info(f'"local_data" directory set to: {args.local_data}.')
+    
+    
     if "verbose" in config["module"]:
         if not isinstance(config["module"]["verbose"], bool):
             logger.error(f'"module:verbose" must be of type bool, but got {type(config["module"]["verbose"])}!')
@@ -112,16 +154,16 @@ def run():
     if ("simulation_folder" in dataset_config):
         simulation_folder = dataset_config["simulation_folder"]
         logger.info(
-                f"Set simulation file folder from configuration. " +
-                f" simulation_folder : {simulation_folder}"
-                )
+            f"Set simulation file folder from configuration. " +
+            f" simulation_folder : {simulation_folder}"
+        )
     elif ('BLIP_SIMULATION_PATH' in os.environ ):
         logger.debug(f'Found BLIP_SIMULATION_PATH in environment')
         simulation_folder = os.environ['BLIP_SIMULATION_PATH']
         logger.info(
-                f"Setting simulation path from Enviroment." +
-                f" BLIP_SIMULATION_PATH = {simulation_folder}"
-                )
+            f"Setting simulation path from Enviroment." +
+            f" BLIP_SIMULATION_PATH = {simulation_folder}"
+        )
     else:
         logger.error(f'No dataset_folder specified in environment or configuration file!')
 

@@ -46,8 +46,8 @@ class ConfusionMatrixCallback(GenericCallback):
         else:   
             self.logger.error("no ConfusionMatrixMetric in the list of metrics!")
 
-        if not os.path.isdir("plots/confusion_matrix/"):
-            os.makedirs("plots/confusion_matrix/")
+        if not os.path.isdir(f"{self.meta['local_scratch']}/plots/confusion_matrix/"):
+            os.makedirs(f"{self.meta['local_scratch']}/plots/confusion_matrix/")
         
         self.labels = {}
         self.consolidate_classes = False
@@ -58,33 +58,11 @@ class ConfusionMatrixCallback(GenericCallback):
             else:
                 self.labels[output] = self.meta['dataset'].meta['classes_labels_names'][output]
 
-        # if not os.path.isdir("plots/roc/"):
-        #     os.makedirs("plots/roc/")
-        
-        # if not os.path.isdir("plots/summed_adc/"):
-        #     os.makedirs("plots/summed_adc/")
-
-        # self.training_probabilities = {}
-        # self.validation_probabilities = {}
-        # self.test_probabilities = {}
-
-        # self.training_summed_adc = None
-        # self.validation_summed_adc = None
-        # self.test_summed_adc = None
-
         self.training_confusion = None
         self.validation_confusion = None
         self.test_confusion = None
 
     def reset_batch(self):
-        # self.training_probabilities = {}
-        # self.validation_probabilities = {}
-        # self.test_probabilities = {}
-
-        # self.training_summed_adc = None
-        # self.validation_summed_adc = None
-        # self.test_summed_adc = None
-
         self.training_confusion = None
         self.validation_confusion = None
         self.test_confusion = None
@@ -130,7 +108,7 @@ class ConfusionMatrixCallback(GenericCallback):
                      
             plt.suptitle(f"Training Confusion Matrix\nClass {output}")
             plt.tight_layout()
-            plt.savefig(f"plots/confusion_matrix/training_confusion_matrix_{output}.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/confusion_matrix/training_confusion_matrix_{output}.png")
             plt.close()
 
             if self.consolidate_classes:
@@ -151,7 +129,7 @@ class ConfusionMatrixCallback(GenericCallback):
             
             plt.suptitle(f"Validation Confusion Matrix\nClass {output}")
             plt.tight_layout()
-            plt.savefig(f"plots/confusion_matrix/validation_confusion_matrix_{output}.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/confusion_matrix/validation_confusion_matrix_{output}.png")
             plt.close()
             
             # # plot statistics on categorical probabilities
@@ -174,7 +152,7 @@ class ConfusionMatrixCallback(GenericCallback):
             #     plt.suptitle(f"Training probability predictions for class {outer_label}")
             #     plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
             #     plt.tight_layout()
-            #     plt.savefig(f"plots/confusion_matrix/training_probabilities_{outer_label}.png")
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/confusion_matrix/training_probabilities_{outer_label}.png")
             #     plt.close()
             
             # # generate ROC curves for each class
@@ -220,7 +198,7 @@ class ConfusionMatrixCallback(GenericCallback):
             #     plt.grid(True)
             #     plt.legend(loc='best')
             #     plt.tight_layout()
-            #     plt.savefig(f"plots/roc/training_roc_{outer_label}.png")
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/roc/training_roc_{outer_label}.png")
             #     plt.close()
             
             # # generate summed ADC plots for each signal acceptance value
@@ -259,7 +237,7 @@ class ConfusionMatrixCallback(GenericCallback):
             #     plt.grid(True)
             #     plt.legend(loc='best')
             #     plt.tight_layout()
-            #     plt.savefig(f"plots/summed_adc/training_summed_adc_{outer_label}.png")
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/summed_adc/training_summed_adc_{outer_label}.png")
             #     plt.close()
             
             # # plot statistics on categorical probabilities
@@ -282,7 +260,7 @@ class ConfusionMatrixCallback(GenericCallback):
             #     plt.suptitle(f"Validation probability predictions for class {outer_label}")
             #     plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
             #     plt.tight_layout()
-            #     plt.savefig(f"plots/confusion_matrix/validation_probabilities_{outer_label}.png")
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/confusion_matrix/validation_probabilities_{outer_label}.png")
             #     plt.close()
             
             # # generate ROC curves for each class
@@ -328,7 +306,7 @@ class ConfusionMatrixCallback(GenericCallback):
             #     plt.grid(True)
             #     plt.legend(loc='best')
             #     plt.tight_layout()
-            #     plt.savefig(f"plots/roc/validation_roc_{outer_label}.png")
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/roc/validation_roc_{outer_label}.png")
             #     plt.close()
             
             # # generate summed ADC plots for each signal acceptance value
@@ -367,7 +345,7 @@ class ConfusionMatrixCallback(GenericCallback):
             #     plt.grid(True)
             #     plt.legend(loc='best')
             #     plt.tight_layout()
-            #     plt.savefig(f"plots/summed_adc/validation_summed_adc_{outer_label}.png")
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/summed_adc/validation_summed_adc_{outer_label}.png")
             #     plt.close()
 
             
@@ -392,7 +370,7 @@ class ConfusionMatrixCallback(GenericCallback):
                       
             plt.suptitle(f"Test Confusion Matrix\nClass {output}")
             plt.tight_layout()
-            plt.savefig(f"plots/confusion_matrix/test_confusion_matrix_{output}.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/confusion_matrix/test_confusion_matrix_{output}.png")
             plt.close()
     
             # # plot statistics on categorical probabilities
@@ -415,7 +393,7 @@ class ConfusionMatrixCallback(GenericCallback):
             #     plt.suptitle(f"Test probability predictions for class {outer_label}")
             #     plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
             #     plt.tight_layout()
-            #     plt.savefig(f"plots/confusion_matrix/test_probabilities_{outer_label}.png")
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/confusion_matrix/test_probabilities_{outer_label}.png")
             #     plt.close()
             
             # # generate ROC curves for each class
@@ -461,7 +439,7 @@ class ConfusionMatrixCallback(GenericCallback):
             #     plt.grid(True)
             #     plt.legend(loc='best')
             #     plt.tight_layout()
-            #     plt.savefig(f"plots/roc/test_roc_{outer_label}.png")
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/roc/test_roc_{outer_label}.png")
             #     plt.close()
             
             # # generate summed ADC plots for each signal acceptance value
@@ -500,7 +478,7 @@ class ConfusionMatrixCallback(GenericCallback):
             #     plt.grid(True)
             #     plt.legend(loc='best')
             #     plt.tight_layout()
-            #     plt.savefig(f"plots/summed_adc/test_summed_adc_{outer_label}.png")
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/summed_adc/test_summed_adc_{outer_label}.png")
             #     plt.close()
 
     def evaluate_inference(self):
@@ -517,7 +495,7 @@ class ConfusionMatrixCallback(GenericCallback):
         display.plot()       
         plt.suptitle("Test Confusion Matrix")
         plt.tight_layout()
-        plt.savefig(f"plots/confusion_matrix/inference_confusion_matrix.png")
+        plt.savefig(f"{self.meta['local_scratch']}/plots/confusion_matrix/inference_confusion_matrix.png")
         plt.close()
 
         # plot statistics on categorical probabilities
@@ -540,7 +518,7 @@ class ConfusionMatrixCallback(GenericCallback):
             plt.suptitle(f"Inference probability predictions for class {outer_label}")
             plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
             plt.tight_layout()
-            plt.savefig(f"plots/confusion_matrix/inference_probabilities_{outer_label}.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/confusion_matrix/inference_probabilities_{outer_label}.png")
             plt.close()
         
         # generate ROC curves for each class
@@ -586,7 +564,7 @@ class ConfusionMatrixCallback(GenericCallback):
             plt.grid(True)
             plt.legend(loc='best')
             plt.tight_layout()
-            plt.savefig(f"plots/roc/inference_roc_{outer_label}.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/roc/inference_roc_{outer_label}.png")
             plt.close()
         
         # generate summed ADC plots for each signal acceptance value
@@ -625,7 +603,7 @@ class ConfusionMatrixCallback(GenericCallback):
             plt.grid(True)
             plt.legend(loc='best')
             plt.tight_layout()
-            plt.savefig(f"plots/summed_adc/inferece_summed_adc_{outer_label}.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/summed_adc/inferece_summed_adc_{outer_label}.png")
             plt.close()
 
 

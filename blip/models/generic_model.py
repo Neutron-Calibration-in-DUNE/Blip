@@ -72,13 +72,13 @@ class GenericModel(nn.Module):
         flag:   str=''
     ):
         # save meta information
-        if not os.path.isdir(f"models/{self.name}/"):
-            os.makedirs(f"models/{self.name}/")
-        output = f"models/{self.name}/" + self.name
+        if not os.path.isdir(f"{self.meta['local_scratch']}/models/{self.name}/"):
+            os.makedirs(f"{self.meta['local_scratch']}/models/{self.name}/")
+        output = f"{self.meta['local_scratch']}/models/{self.name}/" + self.name
         if flag != '':
             output += "_" + flag
-        if not os.path.exists("models/"):
-            os.makedirs("models/")
+        if not os.path.exists(f"{self.meta['local_scratch']}/models/"):
+            os.makedirs(f"{self.meta['local_scratch']}/models/")
         meta_info = [[f'Meta information for model {self.name}']]
         meta_info.append(['date:',datetime.now().strftime("%m/%d/%Y %H:%M:%S")])
         meta_info.append(['user:', getpass.getuser()])

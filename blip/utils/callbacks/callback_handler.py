@@ -55,12 +55,14 @@ class CallbackHandler:
             os.path.dirname(__file__) + '/' + file 
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
+        self.callback_files.extend(self.meta['local_blip_files'])
         for callback_file in self.callback_files:
             if (
                 ("__init__.py" in callback_file) or 
                 ("__pycache__.py" in callback_file) or 
                 ("generic_callback.py" in callback_file) or 
-                ("__pycache__" in callback_file)
+                ("__pycache__" in callback_file) or
+                (".py" not in callback_file)
             ):
                 continue
             try:

@@ -64,12 +64,14 @@ class LossHandler:
             os.path.dirname(__file__) + '/' + file 
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
+        self.criterion_files.extend(self.meta['local_blip_files'])
         for criterion_file in self.criterion_files:
             if (
                 ("__init__.py" in criterion_file) or 
                 ("__pycache__.py" in criterion_file) or 
                 ("generic_criterion.py" in criterion_file) or 
-                ("__pycache__" in criterion_file)
+                ("__pycache__" in criterion_file) or
+                (".py" not in criterion_file)
             ):
                 continue
             try:

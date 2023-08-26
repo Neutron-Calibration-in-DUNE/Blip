@@ -9,6 +9,9 @@ from torch import nn
 import torch.nn.functional as F
 from time import time
 from datetime import datetime
+from os import listdir
+from os.path import isfile, join
+import shutil
 
 from blip.models import ModelHandler
 from blip.module.common import *
@@ -281,6 +284,16 @@ class MachineLearningModule(GenericModule):
 
         # save model/data/config
         if 'run_name' in self.config['training'].keys():
-            save_model(self.config['training']['run_name'], self.meta['config_file'])
+            now = self.config['training']['run_name'] + f"_{datetime.now()}"
         else:
-            save_model(self.name, self.meta['config_file'])
+            now = self.name + f"_{datetime.now()}"
+        os.makedirs(f"{self.meta['local_scratch']}/runs/{now}")
+        if os.path.isdir(f"{self.meta['local_scratch']}/predictions/"):
+            shutil.move(f"{self.meta['local_scratch']}/predictions/", f"{self.meta['local_scratch']}/runs/{now}/")
+        if os.path.isdir(f"{self.meta['local_scratch']}/plots/"):
+            shutil.move(f"{self.meta['local_scratch']}/plots/", f"{self.meta['local_scratch']}/runs/{now}/")
+        if os.path.isdir(f"{self.meta['local_scratch']}/models/"):
+            shutil.move(f"{self.meta['local_scratch']}/models/", f"{self.meta['local_scratch']}/runs/{now}/")
+        shutil.move(f"{self.meta['local_scratch']}/.logs/", f"{self.meta['local_scratch']}/runs/{now}")
+        shutil.move(f"{self.meta['local_scratch']}/.checkpoints/", f"{self.meta['local_scratch']}/runs/{now}")
+        shutil.copy(self.meta['config_file'], f"{self.meta['local_scratch']}/runs/{now}")

@@ -71,6 +71,74 @@ class Arrakis:
             "tpc11": [[366.8851, 376.8501], [0., 607.49875],[463.62625, 695.28625]],
         }
 
+        """
+        MicroBooNE channel mappings for different
+        TPCs.  Only some of the view2 TPCs are
+        part of the active volume, the rest are cryostat
+        wall facing.
+        """
+        self.microboone_active_tpcs_view2 = {
+
+        }
+        self.microboone_tpc_wire_channels = {
+
+        }
+        self.microboone_tpc_positions = {
+
+        }
+
+        """
+        ICARUS channel mappings for different
+        TPCs.  Only some of the view2 TPCs are
+        part of the active volume, the rest are cryostat
+        wall facing.
+        """
+        self.icarus_active_tpcs_view2 = {
+
+        }
+        self.icarus_tpc_wire_channels = {
+
+        }
+        self.icarus_tpc_positions = {
+
+        }
+
+        """
+        SBND channel mappings for different
+        TPCs.  Only some of the view2 TPCs are
+        part of the active volume, the rest are cryostat
+        wall facing.
+        """
+        self.sbnd_active_tpcs_view2 = {
+
+        }
+        self.sbnd_tpc_wire_channels = {
+
+        }
+        self.sbnd_tpc_positions = {
+
+        }
+
+        """
+        ProtoDUNE Vertical Drift channel mappings for different
+        TPCs.  Only some of the view2 TPCs are
+        part of the active volume, the rest are cryostat
+        wall facing.
+        """
+        self.protodune_vd_active_tpcs_view2 = {
+
+        }
+        self.protodune_vd_tpc_wire_channels = {
+
+        }
+        self.protodune_vd_tpc_positions = {
+
+        }
+
+        self.active_tpcs_view2 = {}
+        self.tpc_wire_channels = {}
+        self.tpc_positions = {}
+
         self.parse_config()
 
     def parse_config(self):
@@ -98,6 +166,31 @@ class Arrakis:
                 for ii, input_file in enumerate(self.simulation_files):
                     self.load_arrays(self.simulation_folder, input_file)
                     self.generate_training_data(self.process_type, self.simulation_folder + input_file)
+        if "experiment" not in self.config.keys():
+            self.logger.warn(f'no experiment specified in config! Setting to ProtoDUNE.')
+            self.config['experiment'] = 'protodune'
+        if self.config['experiment'] == 'protodune':
+            self.active_tpcs_view2 = self.protodune_active_tpcs_view2
+            self.tpc_wire_channels = self.protodune_tpc_wire_channels
+            self.tpc_positions = self.protodune_tpc_positions
+        elif self.config['experiment'] == 'microboone':
+            self.active_tpcs_view2 = self.microboone_active_tpcs_view2
+            self.tpc_wire_channels = self.microboone_tpc_wire_channels
+            self.tpc_positions = self.microboone_tpc_positions
+        elif self.config['experiment'] == 'icarus':
+            self.active_tpcs_view2 = self.icarus_active_tpcs_view2
+            self.tpc_wire_channels = self.icarus_tpc_wire_channels
+            self.tpc_positions = self.icarus_tpc_positions
+        elif self.config['experiment'] == 'sbnd':
+            self.active_tpcs_view2 = self.sbnd_active_tpcs_view2
+            self.tpc_wire_channels = self.sbnd_tpc_wire_channels
+            self.tpc_positions = self.sbnd_tpc_positions
+        elif self.config['experiment'] == 'protodune_vd':
+            self.active_tpcs_view2 = self.protodune_vd_active_tpcs_view2
+            self.tpc_wire_channels = self.protodune_vd_tpc_wire_channels
+            self.tpc_positions = self.protodune_vd_tpc_positions
+        else:
+            self.logger.error(f'specified experiment "{self.config["experiment"]}" not an allowed type!')
 
     def load_arrays(self,
         input_folder:   str='',
@@ -134,7 +227,7 @@ class Arrakis:
         self.wire_plane_point_clouds = {}
         self.op_det_point_clouds = {}
 
-        for tpc, tpc_ranges in self.protodune_tpc_positions.items():
+        for tpc, tpc_ranges in self.tpc_positions.items():
             self.meta[tpc] = {
                 "who_created":      getpass.getuser(),
                 "when_created":     datetime.now().strftime("%m-%d-%Y-%H:%M:%S"),
@@ -214,7 +307,7 @@ class Arrakis:
             else:
                 self.logger.error(f'specified process type {process} not allowed!')
 
-        for tpc, tpc_ranges in self.protodune_tpc_positions.items():
+        for tpc, tpc_ranges in self.tpc_positions.items():
             np.savez(
                 f"data/{self.output_folders[input_file]}/{tpc}.npz",
                 edep_features=self.energy_deposit_point_clouds[tpc]['edep_features'],
@@ -239,7 +332,7 @@ class Arrakis:
     def generate_mc_maps(self,
         input_file: str=''
     ):
-        for tpc, tpc_ranges in self.protodune_tpc_wire_channels.items():
+        for tpc, tpc_ranges in self.tpc_wire_channels.items():
             for event in range(len(self.mc_map['pdg_code_map.first'])):
                 self.mc_maps[tpc]['pdg_code'].append({
                     self.mc_map['pdg_code_map.first'][event][ii]: self.mc_map['pdg_code_map.second'][event][ii]
@@ -290,7 +383,7 @@ class Arrakis:
         unique_particle_label = self.energy_deposit_point_cloud['unique_particle']
         unique_physics_label = self.energy_deposit_point_cloud['unique_physics']
 
-        for tpc, tpc_ranges in self.protodune_tpc_positions.items():
+        for tpc, tpc_ranges in self.tpc_positions.items():
             edep_t_tpc = []
             edep_x_tpc = []
             edep_y_tpc = []
@@ -440,7 +533,7 @@ class Arrakis:
         hit_amplitude = self.wire_plane_point_cloud['hit_amplitude']
         hit_charge = self.wire_plane_point_cloud['hit_charge']
 
-        for tpc, tpc_ranges in self.protodune_tpc_wire_channels.items():
+        for tpc, tpc_ranges in self.tpc_wire_channels.items():
             self.wire_plane_point_cloud[tpc] = {}
             for v, tpc_view in enumerate(tpc_ranges):
                 """
