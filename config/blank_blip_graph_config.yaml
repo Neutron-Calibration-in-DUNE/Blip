@@ -90,6 +90,14 @@ training:
   no_timing:    False     # wether to keep timing/memory info in callback
   seed:         0
 
+hyper_parameters:
+  iterations: 2
+  search_type:  'grid'
+  model_parameters:
+    embedding:
+      embedding_1:
+        number_of_neighbors:  [1, 2]
+
 model:
   # uncomment the line below and specify the model to load from a checkpoint.
   # load_model:   ".checkpoints/checkpoint_200.ckpt"

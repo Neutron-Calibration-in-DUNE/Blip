@@ -149,8 +149,6 @@ class BlipGraph(GenericModel):
                 self.logger.error(f'specified embedding type {embedding_config[embedding]["embedding_type"]} not allowed!')
             _num_embedding_outputs += _input_dimension
 
-        if self.config["add_summed_adc"]:
-            self.config['classification']['mlp_output_layers'][0] += 1
 
         # reduction layer
         reduction_config = self.config['reduction']
@@ -166,12 +164,15 @@ class BlipGraph(GenericModel):
         else:
             self.pooling_layer = global_max_pool
 
+        if self.config["add_summed_adc"]:
+            reduction_config['linear_output'] += 1
+
         # classification layer
         classifcation_config = self.config['classification']
         # add output mlp Projection head (See explanation in SimCLRv2)
         for ii, classification in enumerate(self.config["classifications"]):
             _classification_dict[f'{classification}'] = MLP(
-                classifcation_config['mlp_output_layers'] + [classifcation_config['out_channels'][ii]]
+                [reduction_config['linear_output']] + classifcation_config['mlp_output_layers'] + [classifcation_config['out_channels'][ii]]
             )
 
         self.embedding_dict = nn.ModuleDict(_embedding_dict)

@@ -12,6 +12,8 @@ from datetime import datetime
 from os import listdir
 from os.path import isfile, join
 import shutil
+import copy
+import random
 
 from blip.models import ModelHandler
 from blip.module.common import *
@@ -23,7 +25,7 @@ from blip.trainer import Trainer
 from blip.utils.sampling import *
 from blip.utils.grouping import *
 from blip.utils.callbacks import CallbackHandler
-from blip.utils.utils import get_files, save_model
+from blip.utils.utils import get_files, save_model, flatten_dict, generate_combinations_from_arrays
 
 
 class MachineLearningModule(GenericModule):
@@ -64,6 +66,7 @@ class MachineLearningModule(GenericModule):
         self.parse_callbacks()
         self.parse_training()
         self.parse_inference()
+        self.parse_hyper_parameters()
      
     def check_config(self):
         if "model" not in self.config.keys():
@@ -220,22 +223,62 @@ class MachineLearningModule(GenericModule):
         model_config = self.config["model"]
         if "iterations" not in hyper_parameters_config.keys():
             self.logger.error("no 'iterations' specified in hyper_parameters config!")
+        if "search_type" not in hyper_parameters_config.keys():
+            self.logger.error("no 'search_type' specified in hyper_parameters config!")
+        if "model_parameters" not in hyper_parameters_config.keys():
+            self.logger.error("no 'model_parameters' specified in hyper_parameters config!")
         self.iterations = hyper_parameters_config["iterations"]
+        self.search_type = hyper_parameters_config["search_type"]
         self.hyper_parameters = {
-            f'iteration_{ii}': model_config
+            f'iteration_{ii}': copy.deepcopy(model_config)
             for ii in range(self.iterations)
         }
         # code for generating random hyper-parameters
+        if self.search_type == 'grid':
+            self.generate_grid_hyper_parameters(hyper_parameters_config)
+        elif self.search_type == 'random':
+            self.generate_random_hyper_parameters(hyper_parameters_config)
 
+    def generate_grid_hyper_parameters(self,
+        hyper_parameters_config
+    ):
+        model_parameters = hyper_parameters_config["model_parameters"]
+        self.parameter_paths = flatten_dict(model_parameters)
+        self.parameter_combinations = generate_combinations_from_arrays(
+            {tuple(k): v for k, v in self.parameter_paths if isinstance(v, list)}
+        )
+        random.shuffle(self.parameter_combinations)
+        if len(self.parameter_combinations) < len(self.hyper_parameters.keys()):
+            self.logger.info(f'number of iterations {self.iterations} larger than possible combinations {len(self.parameter_combinations)}.  Setting number of iterations to {len(self.parameter_combinations)}.')
+            self.iterations = len(self.parameter_combinations)
+            self.hyper_parameters = {
+                f'iteration_{ii}': copy.deepcopy(self.config["model"])
+                for ii in range(self.iterations)
+            }
+        for ii, iteration in enumerate(self.hyper_parameters.keys()):
+            for jj, path_value_pair in enumerate(self.parameter_paths):
+                current_parameters = self.hyper_parameters[iteration]
+                for key in path_value_pair[0][:-1]:
+                    current_parameters = current_parameters[key]
+                current_parameters[path_value_pair[0][-1]] = self.parameter_combinations[ii][jj]
 
+    def generate_random_hyper_parameters(self,
+        hyper_parameters_config
+    ):
+        model_parameters = hyper_parameters_config["model_parameters"]
+        
     def run_hyper_parameter_scan(self):
         self.logger.info(f"running hyper_parameter scan over {self.iterations} iterations")
         optimizer_config = self.config['optimizer']
         training_config = self.config['training']
-        for ii, model_config in enumerate(self.hyper_parameters.keys()):
+        if 'run_name' in self.config['training'].keys():
+            now = self.config['training']['run_name'] + f"_{datetime.now()}"
+        else:
+            now = self.name + f"_{datetime.now()}"
+        for ii, iteration in enumerate(self.hyper_parameters.keys()):
             self.model = ModelHandler(
                 self.name,
-                model_config,
+                self.hyper_parameters[iteration],
                 meta=self.meta
             )
             self.optimizer = Optimizer(
@@ -243,6 +286,9 @@ class MachineLearningModule(GenericModule):
                 optimizer_config,
                 self.model.model
             )
+            self.parse_loss()
+            self.parse_metrics()
+            self.parse_callbacks()
             self.trainer = Trainer(
                 self.model.model,
                 self.criterion,
@@ -260,6 +306,32 @@ class MachineLearningModule(GenericModule):
                 save_predictions=self.config['training']['save_predictions'],
                 no_timing=self.config['training']['no_timing']
             )
+            os.makedirs(f"{self.meta['local_scratch']}/runs/{now}/{iteration}/")
+            if os.path.isdir(f"{self.meta['local_scratch']}/predictions/"):
+                shutil.copytree(f"{self.meta['local_scratch']}/predictions/", f"{self.meta['local_scratch']}/runs/{now}/{iteration}/predictions/", dirs_exist_ok=True)
+            if os.path.isdir(f"{self.meta['local_scratch']}/plots/"):
+                shutil.copytree(f"{self.meta['local_scratch']}/plots/", f"{self.meta['local_scratch']}/runs/{now}/{iteration}/plots/", dirs_exist_ok=True)
+            if os.path.isdir(f"{self.meta['local_scratch']}/models/"):
+                shutil.copytree(f"{self.meta['local_scratch']}/models/", f"{self.meta['local_scratch']}/runs/{now}/{iteration}/models/", dirs_exist_ok=True)
+            shutil.copytree(f"{self.meta['local_scratch']}/.logs/", f"{self.meta['local_scratch']}/runs/{now}/{iteration}/.logs/", dirs_exist_ok=True)
+            shutil.copytree(f"{self.meta['local_scratch']}/.checkpoints/", f"{self.meta['local_scratch']}/runs/{now}/{iteration}/.checkpoints/", dirs_exist_ok=True)
+            shutil.copy(self.meta['config_file'], f"{self.meta['local_scratch']}/runs/{now}/{iteration}/")
+            if os.path.isfile(f"{self.meta['local_scratch']}/losses.npz"):
+                shutil.copy(f"{self.meta['local_scratch']}/losses.npz", f"{self.meta['local_scratch']}/runs/{now}/{iteration}/")
+            if os.path.isfile(f"{self.meta['local_scratch']}/metrics.npz"):
+                shutil.copy(f"{self.meta['local_scratch']}/metrics.npz", f"{self.meta['local_scratch']}/runs/{now}/{iteration}/")
+            if os.path.isfile(f"{self.meta['local_scratch']}/confusion_matrix.npz"):
+                shutil.copy(f"{self.meta['local_scratch']}/confusion_matrix.npz", f"{self.meta['local_scratch']}/runs/{now}/{iteration}/")
+        np.savez(
+            f"{self.meta['local_scratch']}/runs/{now}/hyper_parameters.npz",
+            hyper_parameters=self.hyper_parameters
+        )
+        
+    
+    def run_bayes_hyper_parameter_scan(self):
+        self.logger.info(f"running hyper_parameter scan over {self.iterations} iterations")
+        optimizer_config = self.config['optimizer']
+        training_config = self.config['training']
     
     def run_module(self):
         if self.mode == 'training':
@@ -271,6 +343,27 @@ class MachineLearningModule(GenericModule):
                 save_predictions=self.config['training']['save_predictions'],
                 no_timing=self.config['training']['no_timing']
             )
+            # save model/data/config
+            if 'run_name' in self.config['training'].keys():
+                now = self.config['training']['run_name'] + f"_{datetime.now()}"
+            else:
+                now = self.name + f"_{datetime.now()}"
+            os.makedirs(f"{self.meta['local_scratch']}/runs/{now}")
+            if os.path.isdir(f"{self.meta['local_scratch']}/predictions/"):
+                shutil.copytree(f"{self.meta['local_scratch']}/predictions/", f"{self.meta['local_scratch']}/runs/{now}/predictions/", dirs_exist_ok=True)
+            if os.path.isdir(f"{self.meta['local_scratch']}/plots/"):
+                shutil.copytree(f"{self.meta['local_scratch']}/plots/", f"{self.meta['local_scratch']}/runs/{now}/plots/", dirs_exist_ok=True)
+            if os.path.isdir(f"{self.meta['local_scratch']}/models/"):
+                shutil.copytree(f"{self.meta['local_scratch']}/models/", f"{self.meta['local_scratch']}/runs/{now}/models/", dirs_exist_ok=True)
+            shutil.copytree(f"{self.meta['local_scratch']}/.logs/", f"{self.meta['local_scratch']}/runs/{now}/.logs/", dirs_exist_ok=True)
+            shutil.copytree(f"{self.meta['local_scratch']}/.checkpoints/", f"{self.meta['local_scratch']}/runs/{now}/.checkpoints/", dirs_exist_ok=True)
+            shutil.copy(self.meta['config_file'], f"{self.meta['local_scratch']}/runs/{now}")
+            if os.path.isfile(f"{self.meta['local_scratch']}/losses.npz"):
+                shutil.copy(f"{self.meta['local_scratch']}/losses.npz", f"{self.meta['local_scratch']}/runs/{now}/")
+            if os.path.isfile(f"{self.meta['local_scratch']}/metrics.npz"):
+                shutil.copy(f"{self.meta['local_scratch']}/metrics.npz", f"{self.meta['local_scratch']}/runs/{now}/")
+            if os.path.isfile(f"{self.meta['local_scratch']}/confusion_matrix.npz"):
+                shutil.copy(f"{self.meta['local_scratch']}/confusion_matrix.npz", f"{self.meta['local_scratch']}/runs/{now}/")
         elif self.mode == 'inference':
             self.module_data_product['predictions'] = self.trainer.inference(
                 layers=self.config['inference']['layers'],
@@ -280,20 +373,9 @@ class MachineLearningModule(GenericModule):
                 save_predictions=self.config['inference']['save_predictions']
             )
         elif self.mode == 'hyper_parameter_scan':
-            self.run_hyper_parameter_scan()
+            if self.search_type == 'grid' or self.search_type == 'random':
+                self.run_hyper_parameter_scan()
+            else:
+                self.run_bayes_hyper_parameter_scan()
 
-        # save model/data/config
-        if 'run_name' in self.config['training'].keys():
-            now = self.config['training']['run_name'] + f"_{datetime.now()}"
-        else:
-            now = self.name + f"_{datetime.now()}"
-        os.makedirs(f"{self.meta['local_scratch']}/runs/{now}")
-        if os.path.isdir(f"{self.meta['local_scratch']}/predictions/"):
-            shutil.move(f"{self.meta['local_scratch']}/predictions/", f"{self.meta['local_scratch']}/runs/{now}/")
-        if os.path.isdir(f"{self.meta['local_scratch']}/plots/"):
-            shutil.move(f"{self.meta['local_scratch']}/plots/", f"{self.meta['local_scratch']}/runs/{now}/")
-        if os.path.isdir(f"{self.meta['local_scratch']}/models/"):
-            shutil.move(f"{self.meta['local_scratch']}/models/", f"{self.meta['local_scratch']}/runs/{now}/")
-        shutil.move(f"{self.meta['local_scratch']}/.logs/", f"{self.meta['local_scratch']}/runs/{now}")
-        shutil.move(f"{self.meta['local_scratch']}/.checkpoints/", f"{self.meta['local_scratch']}/runs/{now}")
-        shutil.copy(self.meta['config_file'], f"{self.meta['local_scratch']}/runs/{now}")
+        

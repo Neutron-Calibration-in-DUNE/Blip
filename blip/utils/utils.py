@@ -10,6 +10,7 @@ import os
 from os import listdir
 from os.path import isfile, join
 import shutil
+from itertools import product
 from datetime import datetime
 import seaborn as sns
 import yaml
@@ -32,6 +33,23 @@ def get_array_names(
         raise FileNotFoundError(f"Specified input file: '{input_file}' does not exist!")
     loaded_file = np.load(input_file)
     return list(loaded_file.files)
+
+# Flatten the dictionary to get path/value pairs
+def flatten_dict(dictionary, parent_keys=[]):
+    items = []
+    for key, value in dictionary.items():
+        current_keys = parent_keys + [str(key)]
+        if isinstance(value, dict):
+            items.extend(flatten_dict(value, current_keys))
+        else:
+            items.append((current_keys, value))
+    return items
+
+# Generate combinations from arrays
+def generate_combinations_from_arrays(dictionary):
+    arrays = list(dictionary.values())
+    all_combinations = list(product(*arrays))
+    return all_combinations
 
 """
 The following function takes in a .npz file, and a set

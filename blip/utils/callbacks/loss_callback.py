@@ -60,6 +60,24 @@ class LossCallback(GenericCallback):
                 )
                 for name, loss in self.criterion_handler.losses.items()
             }
+        
+    def save_losses(self):
+        for name in self.training_target_loss.keys():
+            self.training_target_loss[name].cpu().numpy()
+        for name in self.validation_target_loss.keys():
+            self.validation_target_loss[name].cpu().numpy()
+        for name in self.test_target_loss.keys():
+            self.test_target_loss[name].cpu().numpy()
+        np.savez(
+            f"{self.meta['local_scratch']}/losses.npz",
+            loss_names=self.loss_names,
+            training_loss=self.training_loss.cpu().numpy(),
+            validation_loss=self.validation_loss.cpu().numpy(),
+            test_loss=self.test_loss.cpu().numpy(),
+            training_target_loss=self.training_target_loss,
+            validation_target_loss=self.validation_target_loss,
+            test_target_loss=self.test_target_loss
+        )
     
     def reset_batch(self):
         self.training_loss = torch.empty(
@@ -341,6 +359,8 @@ class LossCallback(GenericCallback):
                 plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
                 plt.tight_layout()
                 plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_loss_{name}.png")
+        # save losses to npz
+        self.save_losses()
 
     def evaluate_inference(self):
         pass

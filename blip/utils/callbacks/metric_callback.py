@@ -80,6 +80,24 @@ class MetricCallback(GenericCallback):
                 ])
             }
 
+    def save_metrics(self):
+        for name in self.training_target_metrics.keys():
+            self.training_target_metrics[name].cpu().numpy()
+        for name in self.validation_target_metrics.keys():
+            self.validation_target_metrics[name].cpu().numpy()
+        for name in self.test_target_metrics.keys():
+            self.test_target_metrics[name].cpu().numpy()
+        np.savez(
+            f"{self.meta['local_scratch']}/metrics.npz",
+            metric_names=self.metric_names,
+            training_metric=self.training_metrics.cpu().numpy(),
+            validation_metric=self.validation_metrics.cpu().numpy(),
+            test_metric=self.test_metrics.cpu().numpy(),
+            training_target_metric=self.training_target_metrics,
+            validation_target_metric=self.validation_target_metrics,
+            test_target_metric=self.test_target_metrics
+        )
+
     def reset_batch(self):
         self.training_metrics = torch.empty(
             size=(0,len(self.metric_names)), 
@@ -363,6 +381,8 @@ class MetricCallback(GenericCallback):
                 plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
                 plt.tight_layout()
                 plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_metric_{name}.png")
+        # save metrics to npz
+        self.save_metrics()
 
     def evaluate_inference(self):
         pass
