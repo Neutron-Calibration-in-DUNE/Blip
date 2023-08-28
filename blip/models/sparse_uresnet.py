@@ -14,25 +14,14 @@ import os
 import csv
 
 from blip.models import GenericModel
-from blip.models.common import Identity
+from blip.models.common import Identity, sparse_activations
 
-activations = {
-    'relu':     ME.MinkowskiReLU(),
-    'prelu':    ME.MinkowskiPReLU(),
-    'selu':     ME.MinkowskiSELU(),
-    'celu':     ME.MinkowskiCELU(),
-    'sigmoid':  ME.MinkowskiSigmoid(),
-    'tanh':     ME.MinkowskiTanh(),
-    'softmax':  ME.MinkowskiSoftmax(),
-    #'leaky_relu':   ME.MinkowskiFunctional.leaky_relu(),
-    #'log_softmax':  ME.MinkowskiFunctional.log_softmax()
-}
 
 def get_activation(
     activation: str,
 ):
-    if activation in activations.keys():
-        return activations[activation]
+    if activation in sparse_activations.keys():
+        return sparse_activations[activation]
 
 class DoubleConv(ME.MinkowskiNetwork):
     """

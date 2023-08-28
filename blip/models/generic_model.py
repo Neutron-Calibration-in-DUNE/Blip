@@ -9,6 +9,7 @@ import getpass
 from torch import nn
 from time import time
 from datetime import datetime
+from collections import OrderedDict
 
 from blip.utils.logger import Logger
 
@@ -65,9 +66,25 @@ class GenericModel(nn.Module):
                     self.forward_view_map[layer] = name
                     layer.register_forward_hook(self.forward_hook)
                     
+    def construct_model(self):
+        """
+        The current methodology is to create an ordered
+        dictionary and fill it with individual modules.
+
+        """
+        self.logger.info(f"Attempting to build GenericModel architecture using config: {self.config}")
+
+        _model_dict = OrderedDict()
+        self.model_dict = nn.ModuleDict(_model_dict)
+
+        # record the info
+        self.logger.info(
+            f"Constructed GenericModel with dictionaries:"
+        )
+
     def forward(self, x):
         self.logger.error(f'"forward" not implemented in Model!')
-    
+
     def save_model(self,
         flag:   str=''
     ):

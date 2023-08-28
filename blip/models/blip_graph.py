@@ -1,5 +1,5 @@
 """
-Implementation of the blip graph model using pytorch
+Implementation of the BlipGraph model using pytorch
 """
 import numpy as np
 import torch
