@@ -6,9 +6,7 @@ import importlib.util
 import sys
 import inspect
 from blip.utils.logger import Logger
-from blip.models import GenericModel, PointNetPlusPlus
-from blip.models import PointNet, VietorisRipsNet
-from blip.models import SparseUNet, SparseUResNet, SparseUResNeXt
+from blip.models import GenericModel
 from blip.utils.utils import get_method_arguments
 
 class ModelHandler:
@@ -61,13 +59,20 @@ class ModelHandler:
             os.path.dirname(__file__) + '/' + file 
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
+        self.model_files.extend(self.meta['local_blip_files'])
         for model_file in self.model_files:
-            if model_file in ["__init__.py", "__pycache__.py", "generic_loss.py"]:
+            if (
+                ("__init__.py" in model_file) or 
+                ("__pycache__.py" in model_file) or 
+                ("generic_model.py" in model_file) or 
+                ("__pycache__" in model_file) or
+                (".py" not in model_file)
+            ):
                 continue
             try:
                 self.load_model(model_file)
             except:
-                pass
+                self.logger.warn(f'problem loading model from file: {model_file}')
     
     def load_model(self,
         model_file: str

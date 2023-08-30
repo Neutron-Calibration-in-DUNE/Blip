@@ -64,13 +64,20 @@ class LossHandler:
             os.path.dirname(__file__) + '/' + file 
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
+        self.criterion_files.extend(self.meta['local_blip_files'])
         for criterion_file in self.criterion_files:
-            if criterion_file in ["__init__.py", "__pycache__.py", "generic_loss.py"]:
+            if (
+                ("__init__.py" in criterion_file) or 
+                ("__pycache__.py" in criterion_file) or 
+                ("generic_criterion.py" in criterion_file) or 
+                ("__pycache__" in criterion_file) or
+                (".py" not in criterion_file)
+            ):
                 continue
             try:
                 self.load_loss_function(criterion_file)
             except:
-                pass
+                self.logger.warn(f'problem loading criterion from file: {criterion_file}')
     
     def load_loss_function(self,
         criterion_file: str
@@ -150,6 +157,7 @@ class LossHandler:
     def reset_batch(self):  
         for name, loss in self.losses.items():
             self.batch_loss[name] = torch.empty(size=(0,1), dtype=torch.float, device=self.device)
+            loss.reset_batch()
 
     def add_loss(self,
         loss:   GenericLoss

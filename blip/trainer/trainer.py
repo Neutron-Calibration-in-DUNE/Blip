@@ -7,8 +7,10 @@ import os
 from tqdm import tqdm
 from blip.dataset.blip import BlipDataset
 from blip.utils.logger import Logger
+from blip.losses import LossHandler
 from blip.models import ModelChecker
 from blip.metrics import MetricHandler
+from blip.optimizers import Optimizer
 from blip.utils.timing import Timers
 from blip.utils.memory import MemoryTrackers
 from blip.utils.callbacks import CallbackHandler
@@ -29,8 +31,8 @@ class Trainer:
     """
     def __init__(self,
         model,
-        criterion,
-        optimizer,
+        criterion:  LossHandler=None,
+        optimizer:  Optimizer=None,
         metrics:    MetricHandler=None,
         callbacks:  CallbackHandler=None,
         meta:   dict={},
@@ -51,11 +53,11 @@ class Trainer:
         # Check for compatability with parameters
 
         # define directories
-        self.predictions_dir = f'predictions/{model.name}/'
-        self.manifold_dir    = f'plots/{model.name}/manifold/'
-        self.features_dir    = f'plots/{model.name}/features/'
-        self.timing_dir    = f'plots/{model.name}/timing/'
-        self.memory_dir    = f'plots/{model.name}/memory/'
+        self.predictions_dir = f'{self.meta["local_scratch"]}/predictions/{model.name}/'
+        self.manifold_dir    = f'{self.meta["local_scratch"]}/plots/{model.name}/manifold/'
+        self.features_dir    = f'{self.meta["local_scratch"]}/plots/{model.name}/features/'
+        self.timing_dir    = f'{self.meta["local_scratch"]}/plots/{model.name}/timing/'
+        self.memory_dir    = f'{self.meta["local_scratch"]}/plots/{model.name}/memory/'
 
         # create directories
         if not os.path.isdir(self.predictions_dir):
@@ -101,16 +103,16 @@ class Trainer:
         # add timing info
         self.timers = Timers(gpu=self.gpu)
         self.timer_callback = TimingCallback(
-            self.timing_dir,
-            self.timers
+            output_dir=self.timing_dir,
+            timers=self.timers
         )
         self.callbacks.add_callback(self.timer_callback)
 
         # add memory info
         self.memory_trackers = MemoryTrackers(gpu=self.gpu)
         self.memory_callback = MemoryTrackerCallback(
-            self.memory_dir,
-            self.memory_trackers
+            output_dir=self.memory_dir,
+            memory_trackers=self.memory_trackers
         )
         self.callbacks.add_callback(self.memory_callback)
 
@@ -195,6 +197,7 @@ class Trainer:
                     enumerate(self.meta['loader'].train_loader, 0), 
                     total=len(self.meta['loader'].train_loader), 
                     leave=rewrite_bar,
+                    position=0,
                     colour='green'
                 )
             else:
@@ -289,6 +292,7 @@ class Trainer:
                             enumerate(self.meta['loader'].train_loader, 0), 
                             total=len(self.meta['loader'].train_loader), 
                             leave=rewrite_bar,
+                            position=0,
                             colour='green'
                         )
                     else:
@@ -308,7 +312,7 @@ class Trainer:
             # evaluate callbacks
             self.timers.timers['training_callbacks'].start()
             self.memory_trackers.memory_trackers['training_callbacks'].start()
-            self.callbacks.evaluate_epoch(train_type='training')
+            self.callbacks.evaluate_epoch(train_type='train')
             self.memory_trackers.memory_trackers['training_callbacks'].end()
             self.timers.timers['training_callbacks'].end()
 
@@ -321,6 +325,7 @@ class Trainer:
                     enumerate(self.meta['loader'].validation_loader, 0), 
                     total=len(self.meta['loader'].validation_loader), 
                     leave=rewrite_bar,
+                    position=0,
                     colour='blue'
                 )
             else:
@@ -376,6 +381,7 @@ class Trainer:
                             enumerate(self.meta['loader'].validation_loader, 0), 
                             total=len(self.meta['loader'].validation_loader), 
                             leave=rewrite_bar,
+                            position=0,
                             colour='blue'
                         )
                     else:
@@ -401,11 +407,11 @@ class Trainer:
 
             # save weights if at checkpoint step
             if epoch % checkpoint == 0:
-                if not os.path.exists(".checkpoints/"):
-                    os.makedirs(".checkpoints/")
+                if not os.path.exists(f"{self.meta['local_scratch']}/.checkpoints/"):
+                    os.makedirs(f"{self.meta['local_scratch']}/.checkpoints/")
                 torch.save(
                     self.model.state_dict(), 
-                    f".checkpoints/checkpoint_{epoch}.ckpt"
+                    f"{self.meta['local_scratch']}/.checkpoints/checkpoint_{epoch}.ckpt"
                 )
             # free up gpu resources
             torch.cuda.empty_cache()
@@ -424,6 +430,7 @@ class Trainer:
                 enumerate(self.meta['loader'].test_loader, 0), 
                 total=len(self.meta['loader'].test_loader), 
                 leave=rewrite_bar,
+                position=0,
                 colour='red'
             )
         else:
@@ -458,8 +465,11 @@ class Trainer:
         # see if predictions should be saved
         if save_predictions:
             self.logger.info(f"Running inference to save predictions.")
-            self.inference(
+            return self.inference(
                 dataset_type='all',
+                outputs=[output for output in self.shapes["output"].keys()],
+                progress_bar=progress_bar,
+                rewrite_bar=rewrite_bar,
                 save_predictions=True,
             )
     
@@ -480,6 +490,7 @@ class Trainer:
                     enumerate(self.meta['loader'].train_loader, 0), 
                     total=len(self.meta['loader'].train_loader), 
                     leave=rewrite_bar,
+                    position=0,
                     colour='green'
                 )
             else:
@@ -501,6 +512,7 @@ class Trainer:
                         enumerate(self.meta['loader'].train_loader, 0), 
                         total=len(self.meta['loader'].train_loader), 
                         leave=rewrite_bar,
+                        position=0,
                         colour='green'
                     )
                 else:
@@ -511,12 +523,13 @@ class Trainer:
                     self.metrics.update(outputs, data, train_type="train")
                     if (progress_bar == 'all' or progress_bar == 'train'):
                         metrics_training_loop.set_description(f"Training Metrics: Epoch [{epoch+1}/{epochs}]")
-            self.callbacks.evaluate_epoch(train_type='training')
+            self.callbacks.evaluate_epoch(train_type='train')
             if (progress_bar == 'all' or progress_bar == 'validation'):
                 validation_loop = tqdm(
                     enumerate(self.meta['loader'].validation_loader, 0), 
                     total=len(self.meta['loader'].validation_loader), 
                     leave=rewrite_bar,
+                    position=0,
                     colour='blue'
                 )
             else:
@@ -535,6 +548,7 @@ class Trainer:
                             enumerate(self.meta['loader'].validation_loader, 0), 
                             total=len(self.meta['loader'].validation_loader), 
                             leave=rewrite_bar,
+                            position=0,
                             colour='blue'
                         )
                     else:
@@ -547,11 +561,11 @@ class Trainer:
                             metrics_validation_loop.set_description(f"Validation Metrics: Epoch [{epoch+1}/{epochs}]")
             self.callbacks.evaluate_epoch(train_type='validation')
             if epoch % checkpoint == 0:
-                if not os.path.exists(".checkpoints/"):
-                    os.makedirs(".checkpoints/")
+                if not os.path.exists(f"{self.meta['local_scratch']}/.checkpoints/"):
+                    os.makedirs(f"{self.meta['local_scratch']}/.checkpoints/")
                 torch.save(
                     self.model.state_dict(), 
-                    f".checkpoints/checkpoint_{epoch}.ckpt"
+                    f"{self.meta['local_scratch']}/.checkpoints/checkpoint_{epoch}.ckpt"
                 )
         self.callbacks.evaluate_training()
         self.logger.info(f"training finished.")
@@ -560,6 +574,7 @@ class Trainer:
                 enumerate(self.meta['loader'].test_loader, 0), 
                 total=len(self.meta['loader'].test_loader), 
                 leave=rewrite_bar,
+                position=0,
                 colour='red'
             )
         else:
@@ -580,17 +595,21 @@ class Trainer:
         self.model.save_model(flag='trained')
         if save_predictions:
             self.logger.info(f"Running inference to save predictions.")
-            self.inference(
-                self.meta['loader'],
+            return self.inference(
                 dataset_type='all',
+                outputs=[output for output in self.shapes["output"].keys()],
+                progress_bar=progress_bar,
+                rewrite_bar=rewrite_bar,
                 save_predictions=True,
             )
 
     def inference(self,
         dataset_type:   str='all',  # which dataset to use for inference
+        layers:         list=[],    # which forward views to save
+        outputs:        list=[],    # which outputs to save
         save_predictions:bool=True, # wether to save the predictions
         progress_bar:   bool=True,  # progress bar from tqdm
-        rewrite_bar:    bool=True, # wether to leave the bars after each epoch
+        rewrite_bar:    bool=True,  # wether to leave the bars after each epoch
     ):
         """
         Here we just do inference on a particular part
@@ -629,6 +648,7 @@ class Trainer:
                 enumerate(inference_loader, 0), 
                 total=len(list(inference_indices)), 
                 leave=rewrite_bar,
+                position=0,
                 colour='magenta'
             )
         else:
@@ -636,9 +656,11 @@ class Trainer:
         
         # set up array for predictions
         predictions = {
-            classes: []
-            for classes in self.shapes["output"].keys()
+            layer: [] 
+            for layer in layers
         }
+        for output in outputs:
+            predictions[output] = []
 
         self.logger.info(f"running inference on dataset '{self.meta['dataset'].name}'.")
         # make sure to set model to eval() during validation!
@@ -648,16 +670,20 @@ class Trainer:
                 self.metrics.reset_batch()
             for ii, data in inference_loop:
                 # get the network output
-                outputs = self.model(data)
-                for jj, key in enumerate(outputs.keys()):
+                model_output = self.model(data)
+                for jj, key in enumerate(model_output.keys()):
                     if key in predictions.keys():
-                        predictions[key].append([outputs[key].cpu().numpy()])
+                        predictions[key].append([model_output[key].cpu().numpy()])
+                for jj, key in enumerate(layers):
+                    if key in predictions.keys():
+                        predictions[key].append([self.model.forward_views[key].cpu().numpy()])
                 # compute loss
-                loss = self.criterion.loss(outputs, data)
+                if self.criterion != None:
+                    loss = self.criterion.loss(model_output, data)
 
                 # update metrics
                 if self.metrics != None:
-                    self.metrics.update(outputs, data, train_type="inference")
+                    self.metrics.update(model_output, data, train_type="inference")
 
                 # update progress bar
                 if (progress_bar == True):

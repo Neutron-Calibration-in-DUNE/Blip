@@ -1,26 +1,35 @@
 """
 Functions for evaluating and storing training information.
 """
+import matplotlib.colors as mcolors
+import random
+
+from blip.utils.logger import Logger
+from blip.losses.loss_handler import LossHandler
+from blip.metrics.metric_handler import MetricHandler
 
 class GenericCallback:
     """
     """
     def __init__(self,
-        criterion_handler: list=[],
-        metrics_handler: list=[],
-        meta:   dict={}
+        name:               str='generic',
+        criterion_handler:  LossHandler=None,
+        metrics_handler:    MetricHandler=None,
+        meta:               dict={}
     ):
-        self.epochs = None
-        self.num_training_batches = None
-        self.num_validation_batches = None
-        self.num_test_batches = None
-        self.plot_colors = ['b','g','r','c','m','y']
-
+        self.name = name
         self.criterion_handler = criterion_handler
         self.metrics_handler = metrics_handler
         self.meta = meta
         if "device" in self.meta:
             self.device = self.meta['device']
+
+        self.epochs = None
+        self.num_training_batches = None
+        self.num_validation_batches = None
+        self.num_test_batches = None
+        self.plot_colors = list(mcolors.CSS4_COLORS.values())
+        random.shuffle(self.plot_colors)
 
     def set_device(self,
         device
@@ -42,7 +51,7 @@ class GenericCallback:
         self.num_test_batches = num_test_batches
     
     def evaluate_epoch(self,
-        train_type='training'
+        train_type='train'
     ):
         pass
 
@@ -53,7 +62,4 @@ class GenericCallback:
         pass
 
     def evaluate_inference(self):
-        pass
-
-    def evaluate_clustering(self):
         pass

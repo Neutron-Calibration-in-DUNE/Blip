@@ -56,13 +56,20 @@ class ModuleHandler:
             os.path.dirname(__file__) + '/' + file 
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
+        self.module_files.extend(self.meta['local_blip_files'])
         for module_file in self.module_files:
-            if module_file in ["__init__.py", "__pycache__.py", "generic_loss.py"]:
+            if (
+                ("__init__.py" in module_file) or 
+                ("__pycache__.py" in module_file) or 
+                ("generic_module.py" in module_file) or 
+                ("__pycache__" in module_file) or
+                (".py" not in module_file)
+            ):
                 continue
-            try:
-                self.load_module(module_file)
-            except:
-                pass
+            # try:
+            self.load_module(module_file)
+            # except:
+            #     self.logger.warn(f'problem loading module from file: {module_file}')
     
     def load_module(self,
         module_file: str

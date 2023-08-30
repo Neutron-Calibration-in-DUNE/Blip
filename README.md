@@ -2,6 +2,7 @@
 
 [![Join the chat at https://gitter.im/Neutron-Calibration-in-DUNE/Blip](https://badges.gitter.im/Join%20Chat.svg)]([https://gitter.im/NESTCollaboration/nestpy?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge](https://matrix.to/#/#neutron-calibration-in-dune.blip:gitter.im))
 [![CodeFactor](https://www.codefactor.io/repository/github/neutron-calibration-in-dune/blip/badge)](https://www.codefactor.io/repository/github/neutron-calibration-in-dune/blip)
+[![DockerPulls](https://img.shields.io/docker/pulls/infophysics/blip)](https://hub.docker.com/r/infophysics/blip)
 [![PyPi version](https://pypip.in/v/duneblip/badge.png)](https://pypi.org/project/duneblip/)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![Documentation Status](https://readthedocs.org/projects/blip-dune/badge/?version=latest)](https://blip-dune.readthedocs.io/en/latest/?badge=latest)
@@ -10,34 +11,38 @@
 <!-- [![Python Versions](https://img.shields.io/pypi/pyversions/nestpy.svg)](https://pypi.python.org/pypi/nestpy)
 [![PyPI downloads](https://img.shields.io/pypi/dm/nestpy.svg)](https://pypistats.org/packages/nestpy) -->
 
-[![Documentation Status](https://readthedocs.org/projects/blip-dune/badge/?version=latest)](https://blip-dune.readthedocs.io/en/latest/?badge=latest)
-
 Blip is a collection of machine learning tools for reconstructing, classifying and analyzing low energy (< MeV) interactions in liquid argon time projection chambers (LArTPCs).  These interactions leave small point like signals (commonly referred to as "blips", hence the name). Blip is a python package which can be installed locally, or on the Wilson cluster, by following the directions below (eventually Blip will be available on the Wilson cluster without the need to install).
 
 ### Table of Contents
 
 1. [ Getting the Repository ](#get)
-2. [ Building Blip ](#build)
+2. [ Quick Start ](#quickstart)
+	* [ Local Docker Install ](#localdocker)
+	* [ Wilson Cluster ](#wilsondocker)
+		* [ Running Jobs ](#wilsonjobs)
+ 	* [ Perlmutter ](#perlmutterdocker)
+		* [ Running Jobs ](#perlmutterjobs)
+3. [ Building Blip From Source ](#build)
 	* [ Environment YAML ](#yaml)
 	* [ MinkowskiEngine ](#minkowski)
 	* [ Blip ](#blip)
 	* [ Installing on the Wilson Cluster ](#wilson)
-3. [ Usage ](#usage)
+4. [ Usage ](#usage)
 	* [ Modules ](#modules)
 	* [ Event Display ](#eventdisplay)
 	* [ Using custom code with Blip ](#customcode)
-4. [ Configuration Files ](#config)
-5. [ Running Modules ](#runningmodules)
+5. [ Configuration Files ](#config)
+6. [ Running Modules ](#runningmodules)
 	* [ Machine Learning ](#ml)
 	* [ Clustering/Manifold Learning ](#cluster)
 	* [ Topological Data Analysis ](#tda)
 	* [ Analysis ](#analysis)
-6. [ Event Display ](#usingeventdisplay)
-7. [ Versioning ](#versions)
-8. [ Contact (Authors) ](#contact)
-9. [ Citation ](#citation)
-10. [ License ](#license)
-11. [ Support ](#support)
+7. [ Event Display ](#usingeventdisplay)
+8. [ Versioning ](#versions)
+9. [ Contact (Authors) ](#contact)
+10. [ Citation ](#citation)
+11. [ License ](#license)
+12. [ Support ](#support)
 
 <a name="get"></a>
 ## Getting the Repository
@@ -54,8 +59,96 @@ Anyone in the "Neutron-Calibration-in-DUNE" organization should be able to devel
 
 Please contact Nicholas Carrara or David Rivera about becoming involved in development before merging with the master branch. 
 
+<a name="quickstart"></a>
+## Quick Start
+There are several run-time parameters that Blip configures at the start.  These include,
+| Parameter	| Usage 	|
+| ------------- | ------------- |
+| /local_scratch | directory for storing data created at run time (log files, checkpoints, model parameters, plots, etc.) |
+| /local_data	 | directory for the input data for the module |
+| /local_blip	 | directory for custom Blip code and config files |
+
+<a name="localdocker"></a>
+### Local Docker Install
+The easiest way to run Blip is to grab the docker container.  First, you must install docker and start it up using the commands,
+```bash
+sudo apt-get update
+sudo apt-get install docker.io
+sudo systemctl start docker
+sudo systemctl enable docker
+```
+Then, we can grab the blip container with the following:
+```bash
+docker pull infophysics/blip:latest
+```
+
+To run the image using the blip_display and gpus, there are various command line parameters that must be set,
+```bash
+docker run --it --gpus all -p 5006:5006 blip
+```
+where the *--gpus all* command tells docker to forward GPU access and *-p 5006:5006* port forwards the local 5006 port in the container to the local host 5006 port.  
+
+To access the container with ssh support from the local host, do the following:
+```bash
+docker run -it --rm -e "USER_ID=$(id -u)" -e GROUP_ID="$(id -g)" \
+      -v "$HOME/.ssh:/home/builder/.ssh:rw" \
+      -v "$SSH_AUTH_SOCK:/ssh.socket" -e "SSH_AUTH_SOCK=/ssh.socket" \
+      --gpus all -p 5006:5006 blip
+```
+<a name="wilsondocker"></a>
+### Wilson Cluster Docker Install
+The [Wilson Cluster at Fermilab](https://computing.fnal.gov/wilsoncluster/) (WC) uses the *apptainer* module for downloading and using containers.  Instructions for how to use this module can be found [here](https://computing.fnal.gov/wilsoncluster/containers/).  A script for installing Blip using apptainer can be found in the accompanying [BlipModels](https://github.com/Neutron-Calibration-in-DUNE/BlipModels/tree/main/scripts) repository.  Following the instructions from the WC site, one can set up and download Blip using the following commands,
+```bash
+module load apptainer
+export APPTAINER_CACHEDIR=/wclustre/my_project_dir/apptainer/.apptainer/cache
+apptainer build /wclustre/my_project_dir/blip.sif docker://infophysics/blip:latest
+```
+The container can then be spun up in an interactive node by issuing the command:
+```bash
+apptainer shell --nv /wclustre/my_project_dir/blip.sif
+```
+
+<a name="wilsonjobs"></a>
+#### Wilson Cluster Blip jobs
+
+<a name="perlmutterdocker"></a>
+### Perlmutter Docker Install
+The [Perlmutter system at NERSC](https://docs.nersc.gov/systems/perlmutter/) uses *shifter* for downloading and using containers.  Instructions for how to use shifter on NERSC can be found [here](https://docs.nersc.gov/development/shifter/).  A script for installing Blip using shifter can be found in the accompanying [BlipModels](https://github.com/Neutron-Calibration-in-DUNE/BlipModels/tree/main/scripts) repository.  Following the instructions from the Perlmutter site, one can set up and download Blip using the following commands,
+```bash
+shifterimg -v pull docker:infophysics/blip:latest
+```
+The container can then be spun up in an interactive node by issuing the command:
+```bash
+shifter --image=docker:infophysics/blip:latest bash
+```
+
+<a name="perlmutterjobs"></a>
+#### Perlmutter Blip Jobs
+To run a job using Blip, one simply needs to specify the job parameters in a bash script like the following:
+```bash
+#!/bin/bash
+#SBATCH -A dune                 # account to use for the job, '--account', '-A'
+#SBATCH -J example              # job name, '--job-name', '-J'
+#SBATCH -C gpu                  # type of job (constraint can be 'cpu' or 'gpu'), '--constraint', '-C'
+#SBATCH -q shared               # Jobs requiring 1 or 2 gpus should use the shared setting, all others use 'regular'
+#SBATCH -t 1:00:00              # amount of time requested for the job, '--time', 't'
+#SBATCH -N 1                    # number of nodes, '--nodes', '-N'
+#SBATCH -n 1                    # number of tasks '--ntasks', -n'
+#SBATCH -c 32                   # number of cores per task, '--cpus-per-task', '-c'
+#SBATCH --gpus-per-task=1       # number of gpus to be used per task
+#SBATCH --gpus-per-node=1       # number of gpus per node.
+#SBATCH --gpu-bind=none         # comment this out if you don't want all gpus visible to each task
+
+# Blip settings
+#SBATCH --image=docker:infophysics/blip:latest  
+#SBATCH --volume="/pscratch/sd/<first_initial>/<user>:/local_scratch;/global/cfs/cdirs/dune/users/<user>/<custom_blip_code>:/local_blip;/global/cfs/cdirs/dune/users/<user>/<local_data>;/local_data"
+
+shifter arrakis /local_blip/my_config.yaml
+```
+The volumes *local_scratch*, *local_blip* and *local_data* must be written explicitly when using the #SBATCH command, so make sure you don't put environment variables in batch jobs, otherwise it may not work correctly.  The config file is specified after the program command, which in this case is *arrakis*.  For development purposes, it is recommended to use the -q specification *shared*, rather than *regular* (*regular* freezes out gpus/nodes to a single user, which is more costly to experimental budgets and should only be used for final optimizations of models).  
+
 <a name="build"></a>
-## Building Blip
+## Building Blip From Source
 
 <a name="yaml"></a>
 ### Environment YAML
@@ -171,6 +264,7 @@ Then, install MinkowskiEngine
 conda install openblas
 pip install -U git+https://github.com/NVIDIA/MinkowskiEngine -v --no-deps --install-option="--blas_include_dirs=${CONDA_PREFIX}/include" --install-option="--blas=openblas" --install-option="--force_cuda"
 ```
+
 <a name="usage"></a>
 ## Usage
 Blip can be used in three different ways, 

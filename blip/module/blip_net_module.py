@@ -45,5 +45,17 @@ class BlipNetModule(nn.Module):
         self.logger.error(f'"parse_config" not implemented in Module!')
     
     def run_module(self):
-        self.logger.error(f'"run_module" not implemented in Module!')
+        self.logger.info(f'running blip_net module')
+        self.construct_merge_tree()
+        self.evaluate_merge_tree_scores()
+        self.run_mcts()
+
+    def construct_merge_tree(self):
+        pass
+
+    def evaluate_merge_tree_scores(self):
+        pass
+
+    def run_mcts(self):
+        pass
         

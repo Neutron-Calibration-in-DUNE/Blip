@@ -55,13 +55,20 @@ class CallbackHandler:
             os.path.dirname(__file__) + '/' + file 
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
+        self.callback_files.extend(self.meta['local_blip_files'])
         for callback_file in self.callback_files:
-            if callback_file in ["__init__.py", "__pycache__.py", "generic_callback.py"]:
+            if (
+                ("__init__.py" in callback_file) or 
+                ("__pycache__.py" in callback_file) or 
+                ("generic_callback.py" in callback_file) or 
+                ("__pycache__" in callback_file) or
+                (".py" not in callback_file)
+            ):
                 continue
             try:
                 self.load_callback(callback_file)
             except:
-                pass
+                self.logger.warn(f'problem loading callback from file: {callback_file}')
     
     def load_callback(self,
         callback_file: str
@@ -165,7 +172,7 @@ class CallbackHandler:
     def evaluate_epoch(self,
         train_type='train',
     ):
-        if train_type not in ['training', 'validation', 'test', 'cluster']:
+        if train_type not in ['train', 'validation', 'test', 'all']:
             self.logger.error(f"specified train_type: '{train_type}' not allowed!")
         for name, callback in self.callbacks.items():
             callback.evaluate_epoch(train_type)
@@ -181,7 +188,3 @@ class CallbackHandler:
     def evaluate_inference(self):
         for name, callback in self.callbacks.items():
             callback.evaluate_inference()
-    
-    def evaluate_clustering(self):
-        for name, callback in self.callbacks.items():
-            callback.evaluate_clustering()

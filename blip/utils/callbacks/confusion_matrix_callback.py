@@ -11,6 +11,8 @@ import pandas as pd
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 from sklearn.metrics import auc
 
+from blip.losses.loss_handler import LossHandler
+from blip.metrics.metric_handler import MetricHandler
 from blip.utils.callbacks import GenericCallback
 from blip.utils import utils
 
@@ -31,468 +33,467 @@ class ConfusionMatrixCallback(GenericCallback):
     """
     """
     def __init__(self,
-        sig_acceptance: list=[],
-        criterion_handler: list=[],
-        metrics_handler:   list=[],
+        name:   str='confusion_matrix_callback',
+        criterion_handler: LossHandler=None,
+        metrics_handler: MetricHandler=None,
         meta:   dict={}
     ):  
         super(ConfusionMatrixCallback, self).__init__(
-            criterion_handler,
-            metrics_handler, 
-            meta
+            name, criterion_handler, metrics_handler, meta
         )
-        self.sig_acceptance = sig_acceptance
-        self.metrics_handler = metrics_handler
         if "ConfusionMatrixMetric" in self.metrics_handler.metrics.keys():
             self.metric = self.metrics_handler.metrics["ConfusionMatrixMetric"]
+        else:   
+            self.logger.error("no ConfusionMatrixMetric in the list of metrics!")
 
-        if not os.path.isdir("plots/confusion_matrix/"):
-            os.makedirs("plots/confusion_matrix/")
-
-        if not os.path.isdir("plots/roc/"):
-            os.makedirs("plots/roc/")
+        if not os.path.isdir(f"{self.meta['local_scratch']}/plots/confusion_matrix/"):
+            os.makedirs(f"{self.meta['local_scratch']}/plots/confusion_matrix/")
         
-        if not os.path.isdir("plots/summed_adc/"):
-            os.makedirs("plots/summed_adc/")
-
-        self.training_probabilities = {}
-        self.validation_probabilities = {}
-        self.test_probabilities = {}
-
-        self.training_summed_adc = None
-        self.validation_summed_adc = None
-        self.test_summed_adc = None
+        self.labels = {}
+        self.consolidate_classes = False
+        for ii, output in enumerate(self.metric.outputs):
+            if self.meta['dataset'].meta['consolidate_classes'] is not None:
+                self.consolidate_classes = True
+                self.labels[output] = self.meta['dataset'].meta['consolidate_classes'][output]
+            else:
+                self.labels[output] = self.meta['dataset'].meta['classes_labels_names'][output]
 
         self.training_confusion = None
         self.validation_confusion = None
         self.test_confusion = None
+    
+    def save_confusion_matrix(self):
+        for kk, output in enumerate(self.metric.outputs):
+            self.training_confusion[output].cpu().numpy()
+            self.validation_confusion[output].cpu().numpy()
+            self.test_confusion[output].cpu().numpy()
+        np.savez(
+            f"{self.meta['local_scratch']}/confusion_matrix.npz",
+            training_confusion=self.training_confusion,
+            validation_confusion=self.validation_confusion,
+            test_confusion=self.test_confusion
+        )
 
     def reset_batch(self):
-        self.training_probabilities = {}
-        self.validation_probabilities = {}
-        self.test_probabilities = {}
-
-        self.training_summed_adc = None
-        self.validation_summed_adc = None
-        self.test_summed_adc = None
-
         self.training_confusion = None
         self.validation_confusion = None
         self.test_confusion = None
 
     def evaluate_epoch(self,
-        train_type='training'
+        train_type='train'
     ):  
-        if train_type == "training":
-            for kk, input in enumerate(self.metric.inputs):
-                self.training_probabilities[input] = self.metric.batch_probabilities[input]
-            self.training_summed_adc = self.metric.batch_summed_adc
+        if train_type == "train":
+            # for kk, input in enumerate(self.metric.inputs):
+            #     self.training_probabilities[input] = self.metric.batch_probabilities[input]
+            # self.training_summed_adc = self.metric.batch_summed_adc
             self.training_confusion = self.metric.compute()
         elif train_type == "validation":
-            for kk, input in enumerate(self.metric.inputs):
-                self.validation_probabilities[input] = self.metric.batch_probabilities[input]
-            self.validation_summed_adc = self.metric.batch_summed_adc
+            # for kk, input in enumerate(self.metric.inputs):
+            #     self.validation_probabilities[input] = self.metric.batch_probabilities[input]
+            # self.validation_summed_adc = self.metric.batch_summed_adc
             self.validation_confusion = self.metric.compute()
         else:
-            for kk, input in enumerate(self.metric.inputs):
-                self.test_probabilities[input] = self.metric.batch_probabilities[input]
-            self.test_summed_adc = self.metric.batch_summed_adc
+            # for kk, input in enumerate(self.metric.inputs):
+            #     self.test_probabilities[input] = self.metric.batch_probabilities[input]
+            # self.test_summed_adc = self.metric.batch_summed_adc
             self.test_confusion = self.metric.compute()
-        self.metric.reset_probabilities()
+        # self.metric.reset_probabilities()
 
     def evaluate_training(self):
-        for kk, input in enumerate(self.metric.inputs):
+        for kk, output in enumerate(self.metric.outputs):
             # plot the training confusion matrix
-            if self.metric.consolidate_classes:
+            if self.consolidate_classes:
                 training_display = ConfusionMatrixDisplay(
-                    self.training_confusion[input].cpu().numpy()
+                    self.training_confusion[output].cpu().numpy()
                 ) 
                 training_display.plot()
             else:
                 training_display = ConfusionMatrixDisplay(
-                    self.training_confusion[input].cpu().numpy(),
-                    display_labels = self.metric.labels[input]
+                    self.training_confusion[output].cpu().numpy(),
+                    display_labels = self.labels[output]
                 ) 
                 training_display.plot(
                     xticks_rotation="vertical"
                 ) 
-                training_display.figure_.set_figwidth(len(self.metric.labels[input]))
-                training_display.figure_.set_figheight(len(self.metric.labels[input]))
+                training_display.figure_.set_figwidth(len(self.labels[output]))
+                training_display.figure_.set_figheight(len(self.labels[output]))
                      
-            plt.suptitle(f"Training Confusion Matrix\nClass {input}")
+            plt.suptitle(f"Training Confusion Matrix\nClass {output}")
             plt.tight_layout()
-            plt.savefig(f"plots/confusion_matrix/training_confusion_matrix_{input}.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/confusion_matrix/training_confusion_matrix_{output}.png")
             plt.close()
 
-            if self.metric.consolidate_classes:
+            if self.consolidate_classes:
                 validation_display = ConfusionMatrixDisplay(
-                    self.validation_confusion[input].cpu().numpy()
+                    self.validation_confusion[output].cpu().numpy()
                 ) 
                 validation_display.plot()
             else:
                 validation_display = ConfusionMatrixDisplay(
-                    self.validation_confusion[input].cpu().numpy(),
-                    display_labels = self.metric.labels[input]
+                    self.validation_confusion[output].cpu().numpy(),
+                    display_labels = self.labels[output]
                 ) 
                 validation_display.plot(
                     xticks_rotation="vertical"
                 ) 
-                validation_display.figure_.set_figwidth(len(self.metric.labels[input]))
-                validation_display.figure_.set_figheight(len(self.metric.labels[input]))
+                validation_display.figure_.set_figwidth(len(self.labels[output]))
+                validation_display.figure_.set_figheight(len(self.labels[output]))
             
-            plt.suptitle(f"Validation Confusion Matrix\nClass {input}")
+            plt.suptitle(f"Validation Confusion Matrix\nClass {output}")
             plt.tight_layout()
-            plt.savefig(f"plots/confusion_matrix/validation_confusion_matrix_{input}.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/confusion_matrix/validation_confusion_matrix_{output}.png")
             plt.close()
             
-            # plot statistics on categorical probabilities
-            for ii, outer_label in enumerate(self.metric.labels[input]):
-                fig, axs = plt.subplots(figsize=(10,6))
-                temp_train_probs = self.training_probabilities[input][:,ii]
-                temp_train_labels = self.training_probabilities[input][:,self.metric.num_classes[kk]]
-                for jj, inner_label in enumerate(self.metric.labels[input]):
-                    axs.hist(
-                        temp_train_probs[(temp_train_labels == jj)].cpu(),
-                        bins=100,
-                        range=[0,1],
-                        histtype='step',
-                        stacked=True,
-                        density=True,
-                        label=f"{inner_label}"
-                    )
-                axs.set_xlabel(r"Class probability $p(\theta=$"+f"{outer_label}"+r"$|y)$")
-                axs.set_ylabel("Truth Counts")
-                plt.suptitle(f"Training probability predictions for class {outer_label}")
-                plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
-                plt.tight_layout()
-                plt.savefig(f"plots/confusion_matrix/training_probabilities_{outer_label}.png")
-                plt.close()
+            # # plot statistics on categorical probabilities
+            # for ii, outer_label in enumerate(self.labels[input]):
+            #     fig, axs = plt.subplots(figsize=(10,6))
+            #     temp_train_probs = self.training_probabilities[input][:,ii]
+            #     temp_train_labels = self.training_probabilities[input][:,self.metric.num_classes[kk]]
+            #     for jj, inner_label in enumerate(self.labels[input]):
+            #         axs.hist(
+            #             temp_train_probs[(temp_train_labels == jj)].cpu(),
+            #             bins=100,
+            #             range=[0,1],
+            #             histtype='step',
+            #             stacked=True,
+            #             density=True,
+            #             label=f"{inner_label}"
+            #         )
+            #     axs.set_xlabel(r"Class probability $p(\theta=$"+f"{outer_label}"+r"$|y)$")
+            #     axs.set_ylabel("Truth Counts")
+            #     plt.suptitle(f"Training probability predictions for class {outer_label}")
+            #     plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
+            #     plt.tight_layout()
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/confusion_matrix/training_probabilities_{outer_label}.png")
+            #     plt.close()
             
-            # generate ROC curves for each class
-            for ii, outer_label in enumerate(self.metric.labels[input]):
-                fig, axs = plt.subplots()
-                temp_train_probs = self.training_probabilities[input][:,ii]
-                temp_train_labels = self.training_probabilities[input][:,self.metric.num_classes[kk]]
+            # # generate ROC curves for each class
+            # for ii, outer_label in enumerate(self.labels[input]):
+            #     fig, axs = plt.subplots()
+            #     temp_train_probs = self.training_probabilities[input][:,ii]
+            #     temp_train_labels = self.training_probabilities[input][:,self.metric.num_classes[kk]]
 
-                signal = temp_train_probs[(temp_train_labels == ii)]
-                background = temp_train_probs[(temp_train_labels != ii)]
+            #     signal = temp_train_probs[(temp_train_labels == ii)]
+            #     background = temp_train_probs[(temp_train_labels != ii)]
 
-                signal_hist, signal_edges = histogram(
-                    signal,
-                    bins=100,
-                    range=[0,1], density=True
-                )
-                background_hist, background_edges = histogram(
-                    background,
-                    bins=100,
-                    range=[0,1], density=True
-                )
-                # get the cumulative distributions
-                dx = (signal_edges[1] - signal_edges[0]).to(self.device)
-                tpr = torch.tensor([1.0]).to(self.device)
-                fpr = torch.tensor([0.0]).to(self.device)
+            #     signal_hist, signal_edges = histogram(
+            #         signal,
+            #         bins=100,
+            #         range=[0,1], density=True
+            #     )
+            #     background_hist, background_edges = histogram(
+            #         background,
+            #         bins=100,
+            #         range=[0,1], density=True
+            #     )
+            #     # get the cumulative distributions
+            #     dx = (signal_edges[1] - signal_edges[0]).to(self.device)
+            #     tpr = torch.tensor([1.0]).to(self.device)
+            #     fpr = torch.tensor([0.0]).to(self.device)
 
-                tpr = torch.cat((tpr, 1.0 - (torch.cumsum(signal_hist, dim=0) * dx)), dim=0)
-                fpr = torch.cat((fpr, (torch.cumsum(background_hist, dim=0) * dx)), dim=0)
+            #     tpr = torch.cat((tpr, 1.0 - (torch.cumsum(signal_hist, dim=0) * dx)), dim=0)
+            #     fpr = torch.cat((fpr, (torch.cumsum(background_hist, dim=0) * dx)), dim=0)
 
-                tpr = torch.cat((tpr, torch.tensor([0.0]).to(self.device)), dim=0)
-                fpr = torch.cat((fpr, torch.tensor([1.0]).to(self.device)), dim=0)
+            #     tpr = torch.cat((tpr, torch.tensor([0.0]).to(self.device)), dim=0)
+            #     fpr = torch.cat((fpr, torch.tensor([1.0]).to(self.device)), dim=0)
                 
-                class_auc = auc(1.0 - fpr.cpu().numpy(), tpr.cpu().numpy())
+            #     class_auc = auc(1.0 - fpr.cpu().numpy(), tpr.cpu().numpy())
 
-                axs.plot(
-                    tpr.cpu().numpy(), fpr.cpu().numpy(),
-                    linestyle='--',
-                    label=f"AUC: {class_auc:.2f}"
-                )
-                axs.set_xlabel("Signal Acceptance (TPR)")
-                axs.set_ylabel("Background Rejection (TNR)")
-                plt.suptitle(f"Training ROC curve (TNR vs TPR) for class {outer_label}")
-                plt.grid(True)
-                plt.legend(loc='best')
-                plt.tight_layout()
-                plt.savefig(f"plots/roc/training_roc_{outer_label}.png")
-                plt.close()
+            #     axs.plot(
+            #         tpr.cpu().numpy(), fpr.cpu().numpy(),
+            #         linestyle='--',
+            #         label=f"AUC: {class_auc:.2f}"
+            #     )
+            #     axs.set_xlabel("Signal Acceptance (TPR)")
+            #     axs.set_ylabel("Background Rejection (TNR)")
+            #     plt.suptitle(f"Training ROC curve (TNR vs TPR) for class {outer_label}")
+            #     plt.grid(True)
+            #     plt.legend(loc='best')
+            #     plt.tight_layout()
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/roc/training_roc_{outer_label}.png")
+            #     plt.close()
             
-            # generate summed ADC plots for each signal acceptance value
-            for ii, outer_label in enumerate(self.metric.labels[input]):
-                fig, axs = plt.subplots()
-                temp_train_probs = self.training_probabilities[input][:,ii]
-                temp_train_labels = self.training_probabilities[input][:,self.metric.num_classes[kk]]
-                class_summed_adc = self.training_summed_adc[(temp_train_labels == ii)]
-                num_backgrounds = len(temp_train_labels[(temp_train_labels != ii)])
+            # # generate summed ADC plots for each signal acceptance value
+            # for ii, outer_label in enumerate(self.labels[input]):
+            #     fig, axs = plt.subplots()
+            #     temp_train_probs = self.training_probabilities[input][:,ii]
+            #     temp_train_labels = self.training_probabilities[input][:,self.metric.num_classes[kk]]
+            #     class_summed_adc = self.training_summed_adc[(temp_train_labels == ii)]
+            #     num_backgrounds = len(temp_train_labels[(temp_train_labels != ii)])
 
-                axs.hist(
-                    class_summed_adc.squeeze(1).cpu().numpy(),
-                    bins=100,
-                    histtype='step',
-                    stacked=True,
-                    label=f'{outer_label}'
-                )
+            #     axs.hist(
+            #         class_summed_adc.squeeze(1).cpu().numpy(),
+            #         bins=100,
+            #         histtype='step',
+            #         stacked=True,
+            #         label=f'{outer_label}'
+            #     )
                     
-                for acceptance in self.sig_acceptance:
-                    signal_summed_adc = self.training_summed_adc[(temp_train_probs > acceptance)].squeeze(1).cpu().numpy()
-                    accepted_labels = temp_train_labels[(temp_train_probs > acceptance)]
-                    accepted_backgrounds = len(accepted_labels[(accepted_labels != ii)])
-                    background_leakage = accepted_backgrounds / num_backgrounds
+            #     for acceptance in self.sig_acceptance:
+            #         signal_summed_adc = self.training_summed_adc[(temp_train_probs > acceptance)].squeeze(1).cpu().numpy()
+            #         accepted_labels = temp_train_labels[(temp_train_probs > acceptance)]
+            #         accepted_backgrounds = len(accepted_labels[(accepted_labels != ii)])
+            #         background_leakage = accepted_backgrounds / num_backgrounds
 
-                    axs.hist(
-                        signal_summed_adc,
-                        bins=100,
-                        histtype='step',
-                        stacked=True,
-                        label=r'p($\theta$='+f'{outer_label}) > {acceptance:.2f}\nleakage = {background_leakage:.4f}'
-                    )
+            #         axs.hist(
+            #             signal_summed_adc,
+            #             bins=100,
+            #             histtype='step',
+            #             stacked=True,
+            #             label=r'p($\theta$='+f'{outer_label}) > {acceptance:.2f}\nleakage = {background_leakage:.4f}'
+            #         )
                 
-                axs.set_xlabel(r"$\Sigma $" + "ADC")
-                axs.set_ylabel("Counts")
-                plt.suptitle(r"Training $\Sigma $" + f"ADC for class {outer_label}")
-                plt.grid(True)
-                plt.legend(loc='best')
-                plt.tight_layout()
-                plt.savefig(f"plots/summed_adc/training_summed_adc_{outer_label}.png")
-                plt.close()
+            #     axs.set_xlabel(r"$\Sigma $" + "ADC")
+            #     axs.set_ylabel("Counts")
+            #     plt.suptitle(r"Training $\Sigma $" + f"ADC for class {outer_label}")
+            #     plt.grid(True)
+            #     plt.legend(loc='best')
+            #     plt.tight_layout()
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/summed_adc/training_summed_adc_{outer_label}.png")
+            #     plt.close()
             
-            # plot statistics on categorical probabilities
-            for ii, outer_label in enumerate(self.metric.labels[input]):
-                fig, axs = plt.subplots(figsize=(10,6))
-                temp_train_probs = self.validation_probabilities[input][:,ii]
-                temp_train_labels = self.validation_probabilities[input][:,self.metric.num_classes[kk]]
-                for jj, inner_label in enumerate(self.metric.labels[input]):
-                    axs.hist(
-                        temp_train_probs[(temp_train_labels == jj)].cpu(),
-                        bins=100,
-                        range=[0,1],
-                        histtype='step',
-                        stacked=True,
-                        density=True,
-                        label=f"{inner_label}"
-                    )
-                axs.set_xlabel(r"Class probability $p(\theta=$"+f"{outer_label}"+r"$|y)$")
-                axs.set_ylabel("Truth Counts")
-                plt.suptitle(f"Validation probability predictions for class {outer_label}")
-                plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
-                plt.tight_layout()
-                plt.savefig(f"plots/confusion_matrix/validation_probabilities_{outer_label}.png")
-                plt.close()
+            # # plot statistics on categorical probabilities
+            # for ii, outer_label in enumerate(self.labels[input]):
+            #     fig, axs = plt.subplots(figsize=(10,6))
+            #     temp_train_probs = self.validation_probabilities[input][:,ii]
+            #     temp_train_labels = self.validation_probabilities[input][:,self.metric.num_classes[kk]]
+            #     for jj, inner_label in enumerate(self.labels[input]):
+            #         axs.hist(
+            #             temp_train_probs[(temp_train_labels == jj)].cpu(),
+            #             bins=100,
+            #             range=[0,1],
+            #             histtype='step',
+            #             stacked=True,
+            #             density=True,
+            #             label=f"{inner_label}"
+            #         )
+            #     axs.set_xlabel(r"Class probability $p(\theta=$"+f"{outer_label}"+r"$|y)$")
+            #     axs.set_ylabel("Truth Counts")
+            #     plt.suptitle(f"Validation probability predictions for class {outer_label}")
+            #     plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
+            #     plt.tight_layout()
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/confusion_matrix/validation_probabilities_{outer_label}.png")
+            #     plt.close()
             
-            # generate ROC curves for each class
-            for ii, outer_label in enumerate(self.metric.labels[input]):
-                fig, axs = plt.subplots()
-                temp_train_probs = self.validation_probabilities[input][:,ii]
-                temp_train_labels = self.validation_probabilities[input][:,self.metric.num_classes[kk]]
+            # # generate ROC curves for each class
+            # for ii, outer_label in enumerate(self.labels[input]):
+            #     fig, axs = plt.subplots()
+            #     temp_train_probs = self.validation_probabilities[input][:,ii]
+            #     temp_train_labels = self.validation_probabilities[input][:,self.metric.num_classes[kk]]
 
-                signal = temp_train_probs[(temp_train_labels == ii)]
-                background = temp_train_probs[(temp_train_labels != ii)]
+            #     signal = temp_train_probs[(temp_train_labels == ii)]
+            #     background = temp_train_probs[(temp_train_labels != ii)]
 
-                signal_hist, signal_edges = histogram(
-                    signal,
-                    bins=100,
-                    range=[0,1], density=True
-                )
-                background_hist, background_edges = histogram(
-                    background,
-                    bins=100,
-                    range=[0,1], density=True
-                )
-                # get the cumulative distributions
-                dx = (signal_edges[1] - signal_edges[0]).to(self.device)
-                tpr = torch.tensor([1.0]).to(self.device)
-                fpr = torch.tensor([0.0]).to(self.device)
+            #     signal_hist, signal_edges = histogram(
+            #         signal,
+            #         bins=100,
+            #         range=[0,1], density=True
+            #     )
+            #     background_hist, background_edges = histogram(
+            #         background,
+            #         bins=100,
+            #         range=[0,1], density=True
+            #     )
+            #     # get the cumulative distributions
+            #     dx = (signal_edges[1] - signal_edges[0]).to(self.device)
+            #     tpr = torch.tensor([1.0]).to(self.device)
+            #     fpr = torch.tensor([0.0]).to(self.device)
 
-                tpr = torch.cat((tpr, 1.0 - (torch.cumsum(signal_hist, dim=0) * dx)), dim=0)
-                fpr = torch.cat((fpr, (torch.cumsum(background_hist, dim=0) * dx)), dim=0)
+            #     tpr = torch.cat((tpr, 1.0 - (torch.cumsum(signal_hist, dim=0) * dx)), dim=0)
+            #     fpr = torch.cat((fpr, (torch.cumsum(background_hist, dim=0) * dx)), dim=0)
 
-                tpr = torch.cat((tpr, torch.tensor([0.0]).to(self.device)),dim=0)
-                fpr = torch.cat((fpr, torch.tensor([1.0]).to(self.device)),dim=0)
+            #     tpr = torch.cat((tpr, torch.tensor([0.0]).to(self.device)),dim=0)
+            #     fpr = torch.cat((fpr, torch.tensor([1.0]).to(self.device)),dim=0)
                 
-                class_auc = auc(1.0 - fpr.cpu().numpy(), tpr.cpu().numpy())
+            #     class_auc = auc(1.0 - fpr.cpu().numpy(), tpr.cpu().numpy())
 
-                axs.plot(
-                    tpr.cpu().numpy(), fpr.cpu().numpy(),
-                    linestyle='--',
-                    label=f"AUC: {class_auc:.2f}"
-                )
-                axs.set_xlabel("Signal Acceptance (TPR)")
-                axs.set_ylabel("Background Rejection (TNR)")
-                plt.suptitle(f"Validation ROC curve (TNR vs TPR) for class {outer_label}")
-                plt.grid(True)
-                plt.legend(loc='best')
-                plt.tight_layout()
-                plt.savefig(f"plots/roc/validation_roc_{outer_label}.png")
-                plt.close()
+            #     axs.plot(
+            #         tpr.cpu().numpy(), fpr.cpu().numpy(),
+            #         linestyle='--',
+            #         label=f"AUC: {class_auc:.2f}"
+            #     )
+            #     axs.set_xlabel("Signal Acceptance (TPR)")
+            #     axs.set_ylabel("Background Rejection (TNR)")
+            #     plt.suptitle(f"Validation ROC curve (TNR vs TPR) for class {outer_label}")
+            #     plt.grid(True)
+            #     plt.legend(loc='best')
+            #     plt.tight_layout()
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/roc/validation_roc_{outer_label}.png")
+            #     plt.close()
             
-            # generate summed ADC plots for each signal acceptance value
-            for ii, outer_label in enumerate(self.metric.labels[input]):
-                fig, axs = plt.subplots()
-                temp_train_probs = self.validation_probabilities[input][:,ii]
-                temp_train_labels = self.validation_probabilities[input][:,self.metric.num_classes[kk]]
-                class_summed_adc = self.validation_summed_adc[(temp_train_labels == ii)]
-                num_backgrounds = len(temp_train_labels[(temp_train_labels != ii)])
+            # # generate summed ADC plots for each signal acceptance value
+            # for ii, outer_label in enumerate(self.labels[input]):
+            #     fig, axs = plt.subplots()
+            #     temp_train_probs = self.validation_probabilities[input][:,ii]
+            #     temp_train_labels = self.validation_probabilities[input][:,self.metric.num_classes[kk]]
+            #     class_summed_adc = self.validation_summed_adc[(temp_train_labels == ii)]
+            #     num_backgrounds = len(temp_train_labels[(temp_train_labels != ii)])
 
-                axs.hist(
-                    class_summed_adc.squeeze(1).cpu().numpy(),
-                    bins=100,
-                    histtype='step',
-                    stacked=True,
-                    label=f'{outer_label}'
-                )
+            #     axs.hist(
+            #         class_summed_adc.squeeze(1).cpu().numpy(),
+            #         bins=100,
+            #         histtype='step',
+            #         stacked=True,
+            #         label=f'{outer_label}'
+            #     )
                     
-                for acceptance in self.sig_acceptance:
-                    signal_summed_adc = self.validation_summed_adc[(temp_train_probs > acceptance)].squeeze(1).cpu().numpy()
-                    accepted_labels = temp_train_labels[(temp_train_probs > acceptance)]
-                    accepted_backgrounds = len(accepted_labels[(accepted_labels != ii)])
-                    background_leakage = accepted_backgrounds / num_backgrounds
+            #     for acceptance in self.sig_acceptance:
+            #         signal_summed_adc = self.validation_summed_adc[(temp_train_probs > acceptance)].squeeze(1).cpu().numpy()
+            #         accepted_labels = temp_train_labels[(temp_train_probs > acceptance)]
+            #         accepted_backgrounds = len(accepted_labels[(accepted_labels != ii)])
+            #         background_leakage = accepted_backgrounds / num_backgrounds
 
-                    axs.hist(
-                        signal_summed_adc,
-                        bins=100,
-                        histtype='step',
-                        stacked=True,
-                        label=r'p($\theta$='+f'{outer_label}) > {acceptance:.2f}\nleakage = {background_leakage:.4f}'
-                    )
+            #         axs.hist(
+            #             signal_summed_adc,
+            #             bins=100,
+            #             histtype='step',
+            #             stacked=True,
+            #             label=r'p($\theta$='+f'{outer_label}) > {acceptance:.2f}\nleakage = {background_leakage:.4f}'
+            #         )
                 
-                axs.set_xlabel(r"$\Sigma $" + "ADC")
-                axs.set_ylabel("Counts")
-                plt.suptitle(r"Validation $\Sigma $" + f"ADC for class {outer_label}")
-                plt.grid(True)
-                plt.legend(loc='best')
-                plt.tight_layout()
-                plt.savefig(f"plots/summed_adc/validation_summed_adc_{outer_label}.png")
-                plt.close()
+            #     axs.set_xlabel(r"$\Sigma $" + "ADC")
+            #     axs.set_ylabel("Counts")
+            #     plt.suptitle(r"Validation $\Sigma $" + f"ADC for class {outer_label}")
+            #     plt.grid(True)
+            #     plt.legend(loc='best')
+            #     plt.tight_layout()
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/summed_adc/validation_summed_adc_{outer_label}.png")
+            #     plt.close()
 
             
     def evaluate_testing(self):  
-        for kk, input in enumerate(self.metric.inputs):
+        for kk, output in enumerate(self.metric.outputs):
             # plot the training confusion matrix
-            if self.metric.consolidate_classes:
+            if self.consolidate_classes:
                 test_display = ConfusionMatrixDisplay(
-                    self.test_confusion[input].cpu().numpy()
+                    self.test_confusion[output].cpu().numpy()
                 ) 
                 test_display.plot()
             else:
                 test_display = ConfusionMatrixDisplay(
-                    self.test_confusion[input].cpu().numpy(),
-                    display_labels = self.metric.labels[input]
+                    self.test_confusion[output].cpu().numpy(),
+                    display_labels = self.labels[output]
                 ) 
                 test_display.plot(
                     xticks_rotation="vertical"
                 )
-                test_display.figure_.set_figwidth(len(self.metric.labels[input]))
-                test_display.figure_.set_figheight(len(self.metric.labels[input]))
+                test_display.figure_.set_figwidth(len(self.labels[output]))
+                test_display.figure_.set_figheight(len(self.labels[output]))
                       
-            plt.suptitle(f"Test Confusion Matrix\nClass {input}")
+            plt.suptitle(f"Test Confusion Matrix\nClass {output}")
             plt.tight_layout()
-            plt.savefig(f"plots/confusion_matrix/test_confusion_matrix_{input}.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/confusion_matrix/test_confusion_matrix_{output}.png")
             plt.close()
+        # save confusion matrix to npz
+        self.save_confusion_matrix()
     
-            # plot statistics on categorical probabilities
-            for ii, outer_label in enumerate(self.metric.labels[input]):
-                fig, axs = plt.subplots(figsize=(10,6))
-                temp_train_probs = self.test_probabilities[input][:,ii]
-                temp_train_labels = self.test_probabilities[input][:,self.metric.num_classes[kk]]
-                for jj, inner_label in enumerate(self.metric.labels[input]):
-                    axs.hist(
-                        temp_train_probs[(temp_train_labels == jj)].cpu(),
-                        bins=100,
-                        range=[0,1],
-                        histtype='step',
-                        stacked=True,
-                        density=True,
-                        label=f"{inner_label}"
-                    )
-                axs.set_xlabel(r"Class probability $p(\theta=$"+f"{outer_label}"+r"$|y)$")
-                axs.set_ylabel("Truth Counts")
-                plt.suptitle(f"Test probability predictions for class {outer_label}")
-                plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
-                plt.tight_layout()
-                plt.savefig(f"plots/confusion_matrix/test_probabilities_{outer_label}.png")
-                plt.close()
+            # # plot statistics on categorical probabilities
+            # for ii, outer_label in enumerate(self.labels[input]):
+            #     fig, axs = plt.subplots(figsize=(10,6))
+            #     temp_train_probs = self.test_probabilities[input][:,ii]
+            #     temp_train_labels = self.test_probabilities[input][:,self.metric.num_classes[kk]]
+            #     for jj, inner_label in enumerate(self.labels[input]):
+            #         axs.hist(
+            #             temp_train_probs[(temp_train_labels == jj)].cpu(),
+            #             bins=100,
+            #             range=[0,1],
+            #             histtype='step',
+            #             stacked=True,
+            #             density=True,
+            #             label=f"{inner_label}"
+            #         )
+            #     axs.set_xlabel(r"Class probability $p(\theta=$"+f"{outer_label}"+r"$|y)$")
+            #     axs.set_ylabel("Truth Counts")
+            #     plt.suptitle(f"Test probability predictions for class {outer_label}")
+            #     plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
+            #     plt.tight_layout()
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/confusion_matrix/test_probabilities_{outer_label}.png")
+            #     plt.close()
             
-            # generate ROC curves for each class
-            for ii, outer_label in enumerate(self.metric.labels[input]):
-                fig, axs = plt.subplots()
-                temp_train_probs = self.test_probabilities[input][:,ii]
-                temp_train_labels = self.test_probabilities[input][:,self.metric.num_classes[kk]]
+            # # generate ROC curves for each class
+            # for ii, outer_label in enumerate(self.labels[input]):
+            #     fig, axs = plt.subplots()
+            #     temp_train_probs = self.test_probabilities[input][:,ii]
+            #     temp_train_labels = self.test_probabilities[input][:,self.metric.num_classes[kk]]
 
-                signal = temp_train_probs[(temp_train_labels == ii)]
-                background = temp_train_probs[(temp_train_labels != ii)]
+            #     signal = temp_train_probs[(temp_train_labels == ii)]
+            #     background = temp_train_probs[(temp_train_labels != ii)]
                 
-                signal_hist, signal_edges = histogram(
-                    signal,
-                    bins=100,
-                    range=[0,1], density=True
-                )
-                background_hist, background_edges = histogram(
-                    background,
-                    bins=100,
-                    range=[0,1], density=True
-                )
-                # get the cumulative distributions
-                dx = (signal_edges[1] - signal_edges[0]).to(self.device)
-                tpr = torch.tensor([1.0]).to(self.device)
-                fpr = torch.tensor([0.0]).to(self.device)
+            #     signal_hist, signal_edges = histogram(
+            #         signal,
+            #         bins=100,
+            #         range=[0,1], density=True
+            #     )
+            #     background_hist, background_edges = histogram(
+            #         background,
+            #         bins=100,
+            #         range=[0,1], density=True
+            #     )
+            #     # get the cumulative distributions
+            #     dx = (signal_edges[1] - signal_edges[0]).to(self.device)
+            #     tpr = torch.tensor([1.0]).to(self.device)
+            #     fpr = torch.tensor([0.0]).to(self.device)
 
-                tpr = torch.cat((tpr, 1.0 - (torch.cumsum(signal_hist, dim=0) * dx)), dim=0)
-                fpr = torch.cat((fpr, (torch.cumsum(background_hist, dim=0) * dx)), dim=0)
+            #     tpr = torch.cat((tpr, 1.0 - (torch.cumsum(signal_hist, dim=0) * dx)), dim=0)
+            #     fpr = torch.cat((fpr, (torch.cumsum(background_hist, dim=0) * dx)), dim=0)
 
-                tpr = torch.cat((tpr, torch.tensor([0.0]).to(self.device)),dim=0)
-                fpr = torch.cat((fpr, torch.tensor([1.0]).to(self.device)),dim=0)
+            #     tpr = torch.cat((tpr, torch.tensor([0.0]).to(self.device)),dim=0)
+            #     fpr = torch.cat((fpr, torch.tensor([1.0]).to(self.device)),dim=0)
                 
-                class_auc = auc(1.0 - fpr.cpu().numpy(), tpr.cpu().numpy())
+            #     class_auc = auc(1.0 - fpr.cpu().numpy(), tpr.cpu().numpy())
 
-                axs.plot(
-                    tpr.cpu().numpy(), fpr.cpu().numpy(),
-                    linestyle='--',
-                    label=f"AUC: {class_auc:.2f}"
-                )
-                axs.set_xlabel("Signal Acceptance (TPR)")
-                axs.set_ylabel("Background Rejection (TNR)")
-                plt.suptitle(f"Test ROC curve (TNR vs TPR) for class {outer_label}")
-                plt.grid(True)
-                plt.legend(loc='best')
-                plt.tight_layout()
-                plt.savefig(f"plots/roc/test_roc_{outer_label}.png")
-                plt.close()
+            #     axs.plot(
+            #         tpr.cpu().numpy(), fpr.cpu().numpy(),
+            #         linestyle='--',
+            #         label=f"AUC: {class_auc:.2f}"
+            #     )
+            #     axs.set_xlabel("Signal Acceptance (TPR)")
+            #     axs.set_ylabel("Background Rejection (TNR)")
+            #     plt.suptitle(f"Test ROC curve (TNR vs TPR) for class {outer_label}")
+            #     plt.grid(True)
+            #     plt.legend(loc='best')
+            #     plt.tight_layout()
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/roc/test_roc_{outer_label}.png")
+            #     plt.close()
             
-            # generate summed ADC plots for each signal acceptance value
-            for ii, outer_label in enumerate(self.metric.labels[input]):
-                fig, axs = plt.subplots()
-                temp_train_probs = self.test_probabilities[input][:,ii]
-                temp_train_labels = self.test_probabilities[input][:,self.metric.num_classes[kk]]
-                class_summed_adc = self.test_summed_adc[(temp_train_labels == ii)]
-                num_backgrounds = len(temp_train_labels[(temp_train_labels != ii)])
+            # # generate summed ADC plots for each signal acceptance value
+            # for ii, outer_label in enumerate(self.labels[input]):
+            #     fig, axs = plt.subplots()
+            #     temp_train_probs = self.test_probabilities[input][:,ii]
+            #     temp_train_labels = self.test_probabilities[input][:,self.metric.num_classes[kk]]
+            #     class_summed_adc = self.test_summed_adc[(temp_train_labels == ii)]
+            #     num_backgrounds = len(temp_train_labels[(temp_train_labels != ii)])
 
-                axs.hist(
-                    class_summed_adc.squeeze(1).cpu().numpy(),
-                    bins=100,
-                    histtype='step',
-                    stacked=True,
-                    label=f'{outer_label}'
-                )
+            #     axs.hist(
+            #         class_summed_adc.squeeze(1).cpu().numpy(),
+            #         bins=100,
+            #         histtype='step',
+            #         stacked=True,
+            #         label=f'{outer_label}'
+            #     )
                     
-                for acceptance in self.sig_acceptance:
-                    signal_summed_adc = self.test_summed_adc[(temp_train_probs > acceptance)].squeeze(1).cpu().numpy()
-                    accepted_labels = temp_train_labels[(temp_train_probs > acceptance)]
-                    accepted_backgrounds = len(accepted_labels[(accepted_labels != ii)])
-                    background_leakage = accepted_backgrounds / num_backgrounds
+            #     for acceptance in self.sig_acceptance:
+            #         signal_summed_adc = self.test_summed_adc[(temp_train_probs > acceptance)].squeeze(1).cpu().numpy()
+            #         accepted_labels = temp_train_labels[(temp_train_probs > acceptance)]
+            #         accepted_backgrounds = len(accepted_labels[(accepted_labels != ii)])
+            #         background_leakage = accepted_backgrounds / num_backgrounds
 
-                    axs.hist(
-                        signal_summed_adc,
-                        bins=100,
-                        histtype='step',
-                        stacked=True,
-                        label=r'p($\theta$='+f'{outer_label}) > {acceptance:.2f}\nleakage = {background_leakage:.4f}'
-                    )
+            #         axs.hist(
+            #             signal_summed_adc,
+            #             bins=100,
+            #             histtype='step',
+            #             stacked=True,
+            #             label=r'p($\theta$='+f'{outer_label}) > {acceptance:.2f}\nleakage = {background_leakage:.4f}'
+            #         )
                 
-                axs.set_xlabel(r"$\Sigma $" + "ADC")
-                axs.set_ylabel("Counts")
-                plt.suptitle(r"Test $\Sigma $" + f"ADC for class {outer_label}")
-                plt.grid(True)
-                plt.legend(loc='best')
-                plt.tight_layout()
-                plt.savefig(f"plots/summed_adc/test_summed_adc_{outer_label}.png")
-                plt.close()
+            #     axs.set_xlabel(r"$\Sigma $" + "ADC")
+            #     axs.set_ylabel("Counts")
+            #     plt.suptitle(r"Test $\Sigma $" + f"ADC for class {outer_label}")
+            #     plt.grid(True)
+            #     plt.legend(loc='best')
+            #     plt.tight_layout()
+            #     plt.savefig(f"{self.meta['local_scratch']}/plots/summed_adc/test_summed_adc_{outer_label}.png")
+            #     plt.close()
 
     def evaluate_inference(self):
         return
@@ -508,15 +509,15 @@ class ConfusionMatrixCallback(GenericCallback):
         display.plot()       
         plt.suptitle("Test Confusion Matrix")
         plt.tight_layout()
-        plt.savefig(f"plots/confusion_matrix/inference_confusion_matrix.png")
+        plt.savefig(f"{self.meta['local_scratch']}/plots/confusion_matrix/inference_confusion_matrix.png")
         plt.close()
 
         # plot statistics on categorical probabilities
-        for ii, outer_label in enumerate(self.metric.labels[input]):
+        for ii, outer_label in enumerate(self.labels[input]):
             fig, axs = plt.subplots(figsize=(10,6))
             temp_train_probs = probabilities[:,ii]
             temp_train_labels = probabilities[:,self.metric.num_classes[kk]]
-            for jj, inner_label in enumerate(self.metric.labels[input]):
+            for jj, inner_label in enumerate(self.labels[input]):
                 axs.hist(
                     temp_train_probs[(temp_train_labels == jj)],
                     bins=100,
@@ -531,11 +532,11 @@ class ConfusionMatrixCallback(GenericCallback):
             plt.suptitle(f"Inference probability predictions for class {outer_label}")
             plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
             plt.tight_layout()
-            plt.savefig(f"plots/confusion_matrix/inference_probabilities_{outer_label}.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/confusion_matrix/inference_probabilities_{outer_label}.png")
             plt.close()
         
         # generate ROC curves for each class
-        for ii, outer_label in enumerate(self.metric.labels[input]):
+        for ii, outer_label in enumerate(self.labels[input]):
             fig, axs = plt.subplots()
             temp_train_probs = probabilities[:,ii]
             temp_train_labels = probabilities[:,self.metric.num_classes[kk]]
@@ -577,11 +578,11 @@ class ConfusionMatrixCallback(GenericCallback):
             plt.grid(True)
             plt.legend(loc='best')
             plt.tight_layout()
-            plt.savefig(f"plots/roc/inference_roc_{outer_label}.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/roc/inference_roc_{outer_label}.png")
             plt.close()
         
         # generate summed ADC plots for each signal acceptance value
-        for ii, outer_label in enumerate(self.metric.labels[input]):
+        for ii, outer_label in enumerate(self.labels[input]):
             fig, axs = plt.subplots()
             temp_train_probs = probabilities[:,ii]
             temp_train_labels = probabilities[:,self.metric.num_classes[kk]]
@@ -616,7 +617,7 @@ class ConfusionMatrixCallback(GenericCallback):
             plt.grid(True)
             plt.legend(loc='best')
             plt.tight_layout()
-            plt.savefig(f"plots/summed_adc/inferece_summed_adc_{outer_label}.png")
+            plt.savefig(f"{self.meta['local_scratch']}/plots/summed_adc/inferece_summed_adc_{outer_label}.png")
             plt.close()
 
 

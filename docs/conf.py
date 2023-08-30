@@ -7,8 +7,8 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'Blip'
-copyright = '2023, N. Carrara, D. Rivera'
-author = 'N. Carrara, D. Rivera'
+copyright = '2023, N. Carrara, D. Rivera, L. Perez-Molina'
+author = 'N. Carrara, D. Rivera, L. Perez-Molina'
 release = '00.02.00'
 
 # -- General configuration ---------------------------------------------------

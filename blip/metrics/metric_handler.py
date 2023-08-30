@@ -42,7 +42,7 @@ class MetricHandler:
             self.set_config(config)
         else:
             if len(metrics) == 0:
-                self.logger.error(f"handler received neither a config or metrics!")
+                self.logger.warn(f"handler received neither a config or metrics!")
             self.metrics = {
                 metric.name: metric 
                 for metric in metrics
@@ -58,13 +58,20 @@ class MetricHandler:
             os.path.dirname(__file__) + '/' + file 
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
+        self.metric_files.extend(self.meta['local_blip_files'])
         for metric_file in self.metric_files:
-            if metric_file in ["__init__.py", "__pycache__.py", "generic_metric.py"]:
+            if (
+                ("__init__.py" in metric_file) or 
+                ("__pycache__.py" in metric_file) or 
+                ("generic_metric.py" in metric_file) or 
+                ("__pycache__" in metric_file) or
+                (".py" not in metric_file)
+            ):
                 continue
             try:
                 self.load_metric(metric_file)
             except:
-                pass
+                self.logger.warn(f'problem loading metric from file: {metric_file}')
     
     def load_metric(self,
         metric_file: str
@@ -136,12 +143,12 @@ class MetricHandler:
     ):  
         for name, metric in self.metrics.items():
             metric.set_device(device)
-            metric.reset()
+            metric.reset_batch()
         self.device = device
 
     def reset_batch(self):  
         for name, metric in self.metrics.items():
-            metric.reset()
+            metric.reset_batch()
 
     def add_metric(self,
         metric:   GenericMetric
@@ -165,12 +172,9 @@ class MetricHandler:
             if train_type == metric.when_to_compute or metric.when_to_compute == 'all':
                 metric.update(outputs, data)
     
-    def compute(self,
-        outputs,
-        data
-    ):
+    def compute(self):
         metrics = {
-            name: metric.compute(outputs, data) 
+            name: metric.compute() 
             for name, metric in self.metrics.items()
         }
         return metrics

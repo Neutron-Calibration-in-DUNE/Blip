@@ -29,7 +29,9 @@ class GenericModule:
             self.logger = Logger(name, output="both", file_mode="w")
         else:
             self.logger = Logger(name, file_mode="w")
-
+        
+        self.module_data_product = {}
+        
     def set_device(self,
         device
     ):

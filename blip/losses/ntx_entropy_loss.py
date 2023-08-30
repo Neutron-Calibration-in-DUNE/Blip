@@ -11,32 +11,38 @@ class NTXEntropyLoss(GenericLoss):
     """
     """
     def __init__(self,
-        alpha: float=1.0,
-        name:   str='ntxent_loss',
-        temperature:  float=0.10,
-        classes:    list=[],
-        reduction:  str='mean',
-        class_weights:  dict={},
-        meta:   dict={}
+        name:           str='ntxent_loss',
+        alpha:          float=0.0,
+        target_type:    str='classes',
+        targets:        list=[],
+        outputs:        list=[],
+        augmentations:  int=0,
+        reduction:      str='mean',
+        temperature:    float=0.10,
+        meta:           dict={}
     ):
-        super(NTXEntropyLoss, self).__init__(name, meta)
-        self.alpha = alpha
+        super(NTXEntropyLoss, self).__init__(
+            name, alpha, target_type, targets, outputs, augmentations, meta
+        )
         self.temperature = temperature
-        self.reduction = reduction
-        self.classes = classes
-        self.class_weights = class_weights
-        self.ntxent_loss = NTXentLoss(temperature=temperature)
+        self.ntx_entropy_loss = {
+            key: NTXentLoss(temperature=temperature)
+            for key in self.targets
+        }
 
-    def loss(self,
+    def _loss(self,
+        target,
         outputs,
-        data,
     ):
         """Computes and returns/saves loss information"""
-        embeddings = outputs['reductions']
-        indices = torch.arange(0, len(torch.unique(data.batch)), device=outputs['reductions'].device)
-        labels = torch.cat([
-            indices
-            for ii in range(int(len(outputs['reductions'])/len(torch.unique(data.batch))))
-        ])
-        loss = self.ntxent_loss(embeddings, labels)
+        loss = 0
+        for ii, output in enumerate(self.outputs):
+            temp_loss = self.ntx_entropy_loss[self.targets[ii]](
+                outputs[output].to(self.device), 
+                target[self.targets[ii]].to(self.device)
+            )
+            loss += temp_loss
+            self.batch_loss[self.targets[ii]] = torch.cat(
+                (self.batch_loss[self.targets[ii]], torch.tensor([[temp_loss]], device=self.device)), dim=0
+            )
         return self.alpha * loss

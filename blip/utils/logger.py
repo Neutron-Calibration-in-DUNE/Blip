@@ -57,8 +57,12 @@ class Logger:
             raise ValueError(f"Logging handler {output} not in {logging_output}.")
 
         # create the logging directory
-        if not os.path.isdir('.logs'):
-            os.mkdir('.logs')
+        if 'LOCAL_SCRATCH' in os.environ.keys():
+            self.local_log_dir = os.environ['LOCAL_SCRATCH'] + f'/.logs'
+        else:
+            self.local_log_dir = '.logs'
+        if not os.path.isdir(self.local_log_dir):
+            os.mkdir(self.local_log_dir)
 
         # use the name as the default output file name
         self.name = name
@@ -110,10 +114,11 @@ class Logger:
             self.console.setFormatter(self.console_formatter)
             self.logger.addHandler(self.console)
         if self.output == 'file' or self.output == 'both':
-            self.file = logging.FileHandler('.logs/'+self.output_file+'.log', mode='a')
+            self.file = logging.FileHandler(self.local_log_dir + '/' + self.output_file + '.log', mode='a')
             self.file.setLevel(logging.DEBUG)
             self.file.setFormatter(self.file_formatter)
             self.logger.addHandler(self.file)
+        self.logger.propagate = False
 
     def info(self,
         message:    str,

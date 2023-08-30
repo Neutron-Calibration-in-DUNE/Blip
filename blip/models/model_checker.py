@@ -56,6 +56,8 @@ class ModelChecker:
                 + f"  Perhaps you forgot 'x = x.to(self.device)'?: {e}"
             )
         for classes in output.keys():
+            if classes == 'augmentations':
+                continue
             self.shapes["output"][classes] = output[classes][0].shape
 
         # confirm shapes and behavior with criterion
@@ -70,12 +72,6 @@ class ModelChecker:
         
         # confirm shapes and behavior with metrics
         """
-        There are two classes of metrics, 
-            generic:    saves a single output tensor and a single target tensor
-            tuple:      saves a tuple of output tensors and all dataloader tensors
-        If each type is present in our metrics list, then we should check that 
-        tensor operations defined within the metrics are compatible with the 
-        dataloader and the model.
         """
         # # create empty tensors
         # if metrics != None:

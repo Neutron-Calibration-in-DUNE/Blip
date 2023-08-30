@@ -15,7 +15,7 @@ setup(
     version='00.01.00',
 
     # descriptions
-    description='Blobs and Low-energy Interaction Pointnet.',
+    description='Blips and Low-energy Interaction Pointnet.',
     long_description=long_description,
     long_description_content_type="text/markdown",
     keywords='',
@@ -52,6 +52,7 @@ setup(
     # possible entry point
     entry_points={
         'console_scripts': [
+            'arrakis = blip.programs.run_arrakis:run',
             'blip = blip.programs.run_blip:run',
             'blip_display = blip.programs.run_blip_server:run'
         ],

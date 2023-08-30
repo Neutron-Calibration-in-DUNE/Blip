@@ -1,0 +1,3 @@
+[submodule "vendor/h5flow"] 
+  path = vendor/h5flow 
+  url = https://github.com/peter-madigan/h5flow
