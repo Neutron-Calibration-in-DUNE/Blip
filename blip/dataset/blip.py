@@ -153,6 +153,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             self.meta['topology_labels'] = temp_arrakis_meta[0]['topology_labels']
             self.meta['particle_labels'] = temp_arrakis_meta[0]['particle_labels']
             self.meta['physics_labels'] = temp_arrakis_meta[0]['physics_labels']
+            self.meta['hit_labels'] = temp_arrakis_meta[0]['hit_labels']
         except:
             self.logger.error(f'error collecting meta information from arrakis file {input_file}!')
         for point_label in [
@@ -184,6 +185,10 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             if self.meta['topology_labels'] != temp_arrakis_meta[ii+1]['topology_labels']:
                 self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
             if self.meta['particle_labels'] != temp_arrakis_meta[ii+1]['particle_labels']:
+                self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
+            if self.meta['physics_labels'] != temp_arrakis_meta[ii+1]['physics_labels']:
+                self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
+            if self.meta['hit_labels'] != temp_arrakis_meta[ii+1]['hit_labels']:
                 self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
             for point_label in [
                 'edep_source_points', 'edep_topology_points', 'edep_particle_points', 'edep_physics_points', 'edep_total_points',
@@ -219,27 +224,31 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         self.meta['hits_names_by_value'] = {val: key for key, val in self.meta['hits'].items()}
         self.meta['classes_labels_names'] = {
             'source':   list(self.meta['source_labels'].values()),
-            'topology':    list(self.meta['topology_labels'].values()),
+            'topology': list(self.meta['topology_labels'].values()),
             'particle': list(self.meta['particle_labels'].values()),
-            'physics': list(self.meta['physics_labels'].values())
+            'physics':  list(self.meta['physics_labels'].values()),
+            'hit':      list(self.meta['hit_labels'].values())
         }
         self.meta['classes_labels_values'] = {
             'source':   list(self.meta['source_labels'].keys()),
-            'topology':    list(self.meta['topology_labels'].keys()),
+            'topology': list(self.meta['topology_labels'].keys()),
             'particle': list(self.meta['particle_labels'].keys()),
-            'physics': list(self.meta['physics_labels'].keys())
+            'physics':  list(self.meta['physics_labels'].keys()),
+            'hit':      list(self.meta['hit_labels'].keys()),
         }
         self.meta['classes_labels_names_by_value'] = {
             'source':   {key: val for key, val in self.meta['source_labels'].items()},
-            'topology':    {key: val for key, val in self.meta['topology_labels'].items()},
+            'topology': {key: val for key, val in self.meta['topology_labels'].items()},
             'particle': {key: val for key, val in self.meta['particle_labels'].items()},
-            'physics': {key: val for key, val in self.meta['physics_labels'].items()}
+            'physics':  {key: val for key, val in self.meta['physics_labels'].items()},
+            'hit':      {key: val for key, val in self.meta['hit_labels'].items()}
         }
         self.meta['classes_labels_values_by_name'] = {
             'source':   {val: key for key, val in self.meta['source_labels'].items()},
-            'topology':    {val: key for key, val in self.meta['topology_labels'].items()},
+            'topology': {val: key for key, val in self.meta['topology_labels'].items()},
             'particle': {val: key for key, val in self.meta['particle_labels'].items()},
-            'physics': {val: key for key, val in self.meta['physics_labels'].items()}
+            'physics':  {val: key for key, val in self.meta['physics_labels'].items()},
+            'hit':      {val: key for key, val in self.meta['hit_labels'].items()}
         }
 
         # Check that config variables match meta info

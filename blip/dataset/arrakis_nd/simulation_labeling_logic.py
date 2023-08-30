@@ -224,7 +224,6 @@ class SimulationLabelingLogic:
             muon_progeny = self.simulation_wrangler.trackid_progeny[muon]
             muon_hits = self.simulation_wrangler.trackid_hit[muon]
             muon_segments = self.simulation_wrangler.trackid_segmentid[muon]
-
             cluster_label = self.iterate_topology_label()
             self.set_labels(
                 muon_hits, muon_segments, muon,

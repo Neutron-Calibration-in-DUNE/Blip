@@ -138,5 +138,10 @@ classification_labels = {
         19: "rn222",
         20: "nuclear_recoil",
         21: "electron_recoil"
+    },
+
+    "hit": {
+        0:  "induction",
+        1:  "hit",
     }
 }

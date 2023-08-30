@@ -118,6 +118,7 @@ class Logger:
             self.file.setLevel(logging.DEBUG)
             self.file.setFormatter(self.file_formatter)
             self.logger.addHandler(self.file)
+        self.logger.propagate = False
 
     def info(self,
         message:    str,

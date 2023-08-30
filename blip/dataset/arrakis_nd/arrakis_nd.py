@@ -189,13 +189,15 @@ class ArrakisND:
 
         """
         2x2 channel mappings for different
-        TPCs.
+        TPCs.  The center of the 2x2 is defined at (0, -268, 1300),
+        with each module having dimensions (70,70,140) so that the 
+        x, y, and z total lengths are 140 cm.
         """
         self.nd_2x2_tpc_positions = {
-            "tpc0": [[-376.8501, -366.8851],[0., 607.49875],[-0.49375, 231.16625]],
-            "tpc1": [[-359.2651,   -0.1651],[0., 607.49875],[-0.49375, 231.16625]],
-            "tpc2": [[0.1651, 359.2651],    [0., 607.49875],[-0.49375, 231.16625]],
-            "tpc3": [[366.8851, 376.8501],  [0., 607.49875],[-0.49375, 231.16625]],
+            "tpc0": [[-70,0], [-338, -268], [1230, 1370]],
+            "tpc1": [[0, 70], [-338, -268], [1230, 1370]],
+            "tpc2": [[0, 70], [-268, -198], [1230, 1370]],
+            "tpc3": [[-70,0], [-268, -198], [1230, 1370]],
         }
         self.simulation_wrangler = SimulationWrangler()
         self.simulation_labeling_logic = SimulationLabelingLogic(self.simulation_wrangler)
@@ -273,7 +275,7 @@ class ArrakisND:
         segment_events = segments['event_id']
         stack_events = stacks['event_id']
 
-        unique_events = np.unique(segment_events)
+        unique_events = np.unique(segment_events)[:2]
 
         event_loop = tqdm(
             enumerate(unique_events, 0), 
@@ -380,7 +382,6 @@ class ArrakisND:
                 self.logger.error(f'specified process type {process} not allowed!')
         
         for tpc, tpc_ranges in self.nd_2x2_tpc_positions.items():
-            print(self.hits_point_clouds[tpc].items())
             np.savez(
                 f"data/{self.output_folders[self.simulation_folder + simulation_file]}/{tpc}.npz",
                 hits_features=self.hits_point_clouds[tpc]['hits_features'],
@@ -461,9 +462,9 @@ class ArrakisND:
                     topology_label_view.append(point_cloud.topology_label[view_mask])
                     particle_label_view.append(point_cloud.particle_label[view_mask])
                     physics_label_view.append(point_cloud.physics_label[view_mask])
-                    unique_topology_label_view.append(point_cloud.unique_topologies[view_mask])
-                    unique_particle_label_view.append(point_cloud.unique_particles[view_mask])
-                    unique_physics_label_view.append(point_cloud.unique_physicses[view_mask])
+                    unique_topology_label_view.append(point_cloud.unique_topology[view_mask])
+                    unique_particle_label_view.append(point_cloud.unique_particle[view_mask])
+                    unique_physics_label_view.append(point_cloud.unique_physics[view_mask])
 
             x_view = np.array(x_view, dtype=object)
             y_view = np.array(y_view, dtype=object)

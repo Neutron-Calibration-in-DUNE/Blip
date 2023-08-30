@@ -674,7 +674,7 @@ class Trainer:
                 for jj, key in enumerate(model_output.keys()):
                     if key in predictions.keys():
                         predictions[key].append([model_output[key].cpu().numpy()])
-                for jj, key in enumerate(self.model.forward_views.keys()):
+                for jj, key in enumerate(layers):
                     if key in predictions.keys():
                         predictions[key].append([self.model.forward_views[key].cpu().numpy()])
                 # compute loss

@@ -53,6 +53,10 @@ def run():
         '-data', dest='local_data', default='/local_data',
         help='location for the local data directory.'
     )
+    parser.add_argument(
+        '-anomaly', dest='anomaly', default=False,
+        help='enable anomaly detection in pytorch'
+    )
     args = parser.parse_args()
 
     # Setup config file.
@@ -78,6 +82,9 @@ def run():
     config = ConfigParser(args.config_file).data
     logger = Logger(name, output="both", file_mode="w")
     logger.info("configuring blip...")
+
+    logger.info(f'setting anomaly detection to {args.anomaly}')
+    torch.autograd.set_detect_anomaly(bool(args.anomaly))
 
     if "module" not in config.keys():
         logger.error(f'"module" section not specified in config!')

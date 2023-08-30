@@ -161,11 +161,6 @@ class Arrakis:
             self.logger.warn(f'process_type not specified in config! Setting to "all".')
             self.config["process_type"] = "all"
         self.process_type = self.config["process_type"]
-        if "process_simulation" in self.config.keys():
-            if self.config["process_simulation"]:
-                for ii, input_file in enumerate(self.simulation_files):
-                    self.load_arrays(self.simulation_folder, input_file)
-                    self.generate_training_data(self.process_type, self.simulation_folder + input_file)
         if "experiment" not in self.config.keys():
             self.logger.warn(f'no experiment specified in config! Setting to ProtoDUNE.')
             self.config['experiment'] = 'protodune'
@@ -191,6 +186,12 @@ class Arrakis:
             self.tpc_positions = self.protodune_vd_tpc_positions
         else:
             self.logger.error(f'specified experiment "{self.config["experiment"]}" not an allowed type!')
+        
+        if "process_simulation" in self.config.keys():
+            if self.config["process_simulation"]:
+                for ii, input_file in enumerate(self.simulation_files):
+                    self.load_arrays(self.simulation_folder, input_file)
+                    self.generate_training_data(self.process_type, self.simulation_folder + input_file)
 
     def load_arrays(self,
         input_folder:   str='',
@@ -239,7 +240,7 @@ class Arrakis:
                     "t": 0, "x": 1, "y": 2, "z": 3, "energy": 4, "num_photons": 5, "num_electrons": 6
                 },
                 "classes": {
-                    "source": 0, "topology": 1, "particle": 2, "physics": 3
+                    "source": 0, "topology": 1, "particle": 2, "physics": 3, "hit": 4
                 },
                 "clusters": {
                     "topology":  0, "particle": 1, "physics": 2
@@ -262,7 +263,11 @@ class Arrakis:
                 "physics_labels": {
                     key: value
                     for key, value in classification_labels["physics"].items()
-                },      
+                },  
+                "hit_labels": {
+                    key: value
+                    for key, value in classification_labels["hit"].items()
+                },    
             }
             self.mc_maps[tpc] = {
                 'pdg_code': [],
@@ -552,6 +557,7 @@ class Arrakis:
                 unique_topology_label_view = []
                 unique_particle_label_view = []
                 unique_physics_label_view = []
+                hit_class_view = []
                 hit_mean_view = []
                 hit_rms_view = []
                 hit_amplitude_view = []
@@ -577,6 +583,10 @@ class Arrakis:
                         unique_topology_label_view.append(unique_topology_label[event][view_mask])
                         unique_particle_label_view.append(unique_particle_label[event][view_mask])
                         unique_physics_label_view.append(unique_physics_label[event][view_mask])
+
+                        hit_class = np.zeros_like(hit_mean[event][view_mask])
+                        hit_class[(hit_mean[event][view_mask] != -1)] = 1
+                        hit_class_view.append(hit_class)
                         hit_mean_view.append(hit_mean[event][view_mask])
                         hit_rms_view.append(hit_rms[event][view_mask])
                         hit_amplitude_view.append(hit_amplitude[event][view_mask])
@@ -593,6 +603,7 @@ class Arrakis:
                 unique_topology_label_view = np.array(unique_topology_label_view, dtype=object)
                 unique_particle_label_view = np.array(unique_particle_label_view, dtype=object)
                 unique_physics_label_view = np.array(unique_physics_label_view, dtype=object)
+                hit_class_view = np.array(hit_class_view, dtype=object)
                 hit_mean_view = np.array(hit_mean_view, dtype=object)
                 hit_rms_view = np.array(hit_rms_view, dtype=object)
                 hit_amplitude_view = np.array(hit_amplitude_view, dtype=object)
@@ -613,7 +624,8 @@ class Arrakis:
                         source_label_view[ii], 
                         topology_label_view[ii], 
                         particle_label_view[ii], 
-                        physics_label_view[ii])).T
+                        physics_label_view[ii],
+                        hit_class_view[ii])).T
                     for ii in range(len(channel_view))],
                     dtype=object
                 )          

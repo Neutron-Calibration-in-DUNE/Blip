@@ -107,7 +107,7 @@ class DoubleConv(ME.MinkowskiNetwork):
         x = self.activation_fn(x)
         for layer in self.second_conv_dict.keys():
             x = self.second_conv_dict[layer](x)
-        x += identity
+        x = x + identity
         x = self.activation_fn(x)
         return x
 
@@ -172,6 +172,7 @@ class SparseUResNet(GenericModel):
 
         # construct the model
         self.construct_model()
+        self.register_forward_hooks()
         self.save_model(flag='init')
 
     def construct_model(self):
@@ -180,35 +181,38 @@ class SparseUResNet(GenericModel):
         dictionary and fill it with individual modules.
         The Convolution Transpose in ME has the following constructor arguments:
             MinkowskiConvolutionTranspose(
-            in_channels, 
-            out_channels, 
-            kernel_size=-1, 
-            stride=1, 
-            dilation=1, 
-            bias=False, 
-            kernel_generator=None, 
-            expand_coordinates=False, 
-            convolution_mode=<ConvolutionMode.DEFAULT: 0>, 
-            dimension=None)
+                in_channels, 
+                out_channels, 
+                kernel_size=-1, 
+                stride=1, 
+                dilation=1, 
+                bias=False, 
+                kernel_generator=None, 
+                expand_coordinates=False, 
+                convolution_mode=<ConvolutionMode.DEFAULT: 0>, 
+                dimension=None
+            )
         The Convolution layer in ME has the following constructor arguments:
             MinkowskiConvolution(
-            in_channels, 
-            out_channels, 
-            kernel_size=-1, 
-            stride=1, 
-            dilation=1, 
-            bias=False, 
-            kernel_generator=None, 
-            expand_coordinates=False, 
-            convolution_mode=<ConvolutionMode.DEFAULT: 0>, 
-            dimension=None)
+                in_channels, 
+                out_channels, 
+                kernel_size=-1, 
+                stride=1, 
+                dilation=1, 
+                bias=False, 
+                kernel_generator=None, 
+                expand_coordinates=False, 
+                convolution_mode=<ConvolutionMode.DEFAULT: 0>, 
+                dimension=None
+            )
         The Max Pooling layer from ME has the following constructor arguments:
             MinkowskiMaxPooling(
-            kernel_size, 
-            stride=1, 
-            dilation=1, 
-            kernel_generator=None, 
-            dimension=None)
+                kernel_size, 
+                stride=1, 
+                dilation=1, 
+                kernel_generator=None, 
+                dimension=None
+            )
         """
         self.logger.info(f"Attempting to build UNet architecture using config: {self.config}")
         _down_dict = OrderedDict()

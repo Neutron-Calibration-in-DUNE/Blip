@@ -68,14 +68,14 @@ class SimulationWrangler:
     ):
         track_index = self.get_index_trackid(hit, trackid)
         if track_index != -1:
-            self.det_point_cloud.topology_labels[hit][track_index] = topology
-            self.det_point_cloud.particle_labels[hit][track_index] = particle
-            self.det_point_cloud.physics_labels[hit][track_index] = physics
+            self.det_point_cloud.topology_labels[hit][track_index] = topology.value
+            self.det_point_cloud.particle_labels[hit][track_index] = self.trackid_pdgcode[particle]
+            self.det_point_cloud.physics_labels[hit][track_index] = physics.value
             self.det_point_cloud.unique_topologies[hit][track_index] = unique_topology
             self.det_point_cloud.unique_particles[hit][track_index] = trackid
-        self.det_point_cloud.topology_label[hit] = topology
-        self.det_point_cloud.particle_label[hit] = particle
-        self.det_point_cloud.physics_label[hit] = physics
+        self.det_point_cloud.topology_label[hit] = topology.value
+        self.det_point_cloud.particle_label[hit] = self.trackid_pdgcode[particle]
+        self.det_point_cloud.physics_label[hit] = physics.value
         self.det_point_cloud.unique_topology[hit] = unique_topology
         self.det_point_cloud.unique_particle[hit] = trackid
 
@@ -115,6 +115,8 @@ class SimulationWrangler:
         event_trajectories
     ):
         for ii, particle in enumerate(event_trajectories):
+            if abs(particle[13]) == 13:
+                print(ii, particle[13], particle[2], particle[14], particle[4])
             track_id = particle[2]                          
             self.trackid_parentid[track_id] = particle[4]
             self.trackid_pdgcode[track_id] = particle[13]
