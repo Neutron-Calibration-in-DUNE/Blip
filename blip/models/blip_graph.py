@@ -60,10 +60,6 @@ class BlipGraph(GenericModel):
         )
         self.config = config
 
-        # construct the model
-        self.forward_views      = {}
-        self.forward_view_map   = {}
-
         # construct augmentations
         self.construct_augmentations()
         # construct the model

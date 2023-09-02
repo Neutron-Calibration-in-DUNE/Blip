@@ -36,7 +36,7 @@ class L1Loss(GenericLoss):
         """Computes and returns/saves loss information"""
         loss = 0
         for ii, output in enumerate(self.outputs):
-            temp_loss = self.l1_loss[self.targets[ii]](
+            temp_loss = self.alpha[ii] * self.l1_loss[self.targets[ii]](
                 outputs[output].to(self.device), 
                 target[self.targets[ii]].unsqueeze(1).to(self.device)
             )
@@ -44,4 +44,4 @@ class L1Loss(GenericLoss):
             self.batch_loss[self.targets[ii]] = torch.cat(
                 (self.batch_loss[self.targets[ii]], torch.tensor([[temp_loss]], device=self.device)), dim=0
             )
-        return self.alpha * loss
+        return loss

@@ -43,7 +43,7 @@ class BinaryCrossEntropyLoss(GenericLoss):
         """Computes and returns/saves loss information"""
         loss = 0
         for ii, output in enumerate(self.outputs):
-            temp_loss = self.cross_entropy_loss[self.targets[ii]](
+            temp_loss = self.alpha[ii] * self.cross_entropy_loss[self.targets[ii]](
                 outputs[output].to(self.device), 
                 target[self.targets[ii]].to(self.device)
             )
@@ -51,4 +51,4 @@ class BinaryCrossEntropyLoss(GenericLoss):
             self.batch_loss[self.targets[ii]] = torch.cat(
                 (self.batch_loss[self.targets[ii]], torch.tensor([[temp_loss]], device=self.device)), dim=0
             )
-        return self.alpha * loss
+        return loss

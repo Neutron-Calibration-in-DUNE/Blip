@@ -141,6 +141,10 @@ class LossHandler:
         for item in self.config.keys():
             if item == "custom_loss_file":
                 continue
+            if item in self.losses:
+                self.logger.warn(f'duplicate loss specified in config! Attempting to arrange by target_type.')
+                if self.losses[item].target_type == self.config[item]['target_type']:
+                    self.logger.error(f'duplicate losses with the same target_type in config!')
             self.losses[item] = self.available_criterions[item](**self.config[item], meta=self.meta)
             self.batch_loss[item] = torch.empty(size=(0,1), dtype=torch.float, device=self.device)
             self.logger.info(f'added loss function "{item}" to LossHandler.')

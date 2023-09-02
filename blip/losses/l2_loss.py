@@ -10,7 +10,7 @@ class L2Loss(GenericLoss):
     """
     """
     def __init__(self,
-        name:           str='multi_class_ce_loss',
+        name:           str='l2_loss',
         alpha:          float=0.0,
         target_type:    str='classes',
         targets:        list=[],
@@ -35,8 +35,9 @@ class L2Loss(GenericLoss):
     ):
         """Computes and returns/saves loss information"""
         loss = 0
+        print(target)
         for ii, output in enumerate(self.outputs):
-            temp_loss = self.l2_loss[self.targets[ii]](
+            temp_loss = self.alpha[ii] * self.l2_loss[self.targets[ii]](
                 outputs[output].to(self.device), 
                 target[self.targets[ii]].unsqueeze(1).to(self.device)
             )
@@ -44,4 +45,4 @@ class L2Loss(GenericLoss):
             self.batch_loss[self.targets[ii]] = torch.cat(
                 (self.batch_loss[self.targets[ii]], torch.tensor([[temp_loss]], device=self.device)), dim=0
             )
-        return self.alpha * loss
+        return loss

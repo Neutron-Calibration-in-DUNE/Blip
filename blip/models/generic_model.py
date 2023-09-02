@@ -31,11 +31,14 @@ class GenericModel(nn.Module):
         self.config = config
         self.logger = Logger(self.name, file_mode='w')
         self.logger.info(f"configuring model.")
-        # now define the model
+
+        # forward view maps
         self.forward_views      = {}
         self.forward_view_map   = {}
+
         self.input_shape = None
         self.output_shape = None
+
         # device for the model
         self.meta = meta
         if "device" in self.meta:

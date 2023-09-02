@@ -13,5 +13,6 @@ from blip.dataset.common import *
 class GenericDataset:
     """
     """
-    def __init__(self):
+    def __init__(self, 
+    ):
         pass

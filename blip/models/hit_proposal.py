@@ -28,10 +28,10 @@ def get_activation(
     adjusted by the user for each application
 """
 hit_proposal_params = {
-    'in_channels':  1,
-    'out_channels': 1,  # this is the number of classes for the semantic segmentation
-    'filtrations':  [64, 128, 256, 512],    # the number of filters in each downsample
-    'double_conv_params': {
+    'uresnet_in_channels':  1,
+    'uresnet_out_channels': 1,  # this is the number of classes for the semantic segmentation
+    'uresnet_filtrations':  [64, 128, 256, 512],    # the number of filters in each downsample
+    'uresnet_double_conv_params': {
         'kernel':       3,
         'stride':       1,
         'dilation':     1,
@@ -39,13 +39,13 @@ hit_proposal_params = {
         'dimension':    3,
         'batch_norm':   True,
     },
-    'conv_transpose_params': {
+    'uresnet_conv_transpose_params': {
         'kernel':    2,
         'stride':    2,
         'dilation':  1,
         'dimension': 3,
     },
-    'max_pooling_params': {
+    'uresnet_max_pooling_params': {
         'kernel':   2,
         'stride':   2,
         'dilation': 1,
@@ -81,15 +81,15 @@ class HitProposalNetwork(GenericModel):
             if item not in self.config:
                 self.logger.error(f"parameter {item} was not specified in config file {self.config}")
                 raise AttributeError
-        if ((self.config["double_conv_params"]["dimension"] != 
-             self.config["conv_transpose_params"]["dimension"]) or 
-            (self.config["double_conv_params"]["dimension"] !=
-             self.config["max_pooling_params"]["dimension"])):
+        if ((self.config["uresnet_double_conv_params"]["dimension"] != 
+             self.config["uresnet_conv_transpose_params"]["dimension"]) or 
+            (self.config["uresnet_double_conv_params"]["dimension"] !=
+             self.config["uresnet_max_pooling_params"]["dimension"])):
             self.logger.error(
-                "dimensions for 'double_conv_params', 'conv_transpose_params' and" +  
-                f"'max_pooling_params' (with values {self.config['double_conv_params']['dimension']}" +
-                f", {self.config['conv_transpose_params']['dimension']} and " + 
-                f"{self.config['max_pooling_params']['dimension']}) do not match!"
+                "dimensions for 'uresnet_double_conv_params', 'uresnet_conv_transpose_params' and" +  
+                f"'uresnet_max_pooling_params' (with values {self.config['uresnet_double_conv_params']['dimension']}" +
+                f", {self.config['uresnet_conv_transpose_params']['dimension']} and " + 
+                f"{self.config['uresnet_max_pooling_params']['dimension']}) do not match!"
             )
             raise AttributeError
 
@@ -108,79 +108,79 @@ class HitProposalNetwork(GenericModel):
         _classification_dict = OrderedDict()
 
         # iterate over the down part
-        in_channels = self.config['in_channels']
-        for filter in self.config['filtrations']:
+        in_channels = self.config['uresnet_in_channels']
+        for filter in self.config['uresnet_filtrations']:
             _down_dict[f'down_filter_double_conv{filter}'] = DoubleConv(
                 name=f'down_{filter}',
                 in_channels=in_channels,
                 out_channels=filter,
-                kernel_size=self.config['double_conv_params']['kernel_size'],
-                stride=self.config['double_conv_params']['stride'],
-                dilation=self.config['double_conv_params']['dilation'],
-                dimension=self.config['double_conv_params']['dimension'],
-                activation=self.config['double_conv_params']['activation'],
-                batch_norm=self.config['double_conv_params']['batch_norm'],
+                kernel_size=self.config['uresnet_double_conv_params']['kernel_size'],
+                stride=self.config['uresnet_double_conv_params']['stride'],
+                dilation=self.config['uresnet_double_conv_params']['dilation'],
+                dimension=self.config['uresnet_double_conv_params']['dimension'],
+                activation=self.config['uresnet_double_conv_params']['activation'],
+                batch_norm=self.config['uresnet_double_conv_params']['batch_norm'],
             )
             # set new in channel to current filter size
             in_channels = filter
 
         # iterate over the up part
-        for filter in reversed(self.config['filtrations']):
+        for filter in reversed(self.config['uresnet_filtrations']):
             _up_dict[f'up_filter_transpose{filter}'] = ME.MinkowskiConvolutionTranspose(
                 in_channels=2*filter,   # adding the skip connection, so the input doubles
                 out_channels=filter,
-                kernel_size=self.config['conv_transpose_params']['kernel_size'],
-                stride=self.config['conv_transpose_params']['stride'],
-                dilation=self.config['conv_transpose_params']['dilation'],
-                dimension=self.config['conv_transpose_params']['dimension']    
+                kernel_size=self.config['uresnet_conv_transpose_params']['kernel_size'],
+                stride=self.config['uresnet_conv_transpose_params']['stride'],
+                dilation=self.config['uresnet_conv_transpose_params']['dilation'],
+                dimension=self.config['uresnet_conv_transpose_params']['dimension']    
             )
             _up_dict[f'up_filter_double_conv{filter}'] = DoubleConv(
                 name=f'up_{filter}',
                 in_channels=2*filter,
                 out_channels=filter,
-                kernel_size=self.config['double_conv_params']['kernel_size'],
-                stride=self.config['double_conv_params']['stride'],
-                dilation=self.config['double_conv_params']['dilation'],
-                dimension=self.config['double_conv_params']['dimension'],
-                activation=self.config['double_conv_params']['activation'],
-                batch_norm=self.config['double_conv_params']['batch_norm'],
+                kernel_size=self.config['uresnet_double_conv_params']['kernel_size'],
+                stride=self.config['uresnet_double_conv_params']['stride'],
+                dilation=self.config['uresnet_double_conv_params']['dilation'],
+                dimension=self.config['uresnet_double_conv_params']['dimension'],
+                activation=self.config['uresnet_double_conv_params']['activation'],
+                batch_norm=self.config['uresnet_double_conv_params']['batch_norm'],
             )
 
         # create bottleneck layer
         self.bottleneck = DoubleConv(
-            name=f"bottleneck_{self.config['filtrations'][-1]}",
-            in_channels=self.config['filtrations'][-1],
-            out_channels=2*self.config['filtrations'][-1],
-            kernel_size=self.config['double_conv_params']['kernel_size'],
-            stride=self.config['double_conv_params']['stride'],
-            dilation=self.config['double_conv_params']['dilation'],
-            dimension=self.config['double_conv_params']['dimension'],
-            activation=self.config['double_conv_params']['activation'],
-            batch_norm=self.config['double_conv_params']['batch_norm'],
+            name=f"bottleneck_{self.config['uresnet_filtrations'][-1]}",
+            in_channels=self.config['uresnet_filtrations'][-1],
+            out_channels=2*self.config['uresnet_filtrations'][-1],
+            kernel_size=self.config['uresnet_double_conv_params']['kernel_size'],
+            stride=self.config['uresnet_double_conv_params']['stride'],
+            dilation=self.config['uresnet_double_conv_params']['dilation'],
+            dimension=self.config['uresnet_double_conv_params']['dimension'],
+            activation=self.config['uresnet_double_conv_params']['activation'],
+            batch_norm=self.config['uresnet_double_conv_params']['batch_norm'],
         )
 
         # create output layer
         for ii, classification in enumerate(self.config['classifications']):
             _classification_dict[f"{classification}"] = ME.MinkowskiConvolution(
-                in_channels=self.config['filtrations'][0],      # to match first filtration
-                out_channels=self.config['out_channels'][ii],   # to the number of classes
+                in_channels=self.config['uresnet_filtrations'][0],      # to match first filtration
+                out_channels=self.config['uresnet_out_channels'][ii],   # to the number of classes
                 kernel_size=1,                                  # a one-one convolution
-                dimension=self.config['double_conv_params']['dimension'],
+                dimension=self.config['uresnet_double_conv_params']['dimension'],
             )
 
         # create the max pooling layer
         self.max_pooling = ME.MinkowskiMaxPooling(
-            kernel_size=self.config['max_pooling_params']['kernel_size'],
-            stride=self.config['max_pooling_params']['stride'],
-            dilation=self.config['max_pooling_params']['dilation'],
-            dimension=self.config['max_pooling_params']['dimension']
+            kernel_size=self.config['uresnet_max_pooling_params']['kernel_size'],
+            stride=self.config['uresnet_max_pooling_params']['stride'],
+            dilation=self.config['uresnet_max_pooling_params']['dilation'],
+            dimension=self.config['uresnet_max_pooling_params']['dimension']
         )
 
         # create the dictionaries
         self.module_down_dict = nn.ModuleDict(_down_dict)
         self.module_up_dict = nn.ModuleDict(_up_dict)
         self.classification_dict = nn.ModuleDict(_classification_dict)
-        self.config['in_channels'] = self.config['filtrations'][0]
+        self.config['ppn_in_channels'] = self.config['uresnet_filtrations'][0]
         self.point_proposal = PointProposalNetwork(f"{self.name}_ppn", self.config, self.meta)
         # record the info
         self.logger.info(f"Constructed UNet with down: {self.module_down_dict} and up: {self.module_up_dict}.")
@@ -205,13 +205,13 @@ class HitProposalNetwork(GenericModel):
         # record the skip connections
         skip_connections = {}
         # iterate over the down part
-        for filter in self.config['filtrations']:
+        for filter in self.config['uresnet_filtrations']:
             x = self.module_down_dict[f'down_filter_double_conv{filter}'](x)
             skip_connections[f'{filter}'] = x
             x = self.max_pooling(x)
         # through the bottleneck layer
         x = self.bottleneck(x)
-        for filter in reversed(self.config['filtrations']):
+        for filter in reversed(self.config['uresnet_filtrations']):
             x = self.module_up_dict[f'up_filter_transpose{filter}'](x)
             # concatenate the skip connections
             skip_connection = skip_connections[f'{filter}']

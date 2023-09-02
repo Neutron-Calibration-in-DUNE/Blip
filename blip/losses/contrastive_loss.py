@@ -1,5 +1,5 @@
 """
-Wrapper for NTXent loss
+Wrapper for Contrastive loss
 """
 import torch
 import torch.nn as nn
@@ -11,7 +11,7 @@ class ContrastiveLoss(GenericLoss):
     """
     """
     def __init__(self,
-        name:           str='ntxent_loss',
+        name:           str='contrastive_loss',
         alpha:          float=0.0,
         target_type:    str='classes',
         targets:        list=[],
@@ -27,7 +27,7 @@ class ContrastiveLoss(GenericLoss):
         )
         self.pos_margin = pos_margin
         self.neg_margin = neg_margin
-        self.ntx_entropy_loss = {
+        self.contrastive_loss = {
             key: contrastive_loss(pos_margin=self.pos_margin, neg_margin=self.neg_margin)
             for key in self.targets
         }
@@ -39,7 +39,7 @@ class ContrastiveLoss(GenericLoss):
         """Computes and returns/saves loss information"""
         loss = 0
         for ii, output in enumerate(self.outputs):
-            temp_loss = self.ntx_entropy_loss[self.targets[ii]](
+            temp_loss = self.alpha[ii] * self.contrastive_loss[self.targets[ii]](
                 outputs[output].to(self.device), 
                 target[self.targets[ii]].to(self.device)
             )
@@ -47,4 +47,4 @@ class ContrastiveLoss(GenericLoss):
             self.batch_loss[self.targets[ii]] = torch.cat(
                 (self.batch_loss[self.targets[ii]], torch.tensor([[temp_loss]], device=self.device)), dim=0
             )
-        return self.alpha * loss
+        return loss

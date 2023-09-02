@@ -27,7 +27,12 @@ class GenericLoss:
     ):
         self.name = name
         self.logger = Logger(self.name, output="both", file_mode="w")
-        self.alpha = alpha
+        if type(alpha) != list:
+            self.alpha = [alpha for ii in range(len(targets))]
+        else:
+            if len(alpha) != len(targets):
+                self.logger.error(f'specified alpha list {alpha} is not the same length as the number of targets ({targets})!')
+            self.alpha = alpha
         self.target_type = target_type
         self.targets = targets
         self.outputs = outputs

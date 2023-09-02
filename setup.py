@@ -54,7 +54,8 @@ setup(
         'console_scripts': [
             'arrakis = blip.programs.run_arrakis:run',
             'blip = blip.programs.run_blip:run',
-            'blip_display = blip.programs.run_blip_server:run'
+            'blip_display = blip.programs.run_blip_server:run',
+            'mssm = blip.programs.run_mssm:run'
         ],
     },
 )

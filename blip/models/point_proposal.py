@@ -27,7 +27,7 @@ point_proposal_config = {
     'apply_non_max_suppression':    True,
     'dimension':            3,
     # shared convolution section
-    'in_channels':          128, 
+    'ppn_in_channels':      128, 
     'shared_convolutions':  [256, 512],
     'shared_kernel_size':   3,
     'shared_stride':        1,
@@ -59,7 +59,7 @@ class PointProposalNetwork(ME.MinkowskiNetwork):
         super(PointProposalNetwork, self).__init__(self.config['dimension'])
         self.proposal_type = self.config['proposal_type']
         self.apply_non_max_suppression = self.config['apply_non_max_suppression']
-        self.in_channels = self.config['in_channels']
+        self.in_channels = self.config['ppn_in_channels']
         self.out_channels = self.config['shared_convolutions'][-1]
         self.dimension = self.config['dimension']
         self.batch_norm = self.config['shared_batch_norm']
@@ -86,7 +86,7 @@ class PointProposalNetwork(ME.MinkowskiNetwork):
         _regression_layers = OrderedDict()
         _classification_layers = OrderedDict()
 
-        in_channels = self.config['in_channels']
+        in_channels = self.config['ppn_in_channels']
         for ii, layer in enumerate(self.config['shared_convolutions']):
             _convolution_layers[f'ppn_convolution_{ii}'] = ME.MinkowskiConvolution(
                 in_channels=in_channels,
