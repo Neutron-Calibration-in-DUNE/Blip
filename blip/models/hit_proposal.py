@@ -181,7 +181,10 @@ class HitProposalNetwork(GenericModel):
         self.module_up_dict = nn.ModuleDict(_up_dict)
         self.classification_dict = nn.ModuleDict(_classification_dict)
         self.config['ppn_in_channels'] = self.config['uresnet_filtrations'][0]
+
+        # create the point proposal network
         self.point_proposal = PointProposalNetwork(f"{self.name}_ppn", self.config, self.meta)
+        
         # record the info
         self.logger.info(f"Constructed UNet with down: {self.module_down_dict} and up: {self.module_up_dict}.")
         self.logger.info(f"Bottleneck layer: {self.bottleneck}, output layer: {self.classification_dict} and max pooling: {self.max_pooling}.")

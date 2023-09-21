@@ -21,57 +21,44 @@ from blip.utils.loader import Loader
 from blip.module import ModuleHandler
 from blip.module.common import module_types
 
-def parse_command_line_config(
-    params
+def wrangle_data(
+    config_file:    str,
+    run_name:       str='default',
+    local_scratch:  str='./',
+    local_blip:     str='./',
+    local_data:     str='./',
+    anomaly:        bool=False      
 ):
-    # set up parameters
-    if params.name is not None:
-        name = params.name
-    else:
-        name = 'default'
-    
-    # set up local scratch and local blip
-    if params.local_scratch is not None:
-        if not os.path.isdir(params.local_scratch):
-            params.local_scratch = './'
-    else:
-        params.local_scratch = './'
-    if params.local_blip is not None:
-        if not os.path.isdir(params.local_blip):
-            params.local_blip = './'
-    else:
-        params.local_blip = './'
-
+    # set up directories
+    if not os.path.isdir(local_scratch):
+        local_scratch = './'
+    if not os.path.isdir(local_blip):
+        local_blip = './'
+    if not os.path.isdir(local_data):
+        local_data = './'
     local_blip_files = [
-        params.local_blip + '/' + file 
-        for file in os.listdir(path=os.path.dirname(params.local_blip))
+        local_blip + '/' + file 
+        for file in os.listdir(path=os.path.dirname(local_blip))
     ]
-
-    # set up local data
-    if params.local_data is not None:
-        if not os.path.isdir(params.local_data):
-            params.local_data = './'
-    else:
-        params.local_data = './'
-
     local_data_files = [
-        params.local_data + '/' + file 
-        for file in os.listdir(path=os.path.dirname(params.local_data))
+        local_data + '/' + file 
+        for file in os.listdir(path=os.path.dirname(local_data))
     ]
-    os.environ['LOCAL_SCRATCH'] = params.local_scratch
-    os.environ['LOCAL_BLIP'] = params.local_blip
-    os.environ['LOCAL_DATA'] = params.local_data
+    os.environ['LOCAL_SCRATCH'] = local_scratch
+    os.environ['LOCAL_BLIP'] = local_blip
+    os.environ['LOCAL_DATA'] = local_data
 
     # begin parsing configuration file
-    if params.config_file is None:
+    if config_file is None:
         logger.error(f'no config_file specified in parameters!')
-    config = ConfigParser(params.config_file).data
-    logger = Logger(name, output="both", file_mode="w")
+
+    config = ConfigParser(config_file).data
+    logger = Logger(run_name, output="both", file_mode="w")
     logger.info("configuring blip...")
 
-    if "anomaly" in params:
-        logger.info(f'setting anomaly detection to {params.anomaly}')
-        torch.autograd.set_detect_anomaly(bool(params.anomaly))
+    if anomaly:
+        logger.info(f'setting anomaly detection to {anomaly}')
+        torch.autograd.set_detect_anomaly(bool(anomaly))
 
     if "module" not in config.keys():
         logger.error(f'"module" section not specified in config!')
@@ -84,16 +71,16 @@ def parse_command_line_config(
         logger.info(f"system_info - {key}: {value}")
     
     meta = {
-        'config_file':      params.config_file,
-        'local_scratch':    params.local_scratch,
-        'local_blip':       params.local_blip,
-        'local_data':       params.local_data,
+        'config_file':      config_file,
+        'local_scratch':    local_scratch,
+        'local_blip':       local_blip,
+        'local_data':       local_data,
         'local_blip_files': local_blip_files,
         'local_data_files': local_data_files
     }
-    logger.info(f'"local_scratch" directory set to: {params.local_scratch}.')
-    logger.info(f'"local_blip" directory set to: {params.local_blip}.')
-    logger.info(f'"local_data" directory set to: {params.local_data}.')
+    logger.info(f'"local_scratch" directory set to: {local_scratch}.')
+    logger.info(f'"local_blip" directory set to: {local_blip}.')
+    logger.info(f'"local_data" directory set to: {local_data}.')
     
     # set verbosity of logger
     if "verbose" in config["module"]:
@@ -176,19 +163,19 @@ def parse_command_line_config(
             logger.error(f'simulation_type not specified in dataset config!')
         if dataset_config["simulation_type"] == "LArSoft":
             arrakis_dataset = Arrakis(
-                name,
+                run_name,
                 dataset_config,
                 meta
             )
         elif dataset_config["simulation_type"] == "larnd-sim":
             arrakis_dataset = ArrakisND(
-                name,
+                run_name,
                 dataset_config,
                 meta
             )
         elif dataset_config["simulation_type"] == "MSSM":
             mssm_dataset = MSSM(
-                name,
+                run_name,
                 dataset_config,
                 meta
             )
@@ -197,7 +184,7 @@ def parse_command_line_config(
 
     logger.info("configuring dataset.")
     dataset = BlipDataset(
-        name,
+        run_name,
         dataset_config,
         meta
     )
@@ -207,7 +194,7 @@ def parse_command_line_config(
     logger.info("configuring loader.")
     loader_config = config['loader']
     loader = Loader(
-        name,
+        run_name,
         loader_config,
         meta
     )
@@ -217,8 +204,46 @@ def parse_command_line_config(
     logger.info("configuring modules.")
     module_config = config
     module_handler = ModuleHandler(
-        name,
+        run_name,
         module_config,
         meta=meta
     )
     return meta, module_handler
+
+def parse_command_line_config(
+    params
+):
+    # set up parameters
+    if params.name is not None:
+        run_name = params.name
+    else:
+        run_name = 'default'
+    
+    # set up local scratch and local blip
+    if params.local_scratch is not None:
+        if not os.path.isdir(params.local_scratch):
+            params.local_scratch = './'
+    else:
+        params.local_scratch = './'
+    if params.local_blip is not None:
+        if not os.path.isdir(params.local_blip):
+            params.local_blip = './'
+    else:
+        params.local_blip = './'
+
+    # set up local data
+    if params.local_data is not None:
+        if not os.path.isdir(params.local_data):
+            params.local_data = './'
+    else:
+        params.local_data = './'
+
+    return wrangle_data(
+        params.config_file,
+        params.name,
+        params.local_scratch,
+        params.local_blip,
+        params.local_data,
+        params.anomaly
+    )
+    
