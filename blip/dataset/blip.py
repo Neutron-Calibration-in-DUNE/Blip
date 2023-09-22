@@ -727,23 +727,23 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             # view, wire_plane, tpc, tpc_reco, view_cluster, tpc_cluster
             if self.meta['dataset_type'] == 'vanilla':
                 features = data['features']
-                classes = data['classes']
+                classes  = data['classes']
                 for ii in range(len(features)):
                     event_features = np.expand_dims(features[ii], axis=0)
-                    event_classes = np.expand_dims(classes[ii], axis=0)
+                    event_classes  = np.expand_dims(classes[ii], axis=0)
                     self.process_vanilla(
                         event_features, event_classes, raw_path
                     )
             elif self.meta['dataset_type'] == 'view':
                 features = data[f'view_{self.meta["view"]}_features']
-                classes = data[f'view_{self.meta["view"]}_classes']
+                classes  = data[f'view_{self.meta["view"]}_classes']
                 clusters = data[f'view_{self.meta["view"]}_clusters']
                 hits = data[f'view_{self.meta["view"]}_hits']
                 # Iterate over all events in this file
                 for ii in range(len(features)):
                     # gather event features and classes
                     event_features = features[ii]
-                    event_classes = classes[ii]
+                    event_classes  = classes[ii]
                     event_clusters = clusters[ii]
                     event_hits = hits[ii]
                     self.process_view(
@@ -752,14 +752,14 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                     )
             elif self.meta['dataset_type'] == 'view_cluster':
                 features = data[f'view_{self.meta["view"]}_features']
-                classes = data[f'view_{self.meta["view"]}_classes']
+                classes  = data[f'view_{self.meta["view"]}_classes']
                 clusters = data[f'view_{self.meta["view"]}_clusters']
                 hits = data[f'view_{self.meta["view"]}_hits']
                 # Iterate over all events in this file
                 for ii in range(len(features)):
                     # gather event features and classes
                     event_features = features[ii]
-                    event_classes = classes[ii]
+                    event_classes  = classes[ii]
                     event_clusters = clusters[ii]
                     event_hits = hits[ii]
                     self.process_view_cluster(
@@ -774,6 +774,15 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 pass
             elif self.meta['dataset_type'] == 'tpc_cluster':
                 pass
+            elif self.meta['dataset_type'] == 'merge_tree':
+                features = data['features']
+                classes  = data['classes']
+                for ii in range(len(features)):
+                    event_features = np.expand_dims(features[ii], axis=0)
+                    event_classes  = np.expand_dims(classes[ii], axis=0)
+                    self.process_merge_tree(
+                        event_features, event_classes, raw_path
+                    )
         self.number_of_events = self.index
         self.logger.info(f"processed {self.number_of_events} events.")
 
@@ -905,6 +914,32 @@ class BlipDataset(InMemoryDataset, GenericDataset):
 
         if self.pre_transform is not None:
             event = self.pre_transform(event)
+
+        torch.save(event, osp.join(self.processed_dir, f'data_{self.index}.pt'))
+        self.meta['input_events'][raw_path].append([self.index])
+        self.index += 1
+
+
+    def process_merge_tree(self,
+        event_features, event_classes, raw_path
+    ):
+        event_positions, event_features, event_classes, mask = self.apply_vanilla_event_masks(
+            event_features, event_classes
+        )
+        self.meta['event_mask'][raw_path].append(mask)
+        event = Data(
+            pos=torch.tensor(event_positions).type(self.meta['position_type']),
+            x=torch.tensor(event_features).type(self.meta['feature_type']),
+            category=torch.tensor(event_classes).type(self.meta['class_type']),
+        )
+        if self.pre_filter is not None:
+            event = self.pre_filter(event)
+
+        if self.pre_transform is not None:
+            event = self.pre_transform(event)
+    
+        #TO DO: Add another data array to the dataset to save the merged tree
+        # event.merge_tree = torch.tensor(merge_tree).type(self.meta['merge_tree_type'])
 
         torch.save(event, osp.join(self.processed_dir, f'data_{self.index}.pt'))
         self.meta['input_events'][raw_path].append([self.index])
