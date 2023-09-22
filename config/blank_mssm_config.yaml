@@ -1,0 +1,42 @@
+# Test config file for Blip
+module:
+  module_name:  'blank_config'
+  module_type:  ['data']
+  module_mode:  ['mssm']
+  gpu:          False
+  gpu_device:   0
+  verbose:      False
+
+dataset:
+  # ---- Arrakis ----
+  # This section defines the 'arrakis.py' submodule which takes in
+  # outputs from different Arrakis iterations and constructs a common dataset format
+  # in .npz or .hdf5 files.
+  # If this is the first time processing the simulation output
+  process_simulation: False
+  process_type:       ["cmssm"]
+  simulation_type:    'MSSM'
+  simulation_folder:  "/data/physics/cmssm_random_new/"
+  simulation_files:   []
+  # ---- Dataset ----
+  dataset_type:   "vanilla"
+  dataset_folder: "data/cmssm/"
+  dataset_files:  ['cmssm.npz']
+  normalized:     False
+  root:           "."
+  skip_processing:  False
+  transform:        null
+  pre_transform:    null
+  pre_filter:       null
+  # ---- variables ----
+  features:       ['gut_m0','gut_m12','gut_A0','gut_tanb','sign_mu']
+  classes:        ['higgs','dark_matter','lightest_lsp']
+
+loader:
+  loader_type:      "vanilla"
+  batch_size:       1
+  test_split:       0.0
+  test_seed:        0
+  validation_split: 0.0
+  validation_seed:  0
+  num_workers:      1

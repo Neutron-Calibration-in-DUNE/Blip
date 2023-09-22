@@ -10,3 +10,4 @@ blip.egg-info/
 *data/
 *.csv
 *plots/
+*.DS_Store

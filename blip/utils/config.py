@@ -39,6 +39,8 @@ class ConfigParser:
     ):
         with open(config_file, 'r') as file:
             temp_data = yaml.safe_load(file)
+            if temp_data == None:
+                self.logger.error(f'config_file {config_file} returned "None"!  Is this config empty?')
             self.nested_configs.append(temp_data)
         if 'load_config' in temp_data.keys():
             self.nested_config_files.append(temp_data['load_config'])

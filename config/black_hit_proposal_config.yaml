@@ -135,7 +135,9 @@ model:
     regression_kernel_size: 1
 
 criterion:
-    
+    FocalLoss:
+      alpha:  1.0
+      
 metrics:
 
 callbacks:

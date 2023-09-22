@@ -14,7 +14,7 @@ dataset:
   # in .npz or .hdf5 files.
   # If this is the first time processing the simulation output
   process_simulation: True
-  process_type:       ["view"]
+  process_type:       ["wire_plane_point_cloud"]
   simulation_type:    'LArSoft'
-  simulation_folder:  "/data/"
-  simulation_files:   ["labeling_sim_arrakis.root"]
+  simulation_folder:  "/data/physics/"
+  simulation_files:   ["labeling_sim_arrakis_0.root"]
