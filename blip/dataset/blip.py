@@ -168,10 +168,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 'view_2_source_points', 'view_2_topology_points', 'view_2_particle_points', 'view_2_physics_points', 'view_2_total_points',
                 'view_0_adc_sum', 'view_1_adc_sum', 'view_2_adc_sum', 
             ]:
-                try:
-                    self.meta[point_label] = temp_arrakis_meta[0][point_label]
-                except:
-                    self.logger.warn(f'no "{point_label}" in meta!')
+                try:    self.meta[point_label] = temp_arrakis_meta[0][point_label]
+                except: self.logger.warn(f'no "{point_label}" in meta!')
         
         # Check that meta info is consistent over the different files
         for ii in range(len(temp_arrakis_meta)-1):
@@ -395,6 +393,8 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         if self.meta['dataset_type'] == 'view':
             self.meta['view'] = self.config['view']
             self.meta['position_type'] = torch.int
+        if self.meta['dataset_type'] == 'merge_tree':
+            self.meta['nodes'] = torch.dict
         elif self.meta['dataset_type'] == 'view_cluster':
             self.meta['view'] = self.config['view']
             self.meta['position_type'] = torch.float
@@ -766,23 +766,19 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                         event_features, event_classes, 
                         event_clusters, event_hits, raw_path
                     )
-            elif self.meta['dataset_type'] == 'wire_plane':
-                pass
-            elif self.meta['dataset_type'] == 'tpc':
-                pass
-            elif self.meta['dataset_type'] == 'tpc_reco':
-                pass
-            elif self.meta['dataset_type'] == 'tpc_cluster':
-                pass
-            elif self.meta['dataset_type'] == 'merge_tree':
+            elif self.meta['dataset_type'] == 'merge_tree': 
                 features = data['features']
                 classes  = data['classes']
                 for ii in range(len(features)):
                     event_features = np.expand_dims(features[ii], axis=0)
                     event_classes  = np.expand_dims(classes[ii], axis=0)
-                    self.process_merge_tree(
-                        event_features, event_classes, raw_path
-                    )
+                    self.process_merge_tree(event_features, event_classes, raw_path)
+            
+            elif self.meta['dataset_type'] == 'wire_plane':  pass
+            elif self.meta['dataset_type'] == 'tpc':         pass
+            elif self.meta['dataset_type'] == 'tpc_reco':    pass
+            elif self.meta['dataset_type'] == 'tpc_cluster': pass
+
         self.number_of_events = self.index
         self.logger.info(f"processed {self.number_of_events} events.")
 
@@ -928,19 +924,14 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         )
         self.meta['event_mask'][raw_path].append(mask)
         event = Data(
-            pos=torch.tensor(event_positions).type(self.meta['position_type']),
-            x=torch.tensor(event_features).type(self.meta['feature_type']),
-            category=torch.tensor(event_classes).type(self.meta['class_type']),
+            pos      = torch.tensor(event_positions).type(self.meta['position_type']),
+            x        = torch.tensor(event_features) .type(self.meta['feature_type']) ,
+            category = torch.tensor(event_classes)  .type(self.meta['class_type'])   ,
+            nodes    = torch.tensor(event_classes)  .type(self.meta['nodes'])  ,
         )
-        if self.pre_filter is not None:
-            event = self.pre_filter(event)
-
-        if self.pre_transform is not None:
-            event = self.pre_transform(event)
+        if self.pre_filter is not None:    event = self.pre_filter(event)
+        if self.pre_transform is not None: event = self.pre_transform(event)
     
-        #TO DO: Add another data array to the dataset to save the merged tree
-        # event.merge_tree = torch.tensor(merge_tree).type(self.meta['merge_tree_type'])
-
         torch.save(event, osp.join(self.processed_dir, f'data_{self.index}.pt'))
         self.meta['input_events'][raw_path].append([self.index])
         self.index += 1

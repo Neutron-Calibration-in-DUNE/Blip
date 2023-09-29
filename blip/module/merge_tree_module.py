@@ -8,7 +8,7 @@ from torch    import nn
 from time     import time
 from datetime import datetime
 
-import os,csv,random,copy,ot
+import os,csv,random,copy,ot,persim,warnings
 import numpy             as np
 import networkx          as nx
 import gudhi             as gd
@@ -21,9 +21,22 @@ from bisect                   import bisect_left
 from hopcroftkarp             import HopcroftKarp
 
 from blip.utils.logger          import Logger
+from blip.utils.utils           import print_colored
 from blip.module.generic_module import GenericModule
+warnings.filterwarnings("ignore")
+
 
 generic_config = { "no_params":    "no_values" }
+
+def create_merge_tree(pointCloud,debug=False):
+    
+    L = linkage(pointCloud)
+    T, height = linkage_to_merge_tree(L,pointCloud)
+    if debug:
+        print_colored("-> linkage output:\n %s"%(L),"DEBUG")
+        print_colored("-> your tree:\n %s"%(T),"DEBUG")
+        print_colored("-> your heights:\n %s "%(height),"DEBUG")
+    return L, T, height
 
 class MergeTreeModule(GenericModule):
     """
@@ -34,14 +47,10 @@ class MergeTreeModule(GenericModule):
     The result is a 'decorated merge tree'.
     """
 
-    def set_device(self,
-        device
-    ):
+    def set_device(self, device):
         self.device = device
     
-    def set_config(self,
-        config_file:    str
-    ):
+    def set_config(self, config_file: str):
         self.config_file = config_file
         self.parse_config()
     
@@ -61,12 +70,10 @@ class MergeTreeModule(GenericModule):
                 leave=rewrite_bar,
                 colour='magenta'
             )
-        else:
-            inference_loop = enumerate(inference_loader, 0)
+        else: inference_loop = enumerate(inference_loader, 0)
         for ii, data in inference_loop:
             vietoris_rips, tree = self.merge_tree.create_merge_tree(
-                data
-            )    
+                data)    
 
     """
     Creating a Decorated Merge Tree
@@ -910,7 +917,7 @@ def visualize_DMT_pointcloud(T,height,dgm1,data,tree_thresh,barcode_thresh,offse
     - pos, edges, colors, weights are parameters used for visualizing a networkx graph. See the final code block
         here for example usage.
     """
-    print('Generating Decorated Merge Tree...')
+    print_colored('[INIT] visualize_DMT_pointcloud',"INFO")
     # Make a copy of T, height
     T_tmp      = T.copy()
     height_tmp = height.copy()
@@ -981,9 +988,7 @@ def visualize_DMT_pointcloud(T,height,dgm1,data,tree_thresh,barcode_thresh,offse
     if verbose: print('Adding Bars...')
 
     for bar in dgm1_thresh:
-
         for leaf, barcode in leaf_barcode.items():
-
             if list(bar) in barcode:
                 bar_leaf = leaf
                 break
@@ -1045,7 +1050,6 @@ def visualize_DMT_pointcloud(T,height,dgm1,data,tree_thresh,barcode_thresh,offse
 
     if draw:
         if verbose: print('Creating Figure...')
-
         plt.figure(figsize = (7,7))
         nx.draw_networkx(T_DMT, pos = pos_DMT, edge_color=colors, width=weights,node_size = 0,with_labels = False)
         ax = plt.gca()

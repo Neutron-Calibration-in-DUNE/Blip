@@ -9,6 +9,7 @@ from scipy.cluster.hierarchy import dendrogram, linkage, cut_tree
 
 import sys; sys.path.insert(0, '..')
 from blip.module.merge_tree_module import *
+from blip.utils.utils              import print_colored
 
 
 class MergeTree:
@@ -23,10 +24,11 @@ class MergeTree:
                 height        = None,
                 pointCloud    = None,
                 node_distance = 0,
-                simplify      = False
+                simplify      = False,
+                debug         = False
                 ):
        
-        print("START: Merge Tree Class")
+        print_colored("[INIT] Merge Tree Class","INFO")
         # self.name = name + "_ml_module"
         self.T              = tree
         self.pointCloud     = pointCloud
@@ -36,22 +38,13 @@ class MergeTree:
         self.label          = None
         self.inverted_label = None
 
-        L = linkage(pointCloud)
-        print("HERE",L)
-        T, height = linkage_to_merge_tree(L,pointCloud)
-        print("T",T)
-        print("height",height)
-
+        L, T, height = create_merge_tree(pointCloud,debug)
         self.tree   = T
         self.height = height
 
         ### THIS IS NOT WORKING NOW simplify=False by default ###
         if simplify:
-            print("entering here")
+            print_colored("SIMPLIFY==TRUE in MergeTree Class","WARNING")
             TNew, heightNew = simplify_merge_tree(self.tree,self.height)
             self.tree   = TNew
             self.height = heightNew
-
-
-    def create_merge_tree(self, data):
-        pass

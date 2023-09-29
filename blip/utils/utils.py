@@ -228,3 +228,34 @@ def save_model(
     shutil.move(".logs/", f"runs/{now}")
     shutil.move(".checkpoints/", f"runs/{now}")
     shutil.copy(config_file, f"runs/{now}")
+
+def color_list(color):
+    '''
+    Function which returns the color in ascii.
+    '''
+    colors = {
+              "DEBUG":   '\033[35m', #PURPLE
+              "ERROR":   '\033[91m', #RED
+              "SUCCESS": '\033[92m', #GREEN
+              "WARNING": '\033[93m', #YELLOW
+              "INFO":    '\033[94m', #BLUE
+              "blue":    '\033[94m', #BLUE
+              "magenta": '\033[95m',
+              "cyan":    '\033[96m',
+              "white":   '\033[97m',
+              "black":   '\033[98m',
+              "end":     '\033[0m'
+              }
+    
+    return colors[color]
+
+def print_colored(string, color, bold=False, end = "\n"):
+    '''
+    Print a string in a specific color.
+    '''  
+    
+    color = color_list(color)
+    if bold == False: output = color + str(string) + color_list("end")
+    if bold == True:  output = '\033[1m' + color + string + color_list("end")
+    
+    print(output, end = end)
