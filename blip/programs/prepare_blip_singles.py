@@ -38,11 +38,11 @@ def create_class_gif(self,
         )
         gif_frames.append(
             imageio.v2.imread(
-                f"plots/.img/img_{ii}.png"
+                f"blip_plots/.img/img_{ii}.png"
             )
         )
     imageio.mimsave(
-        f"plots/{input_file}_{class_label}.gif",
+        f"blip_plots/{input_file}_{class_label}.gif",
         gif_frames,
         duration=2000
     )
@@ -72,7 +72,7 @@ def create_class_gif_frame(
     plt.legend(loc='upper right')
     plt.tight_layout()
     plt.savefig(
-        f"plots/.img/img_{image_number}.png",
+        f"blip_plots/.img/img_{image_number}.png",
         transparent = False,
         facecolor = 'white'
     )
@@ -93,10 +93,12 @@ def generate_decay_singles(
     from Arrakis, and separates out individual instances
     of a particular decay into different events.
     """
-    if not os.path.isdir("plots/"):
-        os.makedirs("plots/")
-    if not os.path.isdir("plots/.img"):
-        os.makedirs("plots/.img")
+    if not os.path.isdir("data/"):
+        os.makedirs("data/")
+    if not os.path.isdir("blip_plots/"):
+        os.makedirs("blip_plots/")
+    if not os.path.isdir("blip_plots/.img"):
+        os.makedirs("blip_plots/.img")
 
     decay_types = {
         16: "ar39",
@@ -305,26 +307,28 @@ def generate_decay_singles(
                     )
                     gif_frames.append(
                         imageio.v2.imread(
-                            f"plots/.img/img_{event}.png"
+                            f"blip_plots/.img/img_{event}.png"
                         )
                     )
 
             if len(gif_frames) == 0:
                 continue
             imageio.mimsave(
-                f"plots/single_decay_{decay_type}.{ii}_{class_label}.gif",
+                f"blip_plots/single_decay_{decay_type}.{ii}_{class_label}.gif",
                 gif_frames,
                 duration=2000
             )
 
             # save new events to new tree
             if not consolidate:
-                with uproot.recreate(f"single_decay_{decay_type}.{ii}.root") as r:
+                with uproot.recreate(f"data/single_decay_{decay_type}.{ii}.root") as r:
                     r['ana/mc_wire_plane_point_cloud'] = new_wire_plane
 
     if consolidate:
-        with uproot.recreate(f"single_decay_{decay_type}.root") as r:
+        with uproot.recreate(f"data/single_decay_{decay_type}.root") as r:
             r['ana/mc_wire_plane_point_cloud'] = new_wire_plane
+
+    os.rmdir("blip_plots/.img")
 
     fig, axs = plt.subplots()
     axs.hist(energies, bins=50)
@@ -332,12 +336,12 @@ def generate_decay_singles(
     axs.set_ylabel("Counts")
     axs.set_title(f"Energy Distribution for {class_label}")
     plt.tight_layout()
-    plt.savefig(f'plots/single_decay_{decay_type}_{decay_energy}_energies.png')
+    plt.savefig(f'blip_plots/single_decay_{decay_type}_{decay_energy}_energies.png')
 
-    with open(f"single_decay_{decay_type}_summed_adc.csv", "w") as file:
+    with open(f"data/single_decay_{decay_type}_summed_adc.csv", "w") as file:
         writer = csv.writer(file, delimiter=",")
         writer.writerows(s_adc)
-    with open(f"single_decay_{decay_type}_summed_energy.csv", "w") as file:
+    with open(f"data/single_decay_{decay_type}_summed_energy.csv", "w") as file:
         writer = csv.writer(file, delimiter=",")
         writer.writerows(energies)
 
@@ -361,10 +365,12 @@ def generate_capture_gamma_singles(
     individually.  This is why we have to tell this function
     what the label of the gamma is.
     """
-    if not os.path.isdir("plots/"):
-        os.makedirs("plots/")
-    if not os.path.isdir("plots/.img"):
-        os.makedirs("plots/.img")
+    if not os.path.isdir("data/"):
+        os.makedirs("data/")
+    if not os.path.isdir("blip_plots/"):
+        os.makedirs("blip_plots/")
+    if not os.path.isdir("blip_plots/.img"):
+        os.makedirs("blip_plots/.img")
 
     gamma_energies = {
         8:  "4.745",
@@ -536,26 +542,28 @@ def generate_capture_gamma_singles(
                     )
                     gif_frames.append(
                         imageio.v2.imread(
-                            f"plots/.img/img_{event}.png"
+                            f"blip_plots/.img/img_{event}.png"
                         )
                     )
 
             if len(gif_frames) == 0:
                 continue
             imageio.mimsave(
-                f"plots/single_capture_gamma_{gamma_energy}.{ii}_{class_label}.gif",
+                f"blip_plots/single_capture_gamma_{gamma_energy}.{ii}_{class_label}.gif",
                 gif_frames,
                 duration=2000
             )
 
             # save new events to new tree
             if not consolidate:
-                with uproot.recreate(f"single_capture_gamma_{gamma_energy}.{ii}.root") as r:
+                with uproot.recreate(f"data/single_capture_gamma_{gamma_energy}.{ii}.root") as r:
                     r['ana/mc_wire_plane_point_cloud'] = new_wire_plane
 
     if consolidate:
-        with uproot.recreate(f"single_capture_gamma_{gamma_energy}.root") as r:
+        with uproot.recreate(f"data/single_capture_gamma_{gamma_energy}.root") as r:
             r['ana/mc_wire_plane_point_cloud'] = new_wire_plane
+    
+    os.rmdir("blip_plots/.img")
 
     fig, axs = plt.subplots()
     axs.hist(energies, bins=50)
@@ -563,11 +571,11 @@ def generate_capture_gamma_singles(
     axs.set_ylabel("Counts")
     axs.set_title(f"Energy Distribution for {class_label}")
     plt.tight_layout()
-    plt.savefig(f'plots/single_capture_gamma_{gamma_energy}_energies.png')
+    plt.savefig(f'blip_plots/single_capture_gamma_{gamma_energy}_energies.png')
 
-    with open(f"single_capture_gamma_{gamma_energy}_summed_adc.csv", "w") as file:
+    with open(f"data/single_capture_gamma_{gamma_energy}_summed_adc.csv", "w") as file:
         writer = csv.writer(file, delimiter=",")
         writer.writerows(s_adc)
-    with open(f"single_capture_gamma_{gamma_energy}_summed_energy.csv", "w") as file:
+    with open(f"data/single_capture_gamma_{gamma_energy}_summed_energy.csv", "w") as file:
         writer = csv.writer(file, delimiter=",")
         writer.writerows(energies)
