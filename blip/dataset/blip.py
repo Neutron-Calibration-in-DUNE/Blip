@@ -138,6 +138,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
 
     def configure_meta(self):
         # get meta dictionaries from files
+        self.meta_consistency = True
         temp_arrakis_meta = []
         for input_file in self.dataset_files:
             try:
@@ -168,8 +169,11 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 'view_2_source_points', 'view_2_topology_points', 'view_2_particle_points', 'view_2_physics_points', 'view_2_total_points',
                 'view_0_adc_sum', 'view_1_adc_sum', 'view_2_adc_sum', 
             ]:
-                try:    self.meta[point_label] = temp_arrakis_meta[0][point_label]
-                except: self.logger.warn(f'no "{point_label}" in meta!')
+                try:    
+                    self.meta[point_label] = temp_arrakis_meta[0][point_label]
+                except: 
+                    self.logger.warn(f'no "{point_label}" in {input_file} meta!')
+                    self.meta_consistency = False
         
         # Check that meta info is consistent over the different files
         for ii in range(len(temp_arrakis_meta)-1):
@@ -190,7 +194,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             for classes in self.meta['classes'].keys():
                 if self.meta[f'{classes}_labels'] != temp_arrakis_meta[ii+1][f'{classes}_labels']:
                     self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
-            if (self.meta['dataset_type'] in self.wire_tpc_datasets):
+            if (self.meta['dataset_type'] in self.wire_tpc_datasets and self.meta_consistency):
                 for point_label in [
                     'edep_source_points', 'edep_topology_points', 'edep_particle_points', 'edep_physics_points', 'edep_total_points',
                     'view_0_source_points', 'view_0_topology_points', 'view_0_particle_points', 'view_0_physics_points', 'view_0_total_points',

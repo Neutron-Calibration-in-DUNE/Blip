@@ -326,13 +326,15 @@ class MachineLearningModule(GenericModule):
             f"{self.meta['local_scratch']}/runs/{now}/hyper_parameters.npz",
             hyper_parameters=self.hyper_parameters
         )
-        
     
     def run_bayes_hyper_parameter_scan(self):
         self.logger.info(f"running hyper_parameter scan over {self.iterations} iterations")
         optimizer_config = self.config['optimizer']
         training_config = self.config['training']
     
+    def run_linear_evaluation(self):
+        self.logger.info(f"running linear_evaluation protocol")
+
     def run_module(self):
         if self.mode == 'training':
             self.module_data_product['predictions'] = self.trainer.train(
@@ -377,5 +379,9 @@ class MachineLearningModule(GenericModule):
                 self.run_hyper_parameter_scan()
             else:
                 self.run_bayes_hyper_parameter_scan()
+        elif self.mode == 'linear_evaluation':
+            pass
+        else:
+            self.logger.warning(f"current mode {self.mode} not an available type!")
 
         
