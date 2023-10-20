@@ -380,7 +380,7 @@ class MachineLearningModule(GenericModule):
             else:
                 self.run_bayes_hyper_parameter_scan()
         elif self.mode == 'linear_evaluation':
-            pass
+            self.run_linear_evaluation()
         else:
             self.logger.warning(f"current mode {self.mode} not an available type!")
 

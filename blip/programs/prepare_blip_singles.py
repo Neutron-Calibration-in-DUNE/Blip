@@ -81,12 +81,13 @@ def create_class_gif_frame(
 def generate_decay_singles(
     files,
     decay_label,
-    max_events:     int=10000,
+    max_events:     int=100,
     channel_min:    int=4200,
     channel_max:    int=4600,
     tdc_min:        int=1000,
     tdc_max:        int=5000,
     consolidate:    bool=False,
+    make_gifs:      bool=False,
 ):
     """
     This function takes in a set of radioactive decay files generated
@@ -148,8 +149,7 @@ def generate_decay_singles(
 
     decay_type = decay_types[decay_label]
     decay_energy = decay_energies[decay_label]
-    s_adc = []
-    energies = []
+
     if consolidate:
         new_wire_plane = {
             'channel':  [],
@@ -171,6 +171,7 @@ def generate_decay_singles(
             'hit_amplitude': [],
             'hit_charge':   [],
         }
+    file_counter = 0
     for ii, file in enumerate(files):
         with uproot.open(file) as f:
             wire_plane = f['ana/mc_wire_plane_point_cloud'].arrays(library="np")
@@ -262,8 +263,30 @@ def generate_decay_singles(
                         continue
                     saved_events += 1
                     if saved_events >= max_events:
-                        break
-                    energies.append([np.sum(energy[event][mask])])
+                        saved_events = 0
+                        with uproot.recreate(f"data/single_decay_{decay_type}.{file_counter}.root") as r:
+                            r['ana/mc_wire_plane_point_cloud'] = new_wire_plane
+                        file_counter += 1
+                        new_wire_plane = {
+                            'channel':  [],
+                            'wire':     [],
+                            'tick':     [],
+                            'tdc':      [],
+                            'adc':      [],
+                            'view':     [],
+                            'energy':   [],
+                            'source_label': [],
+                            'topology_label':  [],
+                            'particle_label':   [],
+                            'physics_label':   [],
+                            'unique_topology':     [],
+                            'unique_particle':  [],
+                            'unique_physics':   [],
+                            'hit_mean': [],
+                            'hit_rms':  [],
+                            'hit_amplitude': [],
+                            'hit_charge':   [],
+                        }
                     new_wire_plane['channel'].append(channel[event][mask])
                     new_wire_plane['wire'].append(wire[event][mask])
                     new_wire_plane['tick'].append(tick[event][mask])
@@ -283,77 +306,62 @@ def generate_decay_singles(
                     new_wire_plane['hit_amplitude'].append(hit_amplitude[event][mask])
                     new_wire_plane['hit_charge'].append(hit_charge[event][mask])
 
-                    pos = np.vstack((channel[event][mask], tdc[event][mask], np.abs(adc[event][mask]))).astype(float)
-                    summed_adc = np.sum(adc[event][mask])
-                    s_adc.append([summed_adc])
 
                     # create animated GIF of events
-                    mins = np.min(pos, axis=1)
-                    maxs = np.max(pos, axis=1)
-                    for kk in range(len(pos)-1):
-                        denom = (maxs[kk] - mins[kk])
-                        if denom == 0:
-                            pos[kk] = 0 * pos[kk]
-                        else:
-                            pos[kk] = 2 * (pos[kk] - mins[kk])/(denom) - 1
+                    if make_gifs:
+                        pos = np.vstack((channel[event][mask], tdc[event][mask], np.abs(adc[event][mask]))).astype(float)
+                        summed_adc = np.sum(adc[event][mask])
+                        mins = np.min(pos, axis=1)
+                        maxs = np.max(pos, axis=1)
+                        for kk in range(len(pos)-1):
+                            denom = (maxs[kk] - mins[kk])
+                            if denom == 0:
+                                pos[kk] = 0 * pos[kk]
+                            else:
+                                pos[kk] = 2 * (pos[kk] - mins[kk])/(denom) - 1
 
-                    create_class_gif_frame(
-                        pos,
-                        class_label,
-                        summed_adc,
-                        event,
-                        [mins[1], maxs[1]],
-                        [mins[0], maxs[0]]
-                    )
-                    gif_frames.append(
-                        imageio.v2.imread(
-                            f"blip_plots/.img/img_{event}.png"
+                        create_class_gif_frame(
+                            pos,
+                            class_label,
+                            summed_adc,
+                            event,
+                            [mins[1], maxs[1]],
+                            [mins[0], maxs[0]]
                         )
-                    )
-
-            if len(gif_frames) == 0:
-                continue
-            imageio.mimsave(
-                f"blip_plots/single_decay_{decay_type}.{ii}_{class_label}.gif",
-                gif_frames,
-                duration=2000
-            )
+                        gif_frames.append(
+                            imageio.v2.imread(
+                                f"blip_plots/.img/img_{event}.png"
+                            )
+                        )
+            if make_gifs:
+                if len(gif_frames) == 0:
+                    continue
+                imageio.mimsave(
+                    f"blip_plots/single_decay_{decay_type}.{ii}_{class_label}.gif",
+                    gif_frames,
+                    duration=2000
+                )
 
             # save new events to new tree
             if not consolidate:
-                with uproot.recreate(f"data/single_decay_{decay_type}.{ii}.root") as r:
+                with uproot.recreate(f"data/single_decay_{decay_type}.{file_counter}.root") as r:
                     r['ana/mc_wire_plane_point_cloud'] = new_wire_plane
+                file_counter += 1
 
     if consolidate:
         with uproot.recreate(f"data/single_decay_{decay_type}.root") as r:
             r['ana/mc_wire_plane_point_cloud'] = new_wire_plane
 
-    os.rmdir("blip_plots/.img")
-
-    fig, axs = plt.subplots()
-    axs.hist(energies, bins=50)
-    axs.set_xlabel("Energy [MeV]")
-    axs.set_ylabel("Counts")
-    axs.set_title(f"Energy Distribution for {class_label}")
-    plt.tight_layout()
-    plt.savefig(f'blip_plots/single_decay_{decay_type}_{decay_energy}_energies.png')
-
-    with open(f"data/single_decay_{decay_type}_summed_adc.csv", "w") as file:
-        writer = csv.writer(file, delimiter=",")
-        writer.writerows(s_adc)
-    with open(f"data/single_decay_{decay_type}_summed_energy.csv", "w") as file:
-        writer = csv.writer(file, delimiter=",")
-        writer.writerows(energies)
-
-
 def generate_capture_gamma_singles(
     files,
     gamma_label,
+    max_events:     int=100,
     channel_min:    int=4200,
     channel_max:    int=4600,
     tdc_min:        int=1000,
     tdc_max:        int=5000,
     consolidate:    bool=False,
+    make_gifs:      bool=False,
 ):
     """
     This function takes in a set of capture gamma files of
@@ -383,8 +391,6 @@ def generate_capture_gamma_singles(
     } 
 
     gamma_energy = gamma_energies[gamma_label]
-    s_adc = []
-    energies = []
 
     if consolidate:
         new_wire_plane = {
@@ -407,7 +413,7 @@ def generate_capture_gamma_singles(
             'hit_amplitude': [],
             'hit_charge':   [],
         }
-
+    file_counter = 0
     for ii, file in enumerate(files):
         with uproot.open(file) as f:
             wire_plane = f['ana/mc_wire_plane_point_cloud'].arrays(library="np")
@@ -461,6 +467,7 @@ def generate_capture_gamma_singles(
             gif_frames = []
 
             # select events within the channel/tdc cuts
+            saved_events = 0
             for event in range(num_events):
                 mask = (
                     (view[event] == 2) & 
@@ -498,7 +505,32 @@ def generate_capture_gamma_singles(
                         continue
                     if np.sum(adc[event][mask]) == 0:
                         continue
-                    energies.append([np.sum(energy[event][mask])])
+                    saved_events += 1
+                    if saved_events >= max_events:
+                        saved_events = 0
+                        with uproot.recreate(f"data/single_capture_gamma_{gamma_energy}.{file_counter}.root") as r:
+                            r['ana/mc_wire_plane_point_cloud'] = new_wire_plane
+                        file_counter += 1
+                        new_wire_plane = {
+                            'channel':  [],
+                            'wire':     [],
+                            'tick':     [],
+                            'tdc':      [],
+                            'adc':      [],
+                            'view':     [],
+                            'energy':   [],
+                            'source_label': [],
+                            'topology_label':  [],
+                            'particle_label':   [],
+                            'physics_label':   [],
+                            'unique_topology':     [],
+                            'unique_particle':  [],
+                            'unique_physics':   [],
+                            'hit_mean': [],
+                            'hit_rms':  [],
+                            'hit_amplitude': [],
+                            'hit_charge':   [],
+                        }
                     new_wire_plane['channel'].append(channel[event][mask])
                     new_wire_plane['wire'].append(wire[event][mask])
                     new_wire_plane['tick'].append(tick[event][mask])
@@ -518,64 +550,48 @@ def generate_capture_gamma_singles(
                     new_wire_plane['hit_amplitude'].append(hit_amplitude[event][mask])
                     new_wire_plane['hit_charge'].append(hit_charge[event][mask])
 
-                    pos = np.vstack((channel[event][mask], tdc[event][mask], np.abs(adc[event][mask]))).astype(float)
-                    summed_adc = np.sum(adc[event][mask])
-                    s_adc.append([summed_adc])
-
                     # create animated GIF of events
-                    mins = np.min(pos, axis=1)
-                    maxs = np.max(pos, axis=1)
-                    for kk in range(len(pos)-1):
-                        denom = (maxs[kk] - mins[kk])
-                        if denom == 0:
-                            pos[kk] = 0 * pos[kk]
-                        else:
-                            pos[kk] = 2 * (pos[kk] - mins[kk])/(denom) - 1
+                    if make_gifs:
+                        pos = np.vstack((channel[event][mask], tdc[event][mask], np.abs(adc[event][mask]))).astype(float)
+                        summed_adc = np.sum(adc[event][mask])
+                        mins = np.min(pos, axis=1)
+                        maxs = np.max(pos, axis=1)
+                        for kk in range(len(pos)-1):
+                            denom = (maxs[kk] - mins[kk])
+                            if denom == 0:
+                                pos[kk] = 0 * pos[kk]
+                            else:
+                                pos[kk] = 2 * (pos[kk] - mins[kk])/(denom) - 1
 
-                    create_class_gif_frame(
-                        pos,
-                        class_label,
-                        summed_adc,
-                        event,
-                        [mins[1], maxs[1]],
-                        [mins[0], maxs[0]]
-                    )
-                    gif_frames.append(
-                        imageio.v2.imread(
-                            f"blip_plots/.img/img_{event}.png"
+                        create_class_gif_frame(
+                            pos,
+                            class_label,
+                            summed_adc,
+                            event,
+                            [mins[1], maxs[1]],
+                            [mins[0], maxs[0]]
                         )
-                    )
+                        gif_frames.append(
+                            imageio.v2.imread(
+                                f"blip_plots/.img/img_{event}.png"
+                            )
+                        )
 
-            if len(gif_frames) == 0:
-                continue
-            imageio.mimsave(
-                f"blip_plots/single_capture_gamma_{gamma_energy}.{ii}_{class_label}.gif",
-                gif_frames,
-                duration=2000
-            )
+            if make_gifs:
+                if len(gif_frames) == 0:
+                    continue
+                imageio.mimsave(
+                    f"blip_plots/single_capture_gamma_{gamma_energy}.{ii}_{class_label}.gif",
+                    gif_frames,
+                    duration=2000
+                )
 
             # save new events to new tree
             if not consolidate:
-                with uproot.recreate(f"data/single_capture_gamma_{gamma_energy}.{ii}.root") as r:
+                with uproot.recreate(f"data/single_capture_gamma_{gamma_energy}.{file_counter}.root") as r:
                     r['ana/mc_wire_plane_point_cloud'] = new_wire_plane
+                file_counter += 1
 
     if consolidate:
         with uproot.recreate(f"data/single_capture_gamma_{gamma_energy}.root") as r:
             r['ana/mc_wire_plane_point_cloud'] = new_wire_plane
-    
-    os.rmdir("blip_plots/.img")
-
-    fig, axs = plt.subplots()
-    axs.hist(energies, bins=50)
-    axs.set_xlabel("Energy [MeV]")
-    axs.set_ylabel("Counts")
-    axs.set_title(f"Energy Distribution for {class_label}")
-    plt.tight_layout()
-    plt.savefig(f'blip_plots/single_capture_gamma_{gamma_energy}_energies.png')
-
-    with open(f"data/single_capture_gamma_{gamma_energy}_summed_adc.csv", "w") as file:
-        writer = csv.writer(file, delimiter=",")
-        writer.writerows(s_adc)
-    with open(f"data/single_capture_gamma_{gamma_energy}_summed_energy.csv", "w") as file:
-        writer = csv.writer(file, delimiter=",")
-        writer.writerows(energies)

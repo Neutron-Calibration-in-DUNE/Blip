@@ -14,6 +14,7 @@ from torch_geometric.nn import global_add_pool, global_mean_pool, global_max_poo
 
 from blip.models.common import activations, normalizations
 from blip.models import GenericModel
+from blip.models.blip_graph import BlipGraph
 
 linear_evaluation_config = {
 
@@ -44,17 +45,43 @@ class LinearEvaluation(GenericModel):
         to the embedding layer a single linear layer which is trained to separate
         the classes linearly.
         """
+        _classification_dict = OrderedDict()
         self.logger.info(f"Attempting to build LinearEvaluation architecture using config: {self.config}")
 
+        self.blip_graph_model = self.config['model']
+        checkpoint = torch.load(self.blip_graph_model)
+        self.blip_graph_config = checkpoint['model_config']
+        
+        self.logger.info(f"Loading BlipGraph from {self.config['model']}.")
+        self.blip_graph = BlipGraph(
+            'blip_graph',
+            self.blip_graph_config,
+            self.meta
+        )
+        self.blip_graph.load_state_dict(checkpoint['model_state_dict'])
+        
+        reduction_config = self.blip_graph_config['reduction']
+        classifcation_config = self.blip_graph_config['classification']
+        # now attach the linear layer to the reductions layer of the BlipGraph.
+        for ii, classification in enumerate(self.config["classifications"]):
+            _classification_dict[f'{classification}'] = MLP(
+                [reduction_config['linear_output']] + [classifcation_config['out_channels'][ii]]
+            )
+        self.classification_dict = nn.ModuleDict(_classification_dict)
+        self.softmax = nn.Softmax(dim=1)
 
         # record the info
         self.logger.info(
             f"Constructed LinearEvaluation with dictionaries:"
         )
-
     
     def forward(self,
         data
     ):
-        outputs = []
+        self.blip_graph.eval()
+        blip_graph_outputs = self.blip_graph(data)
+        outputs = {
+            classifications: self.classification_dict[classifications](blip_graph_outputs['reductions'])
+            for classifications in self.classification_dict.keys()
+        }
         return outputs
