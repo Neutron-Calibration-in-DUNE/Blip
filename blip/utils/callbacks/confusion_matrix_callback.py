@@ -36,11 +36,13 @@ class ConfusionMatrixCallback(GenericCallback):
         name:   str='confusion_matrix_callback',
         criterion_handler: LossHandler=None,
         metrics_handler: MetricHandler=None,
+        skip_metrics:   bool=False,
         meta:   dict={}
     ):  
         super(ConfusionMatrixCallback, self).__init__(
             name, criterion_handler, metrics_handler, meta
         )
+        self.skip_metrics = skip_metrics
         if "ConfusionMatrixMetric" in self.metrics_handler.metrics.keys():
             self.metric = self.metrics_handler.metrics["ConfusionMatrixMetric"]
         else:   
@@ -63,16 +65,24 @@ class ConfusionMatrixCallback(GenericCallback):
         self.test_confusion = None
     
     def save_confusion_matrix(self):
-        for kk, output in enumerate(self.metric.outputs):
-            self.training_confusion[output].cpu().numpy()
-            self.validation_confusion[output].cpu().numpy()
-            self.test_confusion[output].cpu().numpy()
-        np.savez(
-            f"{self.meta['local_scratch']}/confusion_matrix.npz",
-            training_confusion=self.training_confusion,
-            validation_confusion=self.validation_confusion,
-            test_confusion=self.test_confusion
-        )
+        if not self.skip_metrics:
+            for kk, output in enumerate(self.metric.outputs):
+                self.training_confusion[output].cpu().numpy()
+                self.validation_confusion[output].cpu().numpy()
+                self.test_confusion[output].cpu().numpy()
+            np.savez(
+                f"{self.meta['local_scratch']}/confusion_matrix.npz",
+                training_confusion=self.training_confusion,
+                validation_confusion=self.validation_confusion,
+                test_confusion=self.test_confusion
+            )
+        else:
+            for kk, output in enumerate(self.metric.outputs):
+                self.test_confusion[output].cpu().numpy()
+            np.savez(
+                f"{self.meta['local_scratch']}/confusion_matrix.npz",
+                test_confusion=self.test_confusion
+            )
 
     def reset_batch(self):
         self.training_confusion = None
@@ -83,23 +93,19 @@ class ConfusionMatrixCallback(GenericCallback):
         train_type='train'
     ):  
         if train_type == "train":
-            # for kk, input in enumerate(self.metric.inputs):
-            #     self.training_probabilities[input] = self.metric.batch_probabilities[input]
-            # self.training_summed_adc = self.metric.batch_summed_adc
+            if self.skip_metrics:
+                return
             self.training_confusion = self.metric.compute()
         elif train_type == "validation":
-            # for kk, input in enumerate(self.metric.inputs):
-            #     self.validation_probabilities[input] = self.metric.batch_probabilities[input]
-            # self.validation_summed_adc = self.metric.batch_summed_adc
+            if self.skip_metrics:
+                return
             self.validation_confusion = self.metric.compute()
         else:
-            # for kk, input in enumerate(self.metric.inputs):
-            #     self.test_probabilities[input] = self.metric.batch_probabilities[input]
-            # self.test_summed_adc = self.metric.batch_summed_adc
             self.test_confusion = self.metric.compute()
-        # self.metric.reset_probabilities()
 
     def evaluate_training(self):
+        if self.skip_metrics:
+            return
         for kk, output in enumerate(self.metric.outputs):
             # plot the training confusion matrix
             if self.consolidate_classes:

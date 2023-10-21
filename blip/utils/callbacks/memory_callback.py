@@ -25,13 +25,16 @@ class MemoryTrackerCallback(GenericCallback):
         )
         self.output_dir = output_dir
         self.memory_trackers = memory_trackers
-    
+        self.no_timing = False
+
     def evaluate_epoch(self,
         train_type='train'
     ):
         pass
 
     def evaluate_training(self):
+        if self.no_timing:
+            return
         if self.epochs != None:
             if self.num_training_batches != None:
                 self.__evaluate_training('training')

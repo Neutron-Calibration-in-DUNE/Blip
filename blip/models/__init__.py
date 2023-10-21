@@ -7,4 +7,5 @@ from .unet import UNet
 from .sparse_unet import SparseUNet
 from .sparse_uresnet import SparseUResNet
 from .sparse_uresnext import SparseUResNeXt
+from .linear_evaluation import LinearEvaluation
 from .model_handler import ModelHandler

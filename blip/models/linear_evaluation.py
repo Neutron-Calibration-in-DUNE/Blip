@@ -53,6 +53,8 @@ class LinearEvaluation(GenericModel):
         self.blip_graph_config = checkpoint['model_config']
         
         self.logger.info(f"Loading BlipGraph from {self.config['model']}.")
+        if self.blip_graph_config["add_summed_adc"]:
+            self.blip_graph_config['reduction']['linear_output'] -= 1
         self.blip_graph = BlipGraph(
             'blip_graph',
             self.blip_graph_config,
@@ -80,8 +82,6 @@ class LinearEvaluation(GenericModel):
     ):
         self.blip_graph.eval()
         blip_graph_outputs = self.blip_graph(data)
-        outputs = {
-            classifications: self.classification_dict[classifications](blip_graph_outputs['reductions'])
-            for classifications in self.classification_dict.keys()
-        }
-        return outputs
+        for classifications in self.classification_dict.keys():
+            blip_graph_outputs['classifications'] = self.classification_dict[classifications](blip_graph_outputs['reductions'])
+        return blip_graph_outputs

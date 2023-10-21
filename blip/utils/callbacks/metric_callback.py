@@ -18,11 +18,13 @@ class MetricCallback(GenericCallback):
         name:   str='metric_callback',
         criterion_handler:  LossHandler=None,
         metrics_handler:    MetricHandler=None,
+        skip_metrics:       bool=False,
         meta:               dict={}
     ):  
         super(MetricCallback, self).__init__(
             name, criterion_handler, metrics_handler, meta
         )
+        self.skip_metrics = skip_metrics
         if metrics_handler != None:
             self.metric_names = []
             for name, metric in self.metrics_handler.metrics.items():
@@ -81,22 +83,32 @@ class MetricCallback(GenericCallback):
             }
 
     def save_metrics(self):
-        for name in self.training_target_metrics.keys():
-            self.training_target_metrics[name].cpu().numpy()
-        for name in self.validation_target_metrics.keys():
-            self.validation_target_metrics[name].cpu().numpy()
-        for name in self.test_target_metrics.keys():
-            self.test_target_metrics[name].cpu().numpy()
-        np.savez(
-            f"{self.meta['local_scratch']}/metrics.npz",
-            metric_names=self.metric_names,
-            training_metric=self.training_metrics.cpu().numpy(),
-            validation_metric=self.validation_metrics.cpu().numpy(),
-            test_metric=self.test_metrics.cpu().numpy(),
-            training_target_metric=self.training_target_metrics,
-            validation_target_metric=self.validation_target_metrics,
-            test_target_metric=self.test_target_metrics
-        )
+        if not self.skip_metrics:
+            for name in self.training_target_metrics.keys():
+                self.training_target_metrics[name].cpu().numpy()
+            for name in self.validation_target_metrics.keys():
+                self.validation_target_metrics[name].cpu().numpy()
+            for name in self.test_target_metrics.keys():
+                self.test_target_metrics[name].cpu().numpy()
+            np.savez(
+                f"{self.meta['local_scratch']}/metrics.npz",
+                metric_names=self.metric_names,
+                training_metric=self.training_metrics.cpu().numpy(),
+                validation_metric=self.validation_metrics.cpu().numpy(),
+                test_metric=self.test_metrics.cpu().numpy(),
+                training_target_metric=self.training_target_metrics,
+                validation_target_metric=self.validation_target_metrics,
+                test_target_metric=self.test_target_metrics
+            )
+        else:
+            for name in self.test_target_metrics.keys():
+                self.test_target_metrics[name].cpu().numpy()
+            np.savez(
+                f"{self.meta['local_scratch']}/metrics.npz",
+                metric_names=self.metric_names,
+                test_metric=self.test_metrics.cpu().numpy(),
+                test_target_metric=self.test_target_metrics
+            )
 
     def reset_batch(self):
         self.training_metrics = torch.empty(
@@ -152,9 +164,11 @@ class MetricCallback(GenericCallback):
             size=(1,0), 
             dtype=torch.float, device=self.device
         )             
-        metrics = self.metrics_handler.compute()
+        metrics = self.metrics_handler.compute(train_type)
         # run through metrics
         if train_type == 'train':
+            if self.skip_metrics:
+                return
             for name, metric in metrics.items():
                 if sum([
                     name == "AdjustedRandIndexMetric",
@@ -185,6 +199,8 @@ class MetricCallback(GenericCallback):
                 dim=0
             )
         elif train_type == 'validation':
+            if self.skip_metrics:
+                return
             for name, metric in metrics.items():
                 if sum([
                     name == "AdjustedRandIndexMetric",
@@ -249,6 +265,9 @@ class MetricCallback(GenericCallback):
         pass
 
     def evaluate_testing(self):  
+        if self.skip_metrics:
+            self.save_metrics()
+            return
         # evaluate metrics from training and validation
         if self.metrics_handler == None:
             return

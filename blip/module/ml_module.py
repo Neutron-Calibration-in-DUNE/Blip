@@ -16,6 +16,7 @@ import copy
 import random
 
 from blip.models import ModelHandler
+from blip.models import LinearEvaluation
 from blip.module.common import *
 from blip.module.generic_module import GenericModule
 from blip.losses import LossHandler
@@ -26,7 +27,6 @@ from blip.utils.sampling import *
 from blip.utils.grouping import *
 from blip.utils.callbacks import CallbackHandler
 from blip.utils.utils import get_files, save_model, flatten_dict, generate_combinations_from_arrays
-
 
 class MachineLearningModule(GenericModule):
     """
@@ -70,7 +70,7 @@ class MachineLearningModule(GenericModule):
      
     def check_config(self):
         if "model" not in self.config.keys():
-            self.logger.error(f'"model" section not specified in config!')
+            self.logger.warning(f'"model" section not specified in config!')
         
         if self.mode == "training":
             if "criterion" not in self.config.keys():
@@ -95,6 +95,8 @@ class MachineLearningModule(GenericModule):
     def parse_model(self):
         """
         """
+        if self.mode == "linear_evaluation":
+            return
         if "model" not in self.config.keys():
             self.logger.warn("no model in config file.")
             return
@@ -124,6 +126,8 @@ class MachineLearningModule(GenericModule):
     def parse_optimizer(self):
         """
         """
+        if self.mode == "linear_evaluation":
+            return
         if "optimizer" not in self.config.keys():
             self.logger.warn("no optimizer in config file.")
             return
@@ -174,6 +178,8 @@ class MachineLearningModule(GenericModule):
     def parse_training(self):
         """
         """
+        if self.mode == "linear_evaluation":
+            return
         if "training" not in self.config.keys():
             self.logger.warn("no training in config file.")
             return
@@ -304,7 +310,8 @@ class MachineLearningModule(GenericModule):
                 progress_bar=self.config['training']['progress_bar'],
                 rewrite_bar=self.config['training']['rewrite_bar'],
                 save_predictions=self.config['training']['save_predictions'],
-                no_timing=self.config['training']['no_timing']
+                no_timing=self.config['training']['no_timing'],
+                skip_metrics=self.config['training']['skip_metrics']
             )
             os.makedirs(f"{self.meta['local_scratch']}/runs/{now}/{iteration}/")
             if os.path.isdir(f"{self.meta['local_scratch']}/predictions/"):
@@ -334,6 +341,68 @@ class MachineLearningModule(GenericModule):
     
     def run_linear_evaluation(self):
         self.logger.info(f"running linear_evaluation protocol")
+        if "linear_evaluation" not in self.config.keys():
+            self.logger.warn("no linear_evaluation in config file.")
+            return
+        linear_evaluation_config = self.config['linear_evaluation']
+        optimizer_config = self.config['optimizer']
+        training_config = self.config['training']
+        if 'run_name' in self.config['training'].keys():
+            now = self.config['training']['run_name'] + f"_{datetime.now()}"
+        else:
+            now = self.name + f"_{datetime.now()}"
+        for ii, model in enumerate(linear_evaluation_config['models']):
+            linear_config = {
+                'model':    model,
+                'classifications': linear_evaluation_config['classifications']  
+            }
+            self.model = LinearEvaluation(
+                config=linear_config,
+                meta=self.meta
+            )
+            self.optimizer = Optimizer(
+                self.name,
+                optimizer_config,
+                self.model
+            )
+            self.parse_loss()
+            self.parse_metrics()
+            self.parse_callbacks()
+            self.trainer = Trainer(
+                self.model,
+                self.criterion,
+                self.optimizer,
+                self.metrics,
+                self.callbacks,
+                meta=self.meta,
+                seed=training_config['seed']
+            )
+            self.module_data_product['predictions'] = self.trainer.train(
+                epochs=self.config['linear_evaluation']['epochs'],
+                checkpoint=self.config['training']['checkpoint'],
+                progress_bar=self.config['training']['progress_bar'],
+                rewrite_bar=self.config['training']['rewrite_bar'],
+                save_predictions=self.config['training']['save_predictions'],
+                no_timing=self.config['training']['no_timing'],
+                skip_metrics=self.config['training']['skip_metrics']
+            )
+            # save model/data/config
+            os.makedirs(f"{self.meta['local_scratch']}/runs/{now}/linear_{ii}/")
+            if os.path.isdir(f"{self.meta['local_scratch']}/predictions/"):
+                shutil.copytree(f"{self.meta['local_scratch']}/predictions/", f"{self.meta['local_scratch']}/runs/{now}/linear_{ii}/predictions/", dirs_exist_ok=True)
+            if os.path.isdir(f"{self.meta['local_scratch']}/plots/"):
+                shutil.copytree(f"{self.meta['local_scratch']}/plots/", f"{self.meta['local_scratch']}/runs/{now}/linear_{ii}/plots/", dirs_exist_ok=True)
+            if os.path.isdir(f"{self.meta['local_scratch']}/models/"):
+                shutil.copytree(f"{self.meta['local_scratch']}/models/", f"{self.meta['local_scratch']}/runs/{now}/linear_{ii}/models/", dirs_exist_ok=True)
+            shutil.copytree(f"{self.meta['local_scratch']}/.logs/", f"{self.meta['local_scratch']}/runs/{now}/linear_{ii}/.logs/", dirs_exist_ok=True)
+            shutil.copytree(f"{self.meta['local_scratch']}/.checkpoints/", f"{self.meta['local_scratch']}/runs/{now}/linear_{ii}/.checkpoints/", dirs_exist_ok=True)
+            shutil.copy(self.meta['config_file'], f"{self.meta['local_scratch']}/runs/{now}/linear_{ii}/")
+            if os.path.isfile(f"{self.meta['local_scratch']}/losses.npz"):
+                shutil.copy(f"{self.meta['local_scratch']}/losses.npz", f"{self.meta['local_scratch']}/runs/{now}/linear_{ii}/")
+            if os.path.isfile(f"{self.meta['local_scratch']}/metrics.npz"):
+                shutil.copy(f"{self.meta['local_scratch']}/metrics.npz", f"{self.meta['local_scratch']}/runs/{now}/linear_{ii}/")
+            if os.path.isfile(f"{self.meta['local_scratch']}/confusion_matrix.npz"):
+                shutil.copy(f"{self.meta['local_scratch']}/confusion_matrix.npz", f"{self.meta['local_scratch']}/runs/{now}/linear_{ii}/")
 
     def run_module(self):
         if self.mode == 'training':
@@ -343,7 +412,8 @@ class MachineLearningModule(GenericModule):
                 progress_bar=self.config['training']['progress_bar'],
                 rewrite_bar=self.config['training']['rewrite_bar'],
                 save_predictions=self.config['training']['save_predictions'],
-                no_timing=self.config['training']['no_timing']
+                no_timing=self.config['training']['no_timing'],
+                skip_metrics=self.config['training']['skip_metrics']
             )
             # save model/data/config
             if 'run_name' in self.config['training'].keys():

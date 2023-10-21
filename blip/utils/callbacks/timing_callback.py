@@ -27,6 +27,7 @@ class TimingCallback(GenericCallback):
         )
         self.output_dir = output_dir
         self.timers = timers
+        self.no_timing = False
     
     def evaluate_epoch(self,
         train_type='train'
@@ -34,6 +35,8 @@ class TimingCallback(GenericCallback):
         pass
 
     def evaluate_training(self):
+        if self.no_timing:
+            return
         if self.epochs != None:
             if self.num_training_batches != None:
                 self.__evaluate_training('training')
