@@ -38,11 +38,11 @@ def create_class_gif(self,
         )
         gif_frames.append(
             imageio.v2.imread(
-                f"blip_plots/.img/img_{ii}.png"
+                f"/local_data/blip_plots/.img/img_{ii}.png"
             )
         )
     imageio.mimsave(
-        f"blip_plots/{input_file}_{class_label}.gif",
+        f"/local_data/blip_plots/{input_file}_{class_label}.gif",
         gif_frames,
         duration=2000
     )
@@ -72,7 +72,7 @@ def create_class_gif_frame(
     plt.legend(loc='upper right')
     plt.tight_layout()
     plt.savefig(
-        f"blip_plots/.img/img_{image_number}.png",
+        f"/local_data/blip_plots/.img/img_{image_number}.png",
         transparent = False,
         facecolor = 'white'
     )
@@ -94,12 +94,12 @@ def generate_decay_singles(
     from Arrakis, and separates out individual instances
     of a particular decay into different events.
     """
-    if not os.path.isdir("data/"):
-        os.makedirs("data/")
-    if not os.path.isdir("blip_plots/"):
-        os.makedirs("blip_plots/")
-    if not os.path.isdir("blip_plots/.img"):
-        os.makedirs("blip_plots/.img")
+    if not os.path.isdir("/local_data/data/"):
+        os.makedirs("/local_data/data/")
+    if not os.path.isdir("/local_data/blip_plots/"):
+        os.makedirs("/local_data/blip_plots/")
+    if not os.path.isdir("/local_data/blip_plots/.img"):
+        os.makedirs("/local_data/blip_plots/.img")
 
     decay_types = {
         16: "ar39",
@@ -264,7 +264,7 @@ def generate_decay_singles(
                     saved_events += 1
                     if saved_events >= max_events:
                         saved_events = 0
-                        with uproot.recreate(f"data/single_decay_{decay_type}.{file_counter}.root") as r:
+                        with uproot.recreate(f"/local_data/data/single_decay_{decay_type}.{file_counter}.root") as r:
                             r['ana/mc_wire_plane_point_cloud'] = new_wire_plane
                         file_counter += 1
                         new_wire_plane = {
@@ -330,26 +330,26 @@ def generate_decay_singles(
                         )
                         gif_frames.append(
                             imageio.v2.imread(
-                                f"blip_plots/.img/img_{event}.png"
+                                f"/local_data/blip_plots/.img/img_{event}.png"
                             )
                         )
             if make_gifs:
                 if len(gif_frames) == 0:
                     continue
                 imageio.mimsave(
-                    f"blip_plots/single_decay_{decay_type}.{ii}_{class_label}.gif",
+                    f"/local_data/blip_plots/single_decay_{decay_type}.{ii}_{class_label}.gif",
                     gif_frames,
                     duration=2000
                 )
 
             # save new events to new tree
             if not consolidate:
-                with uproot.recreate(f"data/single_decay_{decay_type}.{file_counter}.root") as r:
+                with uproot.recreate(f"/local_data/data/single_decay_{decay_type}.{file_counter}.root") as r:
                     r['ana/mc_wire_plane_point_cloud'] = new_wire_plane
                 file_counter += 1
 
     if consolidate:
-        with uproot.recreate(f"data/single_decay_{decay_type}.root") as r:
+        with uproot.recreate(f"/local_data/data/single_decay_{decay_type}.root") as r:
             r['ana/mc_wire_plane_point_cloud'] = new_wire_plane
 
 def generate_capture_gamma_singles(
@@ -373,12 +373,12 @@ def generate_capture_gamma_singles(
     individually.  This is why we have to tell this function
     what the label of the gamma is.
     """
-    if not os.path.isdir("data/"):
-        os.makedirs("data/")
-    if not os.path.isdir("blip_plots/"):
-        os.makedirs("blip_plots/")
-    if not os.path.isdir("blip_plots/.img"):
-        os.makedirs("blip_plots/.img")
+    if not os.path.isdir("/local_data/data/"):
+        os.makedirs("/local_data/data/")
+    if not os.path.isdir("/local_data/blip_plots/"):
+        os.makedirs("/local_data/blip_plots/")
+    if not os.path.isdir("/local_data/blip_plots/.img"):
+        os.makedirs("/local_data/blip_plots/.img")
 
     gamma_energies = {
         8:  "4.745",
@@ -508,7 +508,7 @@ def generate_capture_gamma_singles(
                     saved_events += 1
                     if saved_events >= max_events:
                         saved_events = 0
-                        with uproot.recreate(f"data/single_capture_gamma_{gamma_energy}.{file_counter}.root") as r:
+                        with uproot.recreate(f"/local_data/data/single_capture_gamma_{gamma_energy}.{file_counter}.root") as r:
                             r['ana/mc_wire_plane_point_cloud'] = new_wire_plane
                         file_counter += 1
                         new_wire_plane = {
@@ -573,7 +573,7 @@ def generate_capture_gamma_singles(
                         )
                         gif_frames.append(
                             imageio.v2.imread(
-                                f"blip_plots/.img/img_{event}.png"
+                                f"/local_data/blip_plots/.img/img_{event}.png"
                             )
                         )
 
@@ -581,17 +581,17 @@ def generate_capture_gamma_singles(
                 if len(gif_frames) == 0:
                     continue
                 imageio.mimsave(
-                    f"blip_plots/single_capture_gamma_{gamma_energy}.{ii}_{class_label}.gif",
+                    f"/local_data/blip_plots/single_capture_gamma_{gamma_energy}.{ii}_{class_label}.gif",
                     gif_frames,
                     duration=2000
                 )
 
             # save new events to new tree
             if not consolidate:
-                with uproot.recreate(f"data/single_capture_gamma_{gamma_energy}.{file_counter}.root") as r:
+                with uproot.recreate(f"/local_data/data/single_capture_gamma_{gamma_energy}.{file_counter}.root") as r:
                     r['ana/mc_wire_plane_point_cloud'] = new_wire_plane
                 file_counter += 1
 
     if consolidate:
-        with uproot.recreate(f"data/single_capture_gamma_{gamma_energy}.root") as r:
+        with uproot.recreate(f"/local_data/data/single_capture_gamma_{gamma_energy}.root") as r:
             r['ana/mc_wire_plane_point_cloud'] = new_wire_plane
