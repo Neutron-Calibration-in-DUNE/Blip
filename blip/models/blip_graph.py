@@ -40,6 +40,7 @@ blip_graph_config = {
     'reduction': {
         'linear_output':        128,
         'reduction_type':       'max_pool',
+        'projection_head':      [128, 256, 128]
     },
     'classification': {
         'mlp_output_layers':    [128, 256, 32],
@@ -163,12 +164,23 @@ class BlipGraph(GenericModel):
         if self.config["add_summed_adc"]:
             reduction_config['linear_output'] += 1
 
+        # projection head
+        if "projection_head" in reduction_config.keys():
+            self.projection_head = True
+            _reduction_dict['projection_head'] = MLP(
+                [reduction_config['linear_output']] + reduction_config['projection_head']
+            )
+            reduction_output = reduction_config['projection_head'][-1]
+        else:
+            self.projection_head = False
+            reduction_output = reduction_config['linear_output']
+
         # classification layer
         classifcation_config = self.config['classification']
         # add output mlp Projection head (See explanation in SimCLRv2)
         for ii, classification in enumerate(self.config["classifications"]):
             _classification_dict[f'{classification}'] = MLP(
-                [reduction_config['linear_output']] + classifcation_config['mlp_output_layers'] + [classifcation_config['out_channels'][ii]]
+                [reduction_output] + classifcation_config['mlp_output_layers'] + [classifcation_config['out_channels'][ii]]
             )
 
         self.embedding_dict = nn.ModuleDict(_embedding_dict)
@@ -189,7 +201,7 @@ class BlipGraph(GenericModel):
         Iterate over the model dictionary
         """
         if self.training:
-            reductions, classifications = [], [[] for kk in range(self.number_of_augmentations)]
+            reductions, projection_head, classifications = [], [], [[] for kk in range(self.number_of_augmentations)]
             for kk in range(self.number_of_augmentations):
                 # Create augmentations
                 augmentations = self.augmentations(data).to(self.device)
@@ -213,17 +225,23 @@ class BlipGraph(GenericModel):
 
                 if self.config["add_summed_adc"]:
                     linear_pool = torch.cat([linear_pool, summed_adc.unsqueeze(1)], dim=1)
+                
+                reductions.append(linear_pool)
+
+                if self.projection_head:
+                    linear_pool = self.reduction_dict['projection_head'](linear_pool)
+                projection_head.append(linear_pool)
 
                 # Pass through classification dictionary
                 for jj, classification in enumerate(self.classification_dict.keys()):
                     classifications[jj].append(self.classification_dict[classification](linear_pool))
-                reductions.append(linear_pool)
 
             outputs = {
                 classification: torch.cat(classifications[jj])
                 for jj, classification in enumerate(self.classification_dict.keys())
             }
             outputs['reductions'] = torch.cat(reductions)
+            outputs['projection_head'] = torch.cat(projection_head)
             outputs['augmentations'] = self.number_of_augmentations
         else:
             pos = data.pos.to(self.device)
@@ -243,10 +261,17 @@ class BlipGraph(GenericModel):
             
             if self.config["add_summed_adc"]:
                 linear_pool = torch.cat([linear_pool, summed_adc.unsqueeze(1)], dim=1)
+            
+            reductions = linear_pool
+
+            if self.projection_head:
+                linear_pool = self.reduction_dict['projection_head'](linear_pool)
+
             outputs = {
                 classifications: self.classification_dict[classifications](linear_pool)
                 for classifications in self.classification_dict.keys()
             }
-            outputs['reductions'] = linear_pool
+            outputs['reductions'] = reductions
+            outputs['projection_head'] = linear_pool
             outputs['augmentations'] = 1
         return outputs
