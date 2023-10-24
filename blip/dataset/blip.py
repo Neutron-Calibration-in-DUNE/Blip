@@ -37,29 +37,29 @@ blip_dataset_config = {
     "classes":      [],
     "clusters":     [],
     "hits":         [],
-    "process_view_tree": False,
+    # "view_tree": False,
     # normalizations
-    "positions_normalization":   [],
+    "positions_normalization":  [],
     "features_normalization":   [],
     # weights
     "class_weights":    [],
     "sample_weights":   [],
     # clustering parameters
-    "dbscan_min_samples":   10,
-    "dbscan_eps":       10.0,
-    "cluster_class":    "topology",
-    "cluster_label":    "blip",
-    "cluster_variables":[],
+    "dbscan_min_samples": 10,
+    "dbscan_eps":         10.0,
+    "cluster_class":      "topology",
+    "cluster_label":      "blip",
+    "cluster_variables":  [],
     # masks
     "class_mask":   "",
     "label_mask":   "",
     # transforms and filters
-    "root":             ".",
-    "transform":        None,
-    "pre_transform":    None,
-    "pre_filter":       None,
+    "root":          ".",
+    "transform":     None,
+    "pre_transform": None,
+    "pre_filter":    None,
     # device
-    "device":           "cpu",
+    "device":        "cpu",
 }
 
 class BlipDataset(InMemoryDataset, GenericDataset):
@@ -69,11 +69,11 @@ class BlipDataset(InMemoryDataset, GenericDataset):
     Each of these events has a corresponding 'Data' object from pyg.
     The Data objects have the following set of attributes:
 
-        x - a 'n x d_f' array of node features.
+        x   - a 'n x d_f' array of node features.
         pos - a 'n x d_p' array of node positions.
-        y - a 'n x d_c' array of class labels.
+        y   - a 'n x d_c' array of class labels.
         edge_index - a '2 x n_e' array of edge indices.
-        edge_attr - a 'n_e x d_e' array of edge_features.
+        edge_attr  - a 'n_e x d_e' array of edge_features.
 
     We add an additional array of cluster labels which we call 'clusters', which has
     a topology of 'n x d_cl', where 'd_cl' is the dimension (number of classes)
@@ -395,9 +395,9 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         
         self.meta['dataset_type'] = self.config["dataset_type"]
         if self.meta['dataset_type'] == 'view':
-            self.meta['view']              = self.config['view']
-            self.meta['process_view_tree'] = self.config['process_view_tree']
-            self.meta['position_type']     = torch.int
+            self.meta['view']          = self.config['view']
+            self.meta['view_tree']     = self.config['view_tree']
+            self.meta['position_type'] = torch.int
         elif self.meta['dataset_type'] == 'view_cluster':
             self.meta['view']          = self.config['view']
             self.meta['position_type'] = torch.float
@@ -739,7 +739,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 features = data[f'view_{self.meta["view"]}_features']
                 classes  = data[f'view_{self.meta["view"]}_classes']
                 clusters = data[f'view_{self.meta["view"]}_clusters']
-                hits = data[f'view_{self.meta["view"]}_hits']
+                hits     = data[f'view_{self.meta["view"]}_hits']
                 # Iterate over all events in this file
                 for ii in range(len(features)):
                     # gather event features and classes
@@ -748,6 +748,23 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                     event_clusters = clusters[ii]
                     event_hits     = hits[ii]
                     self.process_view(
+                        event_features, event_classes, 
+                        event_clusters, event_hits, raw_path
+                    )
+
+            elif self.meta['dataset_type'] == 'view_tree':
+                features = data[f'view_tree_{self.meta["view"]}_features']
+                classes  = data[f'view_tree_{self.meta["view"]}_classes']
+                clusters = data[f'view_tree_{self.meta["view"]}_clusters']
+                hits     = data[f'view_tree_{self.meta["view"]}_hits']
+                # Iterate over all events in this file
+                for ii in range(len(features)):
+                    # gather event features and classes
+                    event_features = features[ii]
+                    event_classes  = classes[ii]
+                    event_clusters = clusters[ii]
+                    event_hits     = hits[ii]
+                    self.process_view_tree(
                         event_features, event_classes, 
                         event_clusters, event_hits, raw_path
                     )
@@ -877,8 +894,6 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         event_positions, event_features, event_classes, event_clusters, event_hits, mask = self.apply_view_event_masks(
             event_features, event_classes, event_clusters, event_hits
         )
-        if self.meta['process_view_tree']: merge_tree = create_merge_tree(event_positions)
-
         self.meta['event_mask'][raw_path].append(mask)
         # # check if classes need to be consolidated
         # if self.meta['consolidate_classes'] is not None:
@@ -891,7 +906,6 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             category   = torch.tensor(event_classes)  .type(self.meta['class_type']),
             clusters   = torch.tensor(event_clusters) .type(self.meta['cluster_type']),
             hits       = torch.tensor(event_hits)     .type(self.meta['hit_type']),
-            merge_tree = MergeTree(pointCloud = event_positions,simplify=False,debug=False),
         )
         if self.pre_filter    is not None: event = self.pre_filter(event)
         if self.pre_transform is not None: event = self.pre_transform(event)
@@ -899,6 +913,62 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         torch.save(event, osp.join(self.processed_dir, f'data_{self.index}.pt'))
         self.meta['input_events'][raw_path].append([self.index])
         self.index += 1
+
+    def process_view_tree(self,
+        event_features,
+        event_classes,
+        event_clusters,
+        event_hits,
+        raw_path
+    ):
+        event_positions, event_features, event_classes, event_clusters, event_hits, mask = self.apply_view_event_masks(
+            event_features, event_classes, event_clusters, event_hits
+        )
+        # # check if classes need to be consolidated
+        # if self.meta['consolidate_classes'] is not None:
+        #     event_classes = self.consolidate_class(classes[ii])
+        # else:
+        #     event_classes = classes[ii]
+
+        linkage,tree,node2distance = create_merge_tree(event_positions,simplify=False,debug=False)
+        points_0 = linkage[:,0] # first column with the position of the first point
+        points_1 = linkage[:,1] # second column with the position of the second point
+        distance = linkage[:,2] # third column with the distance between the two points generating the "cluster"
+        n_points = linkage[:,3] # fourth column with the number of points in the cluster
+        idx_true = np.where(linkage==2)[0] # index position for the cluster created from 2 points
+        pos_true = points_1[idx_true]      # position of the cluster created from 2 points
+        n_edges = len(points_0) + len(points_1) # number of edges in the tree
+        n_nodes = len(points_0) + 1             # number of nodes in the tree
+        
+        self.meta['event_mask'][raw_path].append(mask)
+
+        input_events = []; nodes_indices = []
+        for n in range(n_nodes):
+
+            #Normalize positions?
+            min_positions = np.min(event_positions, axis=0)
+            max_positions = np.max(event_positions, axis=0)
+            scale = max_positions - min_positions
+            scale[(scale == 0)] = max_positions[(scale == 0)]
+            event_positions = 2 * (event_positions - min_positions) / scale - 1
+
+            event = Data(
+                pos        = torch.tensor(event_positions).type(self.meta['position_type']),
+                x          = torch.tensor(event_features) .type(self.meta['feature_type']),
+                category   = torch.tensor(event_classes)  .type(self.meta['class_type']),
+                n_node     = torch.tensor(n)              .type(torch.long),
+            )
+            if self.pre_filter    is not None: event = self.pre_filter(event)
+            if self.pre_transform is not None: event = self.pre_transform(event)
+
+            torch.save(event, osp.join(self.processed_dir, f'data_{self.index}.pt'))
+            input_events.append(self.index)
+            nodes_indices.append(self.index)
+            self.index += 1
+
+        self.meta['input_events'][raw_path].append(input_events)
+        self.meta['node_map'][raw_path].append(nodes_indices)
+        
     
     def append_dataset_files(self,
         dict_name,

@@ -1,14 +1,11 @@
-from ctypes import sizeof
-import uproot
-import os
-import getpass
-import numpy as np
-import socket
-import matplotlib.pyplot as plt
-from scipy import stats as st
+import uproot,os,getpass,socket
+import numpy               as np
+import matplotlib.pyplot   as plt
+from scipy    import stats as st
+from ctypes   import sizeof
 from datetime import datetime
 
-from blip.utils.logger import Logger
+from blip.utils.logger   import Logger
 from blip.dataset.common import *
 
 class Arrakis:
@@ -219,10 +216,10 @@ class Arrakis:
                 self.mc_map = self.uproot_file[key].arrays(library="np")
 
     def generate_training_data(self,
-        process_type:  list=['all'],
-        input_file:    str=''
+        process_type: list = ['all'],
+        input_file:   str  = ''
     ):
-        self.meta = {}
+        self.meta    = {}
         self.mc_maps = {}
         self.energy_deposit_point_clouds = {}
         self.wire_plane_point_clouds = {}
@@ -315,23 +312,23 @@ class Arrakis:
         for tpc, tpc_ranges in self.tpc_positions.items():
             np.savez(
                 f"data/{self.output_folders[input_file]}/{tpc}.npz",
-                edep_features=self.energy_deposit_point_clouds[tpc]['edep_features'],
-                edep_classes=self.energy_deposit_point_clouds[tpc]['edep_classes'],
-                edep_clusters=self.energy_deposit_point_clouds[tpc]['edep_clusters'],
-                view_0_features=self.wire_plane_point_clouds[tpc]['view_0_features'],
-                view_0_classes=self.wire_plane_point_clouds[tpc]['view_0_classes'],
-                view_0_clusters=self.wire_plane_point_clouds[tpc]['view_0_clusters'],
-                view_0_hits=self.wire_plane_point_clouds[tpc]['view_0_hits'],
-                view_1_features=self.wire_plane_point_clouds[tpc]['view_1_features'],
-                view_1_classes=self.wire_plane_point_clouds[tpc]['view_1_classes'],
-                view_1_clusters=self.wire_plane_point_clouds[tpc]['view_1_clusters'],
-                view_1_hits=self.wire_plane_point_clouds[tpc]['view_1_hits'],
-                view_2_features=self.wire_plane_point_clouds[tpc]['view_2_features'],
-                view_2_classes=self.wire_plane_point_clouds[tpc]['view_2_classes'],
-                view_2_clusters=self.wire_plane_point_clouds[tpc]['view_2_clusters'],
-                view_2_hits=self.wire_plane_point_clouds[tpc]['view_2_hits'],
-                mc_maps=self.mc_maps[tpc],
-                meta=self.meta[tpc]
+                edep_features   = self.energy_deposit_point_clouds[tpc]['edep_features'],
+                edep_classes    = self.energy_deposit_point_clouds[tpc]['edep_classes'],
+                edep_clusters   = self.energy_deposit_point_clouds[tpc]['edep_clusters'],
+                view_0_features = self.wire_plane_point_clouds[tpc]['view_0_features'],
+                view_0_classes  = self.wire_plane_point_clouds[tpc]['view_0_classes'],
+                view_0_clusters = self.wire_plane_point_clouds[tpc]['view_0_clusters'],
+                view_0_hits     = self.wire_plane_point_clouds[tpc]['view_0_hits'],
+                view_1_features = self.wire_plane_point_clouds[tpc]['view_1_features'],
+                view_1_classes  = self.wire_plane_point_clouds[tpc]['view_1_classes'],
+                view_1_clusters = self.wire_plane_point_clouds[tpc]['view_1_clusters'],
+                view_1_hits     = self.wire_plane_point_clouds[tpc]['view_1_hits'],
+                view_2_features = self.wire_plane_point_clouds[tpc]['view_2_features'],
+                view_2_classes  = self.wire_plane_point_clouds[tpc]['view_2_classes'],
+                view_2_clusters = self.wire_plane_point_clouds[tpc]['view_2_clusters'],
+                view_2_hits     = self.wire_plane_point_clouds[tpc]['view_2_hits'],
+                mc_maps         = self.mc_maps[tpc],
+                meta            = self.meta[tpc]
             )
 
     def generate_mc_maps(self,
@@ -375,43 +372,43 @@ class Arrakis:
         edep_x = self.energy_deposit_point_cloud['edep_x']
         edep_y = self.energy_deposit_point_cloud['edep_y']
         edep_z = self.energy_deposit_point_cloud['edep_z']
-        edep_energy = self.energy_deposit_point_cloud['edep_energy']
-        edep_num_photons = self.energy_deposit_point_cloud['edep_num_photons']
+        edep_energy        = self.energy_deposit_point_cloud['edep_energy']
+        edep_num_photons   = self.energy_deposit_point_cloud['edep_num_photons']
         edep_num_electrons = self.energy_deposit_point_cloud['edep_num_electrons']
 
         # construct ids and names for source, topology and particle labels
-        source_label = self.energy_deposit_point_cloud['source_label']
+        source_label   = self.energy_deposit_point_cloud['source_label']
         topology_label = self.energy_deposit_point_cloud['topology_label']
         particle_label = self.energy_deposit_point_cloud['particle_label']
-        physics_label = self.energy_deposit_point_cloud['physics_label']
+        physics_label  = self.energy_deposit_point_cloud['physics_label']
         unique_topology_label = self.energy_deposit_point_cloud['unique_topology']
         unique_particle_label = self.energy_deposit_point_cloud['unique_particle']
-        unique_physics_label = self.energy_deposit_point_cloud['unique_physics']
+        unique_physics_label  = self.energy_deposit_point_cloud['unique_physics']
 
         for tpc, tpc_ranges in self.tpc_positions.items():
             edep_t_tpc = []
             edep_x_tpc = []
             edep_y_tpc = []
             edep_z_tpc = []
-            edep_energy_tpc = []
-            edep_num_photons_tpc = []
+            edep_energy_tpc        = []
+            edep_num_photons_tpc   = []
             edep_num_electrons_tpc = []
-            source_label_tpc = []
+            source_label_tpc   = []
             topology_label_tpc = []
             particle_label_tpc = []
-            physics_label_tpc = []
+            physics_label_tpc  = []
             unique_topology_label_tpc = []
             unique_particle_label_tpc = []
-            unique_physics_label_tpc = []
+            unique_physics_label_tpc  = []
 
             for event in range(len(edep_t)):
                 view_mask = (
                     (edep_x[event] >= tpc_ranges[0][0]) & 
-                    (edep_x[event] < tpc_ranges[0][1]) & 
+                    (edep_x[event] < tpc_ranges[0][1])  & 
                     (edep_y[event] >= tpc_ranges[1][0]) & 
-                    (edep_y[event] < tpc_ranges[1][1]) & 
+                    (edep_y[event] < tpc_ranges[1][1])  & 
                     (edep_z[event] >= tpc_ranges[2][0]) & 
-                    (edep_z[event] < tpc_ranges[2][1]) & 
+                    (edep_z[event] < tpc_ranges[2][1])  & 
                     #(source_label[event] >= 0) &        # we don't want 'undefined' points in our dataset.
                     (topology_label[event] >= 0) &         # i.e., things with a label == -1
                     (particle_label[event] >= 0)
@@ -436,16 +433,16 @@ class Arrakis:
             edep_x_tpc = np.array(edep_x_tpc, dtype=object)
             edep_y_tpc = np.array(edep_y_tpc, dtype=object)
             edep_z_tpc = np.array(edep_z_tpc, dtype=object)
-            edep_energy_tpc = np.array(edep_energy_tpc, dtype=object)
-            edep_num_photons_tpc = np.array(edep_num_photons_tpc, dtype=object)
+            edep_energy_tpc        = np.array(edep_energy_tpc, dtype=object)
+            edep_num_photons_tpc   = np.array(edep_num_photons_tpc, dtype=object)
             edep_num_electrons_tpc = np.array(edep_num_electrons_tpc, dtype=object)
-            source_label_tpc = np.array(source_label_tpc, dtype=object)
+            source_label_tpc   = np.array(source_label_tpc, dtype=object)
             topology_label_tpc = np.array(topology_label_tpc, dtype=object)
             particle_label_tpc = np.array(particle_label_tpc, dtype=object)
-            physics_label_tpc = np.array(physics_label_tpc, dtype=object)
+            physics_label_tpc  = np.array(physics_label_tpc, dtype=object)
             unique_topology_label_tpc = np.array(unique_topology_label_tpc, dtype=object)
             unique_particle_label_tpc = np.array(unique_particle_label_tpc, dtype=object)
-            unique_physics_label_tpc = np.array(unique_physics_label_tpc, dtype=object)
+            unique_physics_label_tpc  = np.array(unique_physics_label_tpc, dtype=object)
 
             if len(edep_t_tpc.flatten()) == 0:
                 continue
@@ -521,22 +518,22 @@ class Arrakis:
         )
         
         channel = self.wire_plane_point_cloud['channel']
-        tdc = self.wire_plane_point_cloud['tdc']
-        energy = self.wire_plane_point_cloud['energy'] * 10e5
-        adc = self.wire_plane_point_cloud['adc']
+        tdc     = self.wire_plane_point_cloud['tdc']
+        energy  = self.wire_plane_point_cloud['energy'] * 10e5
+        adc     = self.wire_plane_point_cloud['adc']
 
         # construct ids and names for source, topology and particle labels
-        source_label = self.wire_plane_point_cloud['source_label']
+        source_label   = self.wire_plane_point_cloud['source_label']
         topology_label = self.wire_plane_point_cloud['topology_label']
         particle_label = self.wire_plane_point_cloud['particle_label']
-        physics_label = self.wire_plane_point_cloud['physics_label']
+        physics_label  = self.wire_plane_point_cloud['physics_label']
         unique_topology_label = self.wire_plane_point_cloud['unique_topology']
         unique_particle_label = self.wire_plane_point_cloud['unique_particle']
-        unique_physics_label = self.wire_plane_point_cloud['unique_physics']
+        unique_physics_label  = self.wire_plane_point_cloud['unique_physics']
         hit_mean = self.wire_plane_point_cloud['hit_mean']
-        hit_rms = self.wire_plane_point_cloud['hit_rms']
+        hit_rms  = self.wire_plane_point_cloud['hit_rms']
         hit_amplitude = self.wire_plane_point_cloud['hit_amplitude']
-        hit_charge = self.wire_plane_point_cloud['hit_charge']
+        hit_charge    = self.wire_plane_point_cloud['hit_charge']
 
         for tpc, tpc_ranges in self.tpc_wire_channels.items():
             self.wire_plane_point_cloud[tpc] = {}
@@ -550,18 +547,18 @@ class Arrakis:
                 tdc_view = []
                 adc_view = []
                 energy_view = []
-                source_label_view = []
+                source_label_view   = []
                 topology_label_view = []
                 particle_label_view = []
-                physics_label_view = []
+                physics_label_view  = []
                 unique_topology_label_view = []
                 unique_particle_label_view = []
-                unique_physics_label_view = []
+                unique_physics_label_view  = []
                 hit_class_view = []
-                hit_mean_view = []
-                hit_rms_view = []
+                hit_mean_view  = []
+                hit_rms_view   = []
                 hit_amplitude_view = []
-                hit_charge_view = []
+                hit_charge_view    = []
 
                 for event in range(len(channel)):
                     view_mask = (
