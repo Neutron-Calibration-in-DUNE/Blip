@@ -11,92 +11,94 @@ Blip is a collection of machine learning tools for reconstructing, classifying a
 These interactions leave small point like signals (commonly referred to as "blips", hence the name). 
 Blip is a python package which can be installed locally, or on the Wilson Cluster (WC), or on Perlmutter at NERSC, by following the directions below (eventually Blip will be available on the Wilson cluster without the need to install).
 
-Contents
-==================
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+**CONTENTS**
+============
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
-   0.GettingStarted
-   1.Dataset
-   2.Arrakis
-   3.Blip
-   4.ConfigurationFiles
-   5.CustomModules
-   6.Examples
+   0.0.GettingStarted
+   1.0.Blip
+   2.Dataset
+   3.Arrakis
+   4.Examples
 
+---------------------------------------------------------------------------------------------------------------------------------------------
 
-Summary BLIP (local installation)
-------------------------------------
+**SUMMARY**
+------------
+Independently of the installation method you choose, you will need to clone the repository:
 
-For a quick summary or just as a reminder follow the next steps:
-
-1.- Clone the repository:
+0.- Clone the repository:
 
 .. code-block:: bash
 
    git clone https://github.com/Neutron-Calibration-in-DUNE/Blip.git 
+ 
 
-2.- Create a conda enviroment:
+Then, depending on the installation method, follow the next steps:
 
-.. code-block:: bash
+.. admonition:: **Local installation**
 
-   conda env create -f environment_blip.yml
-   conda activate blip
+   1.- Create a conda enviroment:
 
-3.- Install MinkoskiEngine:
+   .. code-block:: bash
 
-.. code-block:: bash
+      conda env create -f environment_blip.yml
+      conda activate blip
 
-   sudo apt-get install libopenblas-dev
-   pip install -U git+https://github.com/NVIDIA/MinkowskiEngine -v --no-deps --install-option="--blas_include_dirs=${CONDA_PREFIX}/include" --install-option="--blas=openblas"
+   3.- Install MinkoskiEngine:
 
-4.- You are done! 🎉 (Now from the main ``Blip`` folder you need to run):
+   .. code-block:: bash
 
-.. code-block:: bash
+      sudo apt-get install libopenblas-dev
+      pip install -U git+https://github.com/NVIDIA/MinkowskiEngine -v --no-deps --install-option="--blas_include_dirs=${CONDA_PREFIX}/include" --install-option="--blas=openblas"
 
-   pip install .
+   4.- You are done! 🎉 (Now from the main ``Blip`` folder you need to run):
 
-Summary BLIP (wilson cluster installation)
---------------------------------------------
+   .. code-block:: bash
 
-1.- Clone the repository and load the modules:
+      pip install .
 
-.. code-block:: bash
-   
-   git clone https://github.com/Neutron-Calibration-in-DUNE/Blip.git 
-   
-   module load gnu8/8.3.0
-   module load openblas/0.3.7
-   module load cuda11/11.8.0
-   module load condaforge/py39
+.. admonition:: **Wilson Cluster installation**
 
-2.- Create a conda enviroment:
+   1.- Load the modules:
 
-Configure the paths:
+   .. code-block:: bash
+      
+      module load gnu8/8.3.0
+      module load openblas/0.3.7
+      module load cuda11/11.8.0
+      module load condaforge/py39
 
-.. code-block:: bash
+   2.- Create a conda enviroment:
 
-   conda config --show #check the variables envs_dirs + pkgs_dirs
-   conda config --add pkgs_dirs <package_directory>
-   conda config --add envs_dirs <enviroment_directory>
+   * Configure the paths:
 
-If you have mistaken your path you can: ``conda config --remove envs_dirs <old_env_directory>``
+   .. code-block:: bash
 
-Create the enviroment:
+      conda config --show #check the variables envs_dirs + pkgs_dirs
+      conda config --add pkgs_dirs <package_directory>
+      conda config --add envs_dirs <enviroment_directory>
 
-.. code-block:: bash
-   
-   cd Blip/
-   conda env create --prefix /wclustre/davis_nc/USER/ -f environment_blip.yml
-   conda activate /wclustre/davis_nc/USER/
+   If you have mistaken your path you can: ``conda config --remove envs_dirs <old_env_directory>``
 
-3.- Install MinkoskiEngine:
+   * Create the enviroment:
 
-.. code-block:: bash
+   .. code-block:: bash
+      
+      cd Blip/
+      conda env create --prefix /wclustre/davis_nc/USER/ -f environment_blip.yml
+      conda activate /wclustre/davis_nc/USER/
 
-   export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
-   conda install openblas
-   pip install -U git+https://github.com/NVIDIA/MinkowskiEngine -v --no-deps --install-option="--blas_include_dirs=${CONDA_PREFIX}/include" --install-option="--blas=openblas" --install-option="--force_cuda"
+   3.- Install MinkoskiEngine:
+
+   .. code-block:: bash
+
+      export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+      conda install openblas
+      pip install -U git+https://github.com/NVIDIA/MinkowskiEngine -v --no-deps --install-option="--blas_include_dirs=${CONDA_PREFIX}/include" --install-option="--blas=openblas" --install-option="--force_cuda"
 
 
 
