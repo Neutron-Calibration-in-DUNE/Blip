@@ -933,19 +933,27 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         linkage,tree,node2distance = create_merge_tree(event_positions,simplify=False,debug=False)
         points_0 = linkage[:,0] # first column with the position of the first point
         points_1 = linkage[:,1] # second column with the position of the second point
-        distance = linkage[:,2] # third column with the distance between the two points generating the "cluster"
-        n_points = linkage[:,3] # fourth column with the number of points in the cluster
         idx_true = np.where(linkage==2)[0] # index position for the cluster created from 2 points
-        pos_true = points_1[idx_true]      # position of the cluster created from 2 points
-        n_edges = len(points_0) + len(points_1) # number of edges in the tree
-        n_nodes = len(points_0) + 1             # number of nodes in the tree
+        # distance = linkage[:,2] # third column with the distance between the two points generating the "cluster"
+        # n_points = linkage[:,3] # fourth column with the number of points in the cluster
+        # pos_true = points_1[idx_true]      # position of the cluster created from 2 points
+        # n_edges  = len(points_0) + len(points_1) # number of edges in the tree
+        # n_nodes  = len(points_0) + 1             # number of nodes in the tree
         
         self.meta['event_mask'][raw_path].append(mask)
 
         input_events = []; nodes_indices = []
-        for n in range(n_nodes):
+        for n in range(len(idx_true)-1):
+            points_cluster_n = np.arange(idx_true[n],idx_true[n+1])
+            p0 = points_0[points_cluster_n]
+            p1 = points_1[points_cluster_n]
+            linkage_points = np.concatenate((np.array(p0),np.array(p1)))
 
-            #Normalize positions?
+            event_positions = event_positions[linkage_points]
+            event_features  = event_features [linkage_points]
+            event_classes   = event_classes  [linkage_points]
+
+            #Normalize positions
             min_positions = np.min(event_positions, axis=0)
             max_positions = np.max(event_positions, axis=0)
             scale = max_positions - min_positions
@@ -953,10 +961,10 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             event_positions = 2 * (event_positions - min_positions) / scale - 1
 
             event = Data(
-                pos        = torch.tensor(event_positions).type(self.meta['position_type']),
-                x          = torch.tensor(event_features) .type(self.meta['feature_type']),
-                category   = torch.tensor(event_classes)  .type(self.meta['class_type']),
-                n_node     = torch.tensor(n)              .type(torch.long),
+                pos       = torch.tensor(event_positions).type(self.meta['position_type']),
+                x         = torch.tensor(event_features) .type(self.meta['feature_type']),
+                category  = torch.tensor(event_classes)  .type(self.meta['class_type']),
+                n_node    = torch.tensor(n)              .type(torch.long),
             )
             if self.pre_filter    is not None: event = self.pre_filter(event)
             if self.pre_transform is not None: event = self.pre_transform(event)
@@ -966,6 +974,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             nodes_indices.append(self.index)
             self.index += 1
 
+        np.savez(f'tree_event_{raw_path}.npz',linkage)
         self.meta['input_events'][raw_path].append(input_events)
         self.meta['node_map'][raw_path].append(nodes_indices)
         
