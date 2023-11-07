@@ -7,6 +7,7 @@ import os
 import csv
 import getpass
 from torch import nn
+import numpy as np
 from time import time
 from datetime import datetime
 from collections import OrderedDict
@@ -99,42 +100,41 @@ class GenericModel(nn.Module):
             output += "_" + flag
         if not os.path.exists(f"{self.meta['local_scratch']}/models/"):
             os.makedirs(f"{self.meta['local_scratch']}/models/")
-        meta_info = [[f'Meta information for model {self.name}']]
-        meta_info.append(['date:',datetime.now().strftime("%m/%d/%Y %H:%M:%S")])
-        meta_info.append(['user:', getpass.getuser()])
-        meta_info.append(['user_id:',os.getuid()])
+        meta_info = {
+            'name':     self.name,
+            'date':     datetime.now().strftime("%m/%d/%Y %H:%M:%S"),
+            'user':     getpass.getuser(),
+            'user_id':  os.getuid()
+        }
         system_info = self.logger.get_system_info()
         if len(system_info) > 0:
-            meta_info.append(['System information:'])
             for item in system_info:
-                meta_info.append([item,system_info[item]])
-            meta_info.append([])
-        meta_info.append(['Model configuration:'])
-        meta_info.append([])
-        for item in self.config:
-            meta_info.append([item, self.config[item]])
-        meta_info.append([])
-        meta_info.append(['Model dictionary:'])
-        for item in self.state_dict():
-            meta_info.append([item, self.state_dict()[item].size()])
-        meta_info.append([])
-        with open(output + "_meta.csv", "w") as file:
-            writer = csv.writer(file, delimiter="\t")
-            writer.writerows(meta_info)
+                meta_info[item] = system_info[item]
+        meta_info['model_config'] = self.config
+        meta_info['num_parameters'] = self.total_parameters()
+        meta_info['state_dict'] = self.state_dict()
         # save config
         config = [[item, self.config[item]] for item in self.config]
         with open(output+".config", "w") as file:
             writer = csv.writer(file, delimiter=",")
             writer.writerows(config)
+        np.savez(
+            f'{output} + _meta_info.npz',
+            meta_info=meta_info
+        )
         # save parameters
         torch.save(
             {
             'model_state_dict': self.state_dict(), 
-            'model_config': self.config
+            'model_config':     self.config,
+            'meta_info':        meta_info,
             }, 
             output + "_params.ckpt"
         )
-        
+    
+    def total_parameters(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
     def load_checkpoint(self,
         checkpoint_file:    str=''
     ):

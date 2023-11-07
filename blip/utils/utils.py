@@ -21,6 +21,10 @@ def index_positions(
 ):
     return positions[indices]
 
+def get_datetime():
+    time = datetime.now()
+    now = f"{time.year}.{time.month}.{time.day}.{time.hour}.{time.minute}.{time.second}"
+    return now
 
 """
 Get the names of the arrays in an .npz file
