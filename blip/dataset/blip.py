@@ -18,7 +18,7 @@ from torch_geometric.io   import read_txt_array
 from blip.utils.logger             import Logger
 from blip.dataset.generic_dataset  import GenericDataset
 from blip.topology.merge_tree      import MergeTree
-from blip.module.merge_tree_module import create_merge_tree, simplify_merge_tree
+from blip.topology.merge_tree      import create_merge_tree, simplify_merge_tree
 from blip.dataset.common           import *
 
 
@@ -929,56 +929,24 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         #     event_classes = self.consolidate_class(classes[ii])
         # else:
         #     event_classes = classes[ii]
+        merge_tree = MergeTree()
 
-        linkage,tree,node2distance = create_merge_tree(event_positions,simplify=False,debug=False)
-        points_0 = linkage[:,0] # first column with the position of the first point
-        points_1 = linkage[:,1] # second column with the position of the second point
-        idx_true = np.where(linkage==2)[0] # index position for the cluster created from 2 points
-        # distance = linkage[:,2]          # third column with the distance between the two points generating the "cluster"
-        # n_points = linkage[:,3]          # fourth column with the number of points in the cluster
-        # pos_true = points_1[idx_true]    # position of the cluster created from 2 points
-        # n_edges  = len(points_0) + len(points_1) # number of edges in the tree
-        # n_nodes  = len(points_0) + 1             # number of nodes in the tree
+        merge_tree_data = merge_tree.create_merge_tree(event_positions)
         
         self.meta['event_mask'][raw_path].append(mask)
 
-        input_events = []; nodes_indices = []
-        for n in range(len(idx_true)-1):
-            points_cluster_n = np.arange(idx_true[n],idx_true[n+1])
-            p0 = points_0[points_cluster_n]
-            p1 = points_1[points_cluster_n]
-            linkage_points = np.concatenate((np.array(p0),np.array(p1)))
+        event = Data(
+            pos       = torch.tensor(event_positions).type(self.meta['position_type']),
+            x         = torch.tensor(event_features).type(self.meta['feature_type']),
+            category  = torch.tensor(event_classes).type(self.meta['class_type']),
+            merge_tree = merge_tree_data,
+        )
+        if self.pre_filter    is not None: event = self.pre_filter(event)
+        if self.pre_transform is not None: event = self.pre_transform(event)
 
-            event_positions = event_positions[linkage_points]
-            event_features  = event_features [linkage_points]
-            event_classes   = event_classes  [linkage_points]
-
-            #Normalize positions
-            min_positions = np.min(event_positions, axis=0)
-            max_positions = np.max(event_positions, axis=0)
-            scale = max_positions - min_positions
-            scale[(scale == 0)] = max_positions[(scale == 0)]
-            event_positions = 2 * (event_positions - min_positions) / scale - 1
-
-            event = Data(
-                pos       = torch.tensor(event_positions).type(self.meta['position_type']),
-                x         = torch.tensor(event_features) .type(self.meta['feature_type']),
-                category  = torch.tensor(event_classes)  .type(self.meta['class_type']),
-                n_node    = torch.tensor(n)              .type(torch.long),
-                height    = torch.tensor(node2distance[n]).type(torch.float),
-            )
-            if self.pre_filter    is not None: event = self.pre_filter(event)
-            if self.pre_transform is not None: event = self.pre_transform(event)
-
-            torch.save(event, osp.join(self.processed_dir, f'data_{self.index}.pt'))
-            input_events.append(self.index)
-            nodes_indices.append(self.index)
-            self.index += 1
-
-        np.savez(f'tree_event_{raw_path}.npz',linkage)
-        self.meta['input_events'][raw_path].append(input_events)
-        self.meta['node_map'][raw_path].append(nodes_indices)
-        
+        torch.save(event, osp.join(self.processed_dir, f'data_{self.index}.pt'))
+        self.meta['input_events'][raw_path].append([self.index])
+        self.index += 1
     
     def append_dataset_files(self,
         dict_name,

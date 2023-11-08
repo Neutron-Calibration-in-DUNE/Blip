@@ -26,6 +26,33 @@ def get_datetime():
     now = f"{time.year}.{time.month}.{time.day}.{time.hour}.{time.minute}.{time.second}"
     return now
 
+def get_key(dictionary, val):
+    # Given a dictionary and a value, returns list of keys with that value
+    res = []
+    for key, value in dictionary.items():
+         if val == value: res.append(key)
+    return res
+
+def invert_label_dict(label):
+    # Take dict {key:item}, return dict {item:key}
+    inverted_label = dict()
+    for key in label.keys():
+        if type(label[key]) == list:
+            for l in label[key]: inverted_label[l] = key
+        else: inverted_label[label[key]] = key
+    return inverted_label
+
+def matrix_ell_infinity_distance(M1,M2):
+    # Inputs: two numpy arrays of the same size
+    # Output: \ell_\infty distance between the matrices
+    M = np.abs(M1 - M2)
+    dist = np.max(M)
+    return dist
+
+def remove_short_bars(barcode, thresh=0.01):
+    barcode_thresh = barcode[(barcode[:,1]-barcode[:,0] > thresh)]
+    return barcode_thresh
+
 """
 Get the names of the arrays in an .npz file
 """
