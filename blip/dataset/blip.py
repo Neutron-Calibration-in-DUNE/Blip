@@ -934,9 +934,9 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         points_0 = linkage[:,0] # first column with the position of the first point
         points_1 = linkage[:,1] # second column with the position of the second point
         idx_true = np.where(linkage==2)[0] # index position for the cluster created from 2 points
-        # distance = linkage[:,2] # third column with the distance between the two points generating the "cluster"
-        # n_points = linkage[:,3] # fourth column with the number of points in the cluster
-        # pos_true = points_1[idx_true]      # position of the cluster created from 2 points
+        # distance = linkage[:,2]          # third column with the distance between the two points generating the "cluster"
+        # n_points = linkage[:,3]          # fourth column with the number of points in the cluster
+        # pos_true = points_1[idx_true]    # position of the cluster created from 2 points
         # n_edges  = len(points_0) + len(points_1) # number of edges in the tree
         # n_nodes  = len(points_0) + 1             # number of nodes in the tree
         
@@ -965,6 +965,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                 x         = torch.tensor(event_features) .type(self.meta['feature_type']),
                 category  = torch.tensor(event_classes)  .type(self.meta['class_type']),
                 n_node    = torch.tensor(n)              .type(torch.long),
+                height    = torch.tensor(node2distance[n]).type(torch.float),
             )
             if self.pre_filter    is not None: event = self.pre_filter(event)
             if self.pre_transform is not None: event = self.pre_transform(event)
