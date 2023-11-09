@@ -138,17 +138,12 @@ class Loader:
                 f"'{type(self.config['num_workers'])}', must be of type 'int'!"
             )
 
-        if "sparse" not in self.config.keys():
-            self.logger.warn(f"'sparse' not specified in config! setting to 'False'.")
+        if "loader_type" not in self.config.keys():
+            self.logger.warn(f"'loader_type' not specified in config! setting sparse to 'False'.")
             self.config["sparse"] = False
-        if not self.config["sparse"]:
-            self.logger.warn(f"'sparse' not specified in config! setting to 'False'.")
-            self.config["sparse"] = False
-        if not isinstance(self.config['sparse'], bool):
-            self.logger.error(
-                f"specified test seed: {self.config['sparse']} is of type " + 
-                f"'{type(self.config['sparse'])}', must be of type 'bool'!"
-            )
+        else:
+            if self.config["loader_type"] == "sparse" or self.config["loader_type"] == "minkowski":
+                self.config['sparse'] = True
         
         # assign parameters
         self.batch_size = self.config["batch_size"]

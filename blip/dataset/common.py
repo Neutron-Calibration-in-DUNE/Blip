@@ -1,6 +1,7 @@
 """
 """
 from enum import Enum
+import numpy as np
 
 class TopologyLabel(Enum):
     Undefined = -1

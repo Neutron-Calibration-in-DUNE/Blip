@@ -26,7 +26,7 @@ from blip.trainer import Trainer
 from blip.utils.sampling import *
 from blip.utils.grouping import *
 from blip.utils.callbacks import CallbackHandler
-from blip.utils.utils import get_files, save_model, flatten_dict, generate_combinations_from_arrays, get_datetime
+from blip.utils.utils import *
 
 class MachineLearningModule(GenericModule):
     """
@@ -35,6 +35,8 @@ class MachineLearningModule(GenericModule):
     is to mimic some of the functionality of LArSoft, e.g. where you can specify a chain
     of tasks to be completed, the ability to have nested config files where default parameters
     can be overwritten.
+
+    The ML specific module runs in several different modes, 
     """
     def __init__(self,
         name:   str,

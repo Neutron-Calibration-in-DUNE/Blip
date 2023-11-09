@@ -62,7 +62,8 @@ class MergeTreeModule(GenericModule):
                 leave=rewrite_bar,
                 colour='magenta'
             )
-        else: inference_loop = enumerate(inference_loader, 0)
+        else: 
+            inference_loop = enumerate(inference_loader, 0)
         for ii, data in inference_loop:
             vietoris_rips, tree = self.merge_tree.create_merge_tree(
-                data)    
+                data)

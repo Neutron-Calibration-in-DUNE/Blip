@@ -6,19 +6,12 @@ import numpy   as np
 from typing          import Callable, List, Optional, Union
 from sklearn.cluster import DBSCAN
 
-from torch_geometric.data import (
-    Data,
-    Dataset,
-    InMemoryDataset,
-    download_url,
-    extract_zip,
-)
+from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.io   import read_txt_array
 
 from blip.utils.logger             import Logger
 from blip.dataset.generic_dataset  import GenericDataset
 from blip.topology.merge_tree      import MergeTree
-from blip.topology.merge_tree      import create_merge_tree, simplify_merge_tree
 from blip.dataset.common           import *
 
 
@@ -119,9 +112,11 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                         self.number_of_events += 1
             self.logger.info(f'found {self.number_of_events} processed files.')
         
-        self.wire_tpc_datasets = ['view', 'view_cluster']
+        self.wire_tpc_datasets = ['view', 'view_cluster', 'view_tree']
 
-        self.meta = {}
+        self.meta = {
+            'verbose': meta['verbose']
+        }
         self.configure_dataset()
         self.configure_variables()
         self.configure_meta()
@@ -401,7 +396,11 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         elif self.meta['dataset_type'] == 'view_cluster':
             self.meta['view']          = self.config['view']
             self.meta['position_type'] = torch.float
-        else: self.meta['position_type'] = torch.float
+        elif self.meta['dataset_type'] == 'view_tree':
+            self.meta['view']          = self.config['view']
+            self.meta['position_type'] = torch.float
+        else: 
+            self.meta['position_type'] = torch.float
 
         self.meta['feature_type'] = torch.float
         self.meta['class_type']   = torch.long
@@ -753,10 +752,10 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                     )
 
             elif self.meta['dataset_type'] == 'view_tree':
-                features = data[f'view_tree_{self.meta["view"]}_features']
-                classes  = data[f'view_tree_{self.meta["view"]}_classes']
-                clusters = data[f'view_tree_{self.meta["view"]}_clusters']
-                hits     = data[f'view_tree_{self.meta["view"]}_hits']
+                features = data[f'view_{self.meta["view"]}_features']
+                classes  = data[f'view_{self.meta["view"]}_classes']
+                clusters = data[f'view_{self.meta["view"]}_clusters']
+                hits     = data[f'view_{self.meta["view"]}_hits']
                 # Iterate over all events in this file
                 for ii in range(len(features)):
                     # gather event features and classes
@@ -929,10 +928,11 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         #     event_classes = self.consolidate_class(classes[ii])
         # else:
         #     event_classes = classes[ii]
-        merge_tree = MergeTree()
-
+        merge_tree = MergeTree(
+            self.name,
+            meta=self.meta
+        )
         merge_tree_data = merge_tree.create_merge_tree(event_positions)
-        
         self.meta['event_mask'][raw_path].append(mask)
 
         event = Data(

@@ -16,5 +16,6 @@ module_aliases = {
     "machine_learning": "MachineLearningModule",
     "machinelearning":  "MachineLearningModule",
     "MachineLearning":  "MachineLearningModule",
-    "clustering":   "ClusteringModule"
+    "clustering":   "ClusteringModule",
+    "blip_net":     "BlipNetModule"
 }

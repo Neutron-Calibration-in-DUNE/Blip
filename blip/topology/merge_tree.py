@@ -8,6 +8,7 @@ which is associated to the paper:
 """
 import numpy    as np
 import networkx as nx
+import ot
 from torch  import nn
 from ripser import ripser
 import scipy.cluster.hierarchy as hierarchy
@@ -57,29 +58,29 @@ class MergeTree:
         # create cluster node object
         rootnode, clusters = hierarchy.to_tree(point_cloud_linkage, rd=True)
         # create graph with links
-        graph = nx.Graph()
+        # graph = nx.Graph()
 
-        height = dict()
-        for j in range(num_leaves): 
-            height[j] = 0
+        # height = dict()
+        # for j in range(num_leaves): 
+        #     height[j] = 0
 
-        nodeIDs = np.unique(L[:,:2]).astype(int)
-        graph.add_nodes_from(nodeIDs)
+        # nodeIDs = np.unique(point_cloud_linkage[:,:2]).astype(int)
+        # graph.add_nodes_from(nodeIDs)
 
-        edge_list = []
-        for j in range(point_cloud_linkage.shape[0]):
-            edge_list.append((int(point_cloud_linkage[j,0]),num_leaves+j))
-            edge_list.append((int(point_cloud_linkage[j,1]),num_leaves+j))
-            height[num_leaves+ j] = point_cloud_linkage[j,2]
-        graph.add_edges_from(edge_list)
+        # edge_list = []
+        # for j in range(point_cloud_linkage.shape[0]):
+        #     edge_list.append((int(point_cloud_linkage[j,0]),num_leaves+j))
+        #     edge_list.append((int(point_cloud_linkage[j,1]),num_leaves+j))
+        #     height[num_leaves+ j] = point_cloud_linkage[j,2]
+        # graph.add_edges_from(edge_list)
         
         merge_tree = {
             'linkage':      point_cloud_linkage,
-            'height':       height,
+            # 'height':       height,
             'dendrogram':   point_cloud_dendrogram,
-            'rootnode':     rootnode,
+            # 'rootnode':     rootnode,
             'clusters':     clusters[(num_leaves):],
-            'graph':        graph
+            # 'graph':        graph
         }
         return merge_tree
     
@@ -274,7 +275,7 @@ class MergeTree:
 
             for leaf in non_descendent_leaves:
                 ancestor = non_descendent_LCAs[leaf][0]
-                truncated_bar = truncate_bar(bar,merge_tree['height'][ancestor])
+                truncated_bar = self.truncate_bar(bar,merge_tree['height'][ancestor])
                 if type(truncated_bar) == list:
                     leaf_barcodes[leaf] = leaf_barcodes[leaf] + [list(truncated_bar)]
 
@@ -323,19 +324,24 @@ class MergeTree:
             for n in graph.nodes()
         }
         for n in graph.nodes():
-            descendent_leaves = get_descendent_leaves(graph,height,n)
+            descendent_leaves = self.get_descendent_leaves(graph,height,n)
             descendent_leaf = descendent_leaves[0]
             dgm = leaf_barcode[descendent_leaf]
 
             node_dgm = []
             for bar in dgm:
-                truncated_bar = truncate_bar(bar,height[n])
+                truncated_bar = self.truncate_bar(bar,height[n])
                 if type(truncated_bar) == list:
                     node_barcodes[n] = node_barcodes[n] + [list(truncated_bar)]
 
         return node_barcodes
 
-    def get_barcode_matching_matrix(node_barcode1,node_barcode2,label1,label2):
+    def get_barcode_matching_matrix(self,
+        node_barcode1,
+        node_barcode2,
+        label1,
+        label2
+    ):
         matrix_size1 = len(list(label1.keys()))
         matrix_size2 = len(list(label2.keys()))
 
@@ -347,7 +353,7 @@ class MergeTree:
             for j in range(matrix_size2):
                 ind2 = label2[j]
                 barcode12 = node_barcode2[ind2]
-                M[i,j] = bottleneck(barcode11,barcode12)
+                M[i,j] = self.bottleneck(barcode11,barcode12)
         return M
     
     def get_heights(self,
@@ -518,7 +524,7 @@ class MergeTree:
                 barcode_thresh
             )
     
-    def mergeTree_pos(self,
+    def merge_tree_position(self,
         graph, 
         height, 
         root=None, 
@@ -598,14 +604,14 @@ class MergeTree:
     ):
         # Input: merge tree as graph, height
         # Output: draws the merge tree with correct node heights
-        pos = mergeTree_pos(graph, height)
+        pos = self.merge_tree_position(graph, height)
         fig, ax = plt.subplots()
         nx.draw_networkx(graph, pos=pos, with_labels=True)
         if axes: 
             ax.tick_params(left=True, bottom=False, labelleft=True, labelbottom=False)
         return
 
-    def draw_labeled_merge_tree(
+    def draw_labeled_merge_tree(self,
         graph,
         height,
         label,
@@ -614,14 +620,14 @@ class MergeTree:
 
         # Input: merge tree as graph, height. Label dictionary label with labels for certain nodes
         # Output: draws the merge tree with labels over the labeled nodes
-        pos = mergeTree_pos(graph, height)
+        pos = self.merge_tree_position(graph, height)
         draw_labels = dict()
 
         for key in label.keys(): 
             draw_labels[key] = str(label[key])
         nx.draw_networkx(graph, pos=pos, labels=draw_labels, node_color='r', font_weight='bold', font_size=16)
         if axes: 
-            ax.tick_params(left=True, bottom=False, labelleft=True, labelbottom=False)
+            nx.tick_params(left=True, bottom=False, labelleft=True, labelbottom=False)
         return
 
     def interleaving_subdivided_trees(self,
@@ -784,11 +790,11 @@ class MergeTree:
         # Get ultramatrix cost matrices and dictionaries
         label1 = {n:i for (i,n) in enumerate(graph1_sub.nodes())}
         label2 = {n:i for (i,n) in enumerate(graph2_sub.nodes())}
-        C1, idx_dict1 = get_ultramatrix(graph1_sub,height1_sub,label1)
-        C2, idx_dict2 = get_ultramatrix(graph2_sub,height2_sub,label2)
+        C1, idx_dict1 = self.get_ultramatrix(graph1_sub,height1_sub,label1)
+        C2, idx_dict2 = self.get_ultramatrix(graph2_sub,height2_sub,label2)
 
         # Get persistence cost matrix
-        M = get_barcode_matching_matrix(node_barcode1, node_barcode2, idx_dict1, idx_dict2)
+        M = self.get_barcode_matching_matrix(node_barcode1, node_barcode2, idx_dict1, idx_dict2)
 
         # Get GW data
         if degree_weight:
@@ -854,7 +860,7 @@ class MergeTree:
         dist_l2   = np.sqrt(np.sum((C1New - C2New)**2))
 
         # Compute barcode matching distance
-        distDgm = np.max([bottleneck(node_barcode1[pair[0]],node_barcode2[pair[1]]) for pair in Pi])
+        distDgm = np.max([self.bottleneck(node_barcode1[pair[0]],node_barcode2[pair[1]]) for pair in Pi])
         distMax = max([distMerge,distDgm])
 
         ####
@@ -916,13 +922,13 @@ class MergeTree:
         if barcodes2 is None: 
             self.logger.error('Merge tree must be decorated with a barcode!')
 
-        graph1_sub, height1_sub = get_heights_and_subdivide_edges(graph1,height1,height2,mesh)
-        graph2_sub, height2_sub = get_heights_and_subdivide_edges(graph2,height2,height1,mesh)
+        graph1_sub, height1_sub = self.get_heights_and_subdivide_edges(graph1,height1,height2,mesh)
+        graph2_sub, height2_sub = self.get_heights_and_subdivide_edges(graph2,height2,height1,mesh)
 
-        node_barcode1 = propagate_leaf_barcodes(graph1_sub,height1_sub,barcodes1)
-        node_barcode2 = propagate_leaf_barcodes(graph2_sub,height2_sub,barcodes2)
+        node_barcode1 = self.propagate_leaf_barcodes(graph1_sub,height1_sub,barcodes1)
+        node_barcode2 = self.propagate_leaf_barcodes(graph2_sub,height2_sub,barcodes2)
 
-        res = fusedGW_interleaving_decorated_trees(
+        res = self.fusedGW_interleaving_decorated_trees(
             graph1_sub,
             height1_sub,
             node_barcode1,
@@ -1050,8 +1056,8 @@ class MergeTree:
         """
         subdiv_heights = [thresh]
 
-        graph_sub, height_sub = subdivide_edges(graph,height,subdiv_heights)
-        node_barcode_sub = propagate_leaf_barcodes(graph_sub,height_sub,leaf_barcode)
+        graph_sub, height_sub = self.subdivide_edges(graph,height,subdiv_heights)
+        node_barcode_sub = self.propagate_leaf_barcodes(graph_sub,height_sub,leaf_barcode)
 
         height_array = np.array(list(set(height_sub.values())))
         height_array_thresh = height_array[height_array >= thresh]
@@ -1083,7 +1089,7 @@ class MergeTree:
 
         return graph_thresh, height_thresh, node_barcode_thresh, leaf_barcode_thresh
 
-    def simplify_decorated_merge_tree(
+    def simplify_decorated_merge_tree(self,
         graph,
         height,
         leaf_barcode,
@@ -1096,7 +1102,7 @@ class MergeTree:
         """
         subdiv_heights = [thresh]
 
-        graph_sub, height_sub = subdivide_edges(graph,height,subdiv_heights)
+        graph_sub, height_sub = self.subdivide_edges(graph,height,subdiv_heights)
 
         height_array = np.array(list(set(height_sub.values())))
         height_array_thresh = height_array[height_array >= thresh]
@@ -1119,7 +1125,7 @@ class MergeTree:
         ]
 
         for n in graph_thresh_leaves:
-            descendents = get_descendent_leaves(graph_sub,height_sub,n)
+            descendents = self.get_descendent_leaves(graph_sub,height_sub,n)
             descendent_node_rep = list(set(get_key(height_sub,min([height[node] for node in descendents]))).intersection(set(descendents)))[0]
             graph_thresh.add_edge(n,descendent_node_rep)
             height_thresh[descendent_node_rep] = height_sub[descendent_node_rep]
@@ -1142,9 +1148,9 @@ class MergeTree:
         title_fontsize = 15, 
         y_fontsize = 12
     ):
-        graph_new, heightsNew = simplify_merge_tree(graph,heights)
+        graph_new, heightsNew = self.simplify_merge_tree(graph,heights)
 
-        pos = mergegraphree_pos(graph_new,heightsNew)
+        pos = self.merge_three_pos(graph_new,heightsNew)
         fig = plt.figure(figsize = figsize)
         ax  = plt.subplot(111)
         nx.draw_networkx(graph_new,pos=pos, with_labels=False)
@@ -1155,7 +1161,7 @@ class MergeTree:
 
         plt.yticks(np.round(list(heightsNew.values()),2), fontsize = y_fontsize)
 
-        if title != None
+        if title != None:
             plt.title(title, fontsize = title_fontsize)
         plt.show()
         
@@ -1190,11 +1196,11 @@ class MergeTree:
         """
         print_colored('[INIT] visualize_DMT_pointcloud',"INFO")
         # Make a copy of T, height
-        graph_temp      = T.copy()
+        graph_temp      = graph.copy()
         height_tmp = height.copy()
 
         # Generate leaf barcode
-        leaf_barcode = decorate_merge_tree(T, height, data, barcode1)
+        leaf_barcode = self.decorate_merge_tree(graph, height, data, barcode1)
 
         # Threshold the barcode and leaf barcode according to the user-defined threshold level
         """
@@ -1230,7 +1236,7 @@ class MergeTree:
         # print(nx.is_forest(graph_temp)) # should be True
 
         new_heights = [bar[0] for bar in barcode1_thresh] + [bar[1] for bar in barcode1_thresh]
-        T_sub, height_sub = subdivide_edges(graph_temp,height_tmp,new_heights)
+        T_sub, height_sub = self.subdivide_edges(graph_temp,height_tmp,new_heights)
 
         # Get node positions
         # print("T_sub",T_sub)
@@ -1247,7 +1253,7 @@ class MergeTree:
 
         # print(T_sub.nodes())
 
-        pos = mergeTree_pos(T_sub,height_sub)
+        pos = self.merge_tree_position(T_sub,height_sub)
         # print("pos", pos)
 
         ### Create new graph object containing offset bars ###
@@ -1269,14 +1275,14 @@ class MergeTree:
             birth = bar[0]
             birth_node_candidates = get_key(height_sub,birth)
             for candidate in birth_node_candidates:
-                if bar_leaf in get_descendent_leaves(T_sub,height_sub,candidate):
+                if bar_leaf in self.get_descendent_leaves(T_sub,height_sub,candidate):
                     birth_node = candidate
                     break
 
             death = bar[1]
             death_node_candidates = get_key(height_sub,death)
             for candidate in death_node_candidates:
-                if bar_leaf in get_descendent_leaves(T_sub,height_sub,candidate):
+                if bar_leaf in self.get_descendent_leaves(T_sub,height_sub,candidate):
                     death_node = candidate
                     break
 
@@ -1298,10 +1304,10 @@ class MergeTree:
             bar_counter += 1
 
         # T_thresh, height_thresh, node_barcode_thresh, leaf_barcode_thresh = simplify_decorated_merge_tree(T_sub,height_sub,leaf_barcode,tree_thresh)
-        T_thresh, height_thresh, leaf_barcode_thresh = simplify_decorated_merge_tree(T_sub,height_sub,leaf_barcode,tree_thresh)
+        T_thresh, height_thresh, leaf_barcode_thresh = self.simplify_decorated_merge_tree(T_sub,height_sub,leaf_barcode,tree_thresh)
 
         ### Create overall node positions dictionary ###
-        pos_DMT = mergeTree_pos(T_thresh,height_thresh)
+        pos_DMT = self.merge_tree_position(T_thresh,height_thresh)
         for node in T_offsets.nodes():
             merge_tree_node = node[0]
             x_offset = pos_offsets[node]
