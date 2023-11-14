@@ -8,7 +8,7 @@ from tqdm import tqdm
 from blip.dataset.blip import BlipDataset
 from blip.utils.logger import Logger
 from blip.losses import LossHandler
-from blip.models import ModelChecker
+from blip.models import ModelChecker, GenericModel
 from blip.metrics import MetricHandler
 from blip.optimizers import Optimizer
 from blip.utils.timing import Timers
@@ -30,7 +30,8 @@ class Trainer:
         (e) callbacks - (optional) an object which has certain defined functions 
     """
     def __init__(self,
-        model,
+        name:       str='default',
+        model:      GenericModel=None,
         criterion:  LossHandler=None,
         optimizer:  Optimizer=None,
         metrics:    MetricHandler=None,
@@ -38,9 +39,7 @@ class Trainer:
         meta:   dict={},
         seed:   int=0,
     ): 
-        self.name = model.name + "_trainer"
-        self.logger = Logger(self.name, output='both', file_mode='w')
-        self.logger.info(f"constructing model trainer.")
+        self.name = name + '_trainer'       
         self.meta = meta
         if "device" in self.meta:
             self.device = self.meta['device']
@@ -50,6 +49,7 @@ class Trainer:
             self.logger = Logger(self.name, output="both", file_mode="w")
         else:
             self.logger = Logger(self.name, level='warning', file_mode="w")
+        self.logger.info(f"constructing model trainer.")
         # Check for compatability with parameters
 
         # define directories
@@ -92,7 +92,7 @@ class Trainer:
             )
         else:
             self.callbacks = callbacks
-        self.model_checker = ModelChecker("model_checker")
+        self.model_checker = ModelChecker(name)
 
         # send other objects to the device
         self.model.set_device(self.device)

@@ -99,6 +99,10 @@ inference:
   rewrite_bar:      False     # wether to leave bars after each epoch
   save_predictions: True      # wether to save network outputs in original file
 
+model_analyzer:
+  models: []    # list of models to analyze
+  
+
 model:
   # uncomment the line below and specify the model to load from a checkpoint.
   load_model:   ".checkpoints/checkpoint_200.ckpt"

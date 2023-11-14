@@ -97,13 +97,13 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         else:
             self.device = 'cpu'
         if meta['verbose']:
-            self.logger = Logger(name, output="both", file_mode="w")
+            self.logger = Logger(self.name, output="both", file_mode="w")
         else:
-            self.logger = Logger(name, level='warning', file_mode="w")
+            self.logger = Logger(self.name, level='warning', file_mode="w")
         self.logger.info(f"constructing blip dataset.")
 
         self.number_of_events = 0
-        self.root = self.config["root"]
+        self.root = meta['local_scratch']
         self.skip_processing = self.config["skip_processing"]
         if self.skip_processing:
             if os.path.isdir('processed/'):
@@ -113,7 +113,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             self.logger.info(f'found {self.number_of_events} processed files.')
         
         self.wire_tpc_datasets = ['view', 'view_cluster', 'view_tree']
-
+        
         self.meta = {
             'verbose': meta['verbose']
         }
@@ -126,8 +126,10 @@ class BlipDataset(InMemoryDataset, GenericDataset):
 
         GenericDataset.__init__(self)
         InMemoryDataset.__init__(self,
-            self.root, self.transform, 
-            self.pre_transform, self.pre_filter, 
+            self.root, 
+            self.transform, 
+            self.pre_transform, 
+            self.pre_filter, 
             log=False
         )
 

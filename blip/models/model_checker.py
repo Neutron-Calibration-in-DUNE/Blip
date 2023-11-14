@@ -10,9 +10,9 @@ class ModelChecker:
     """
     """
     def __init__(self,
-        name:   str
+        name:   str='default'
     ):
-        self.name = name
+        self.name = name + "_model_checker"
         self.logger = Logger(self.name, output="both", file_mode='w')
         # set to whatever the last call of set_device was.
         self.shapes = {

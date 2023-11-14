@@ -15,7 +15,7 @@ class Optimizer:
         config: dict={},
         model:  GenericModel=None
     ):
-        self.name = "_optimizer"
+        self.name = name + "_optimizer"
         self.logger = Logger(self.name, file_mode='w')
         self.config = config
         if model == None:

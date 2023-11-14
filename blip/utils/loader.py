@@ -23,7 +23,7 @@ class Loader:
         config: dict={},
         meta:   dict={}
     ):
-        self.name = name + '_dataset'
+        self.name = name + '_loader'
         self.config = config
         self.meta = meta
         if "device" in self.meta:
@@ -31,10 +31,10 @@ class Loader:
         else:
             self.device = 'cpu'
         if meta['verbose']:
-            self.logger = Logger(name, output="both", file_mode="w")
+            self.logger = Logger(self.name, output="both", file_mode="w")
         else:
-            self.logger = Logger(name, level='warning', file_mode="w")
-        self.logger.info(f"constructing blip dataset.")
+            self.logger = Logger(self.name, level='warning', file_mode="w")
+        self.logger.info(f"constructing blip loader.")
 
         if not issubclass(type(self.meta['dataset']), GenericDataset):
             self.logger.error(

@@ -48,13 +48,14 @@ def wrangle_data(
     os.environ['LOCAL_BLIP'] = local_blip
     os.environ['LOCAL_DATA'] = local_data
 
+    logger = Logger('data_wrangler', output="both", file_mode="w")
+    logger.info("configuring data...")
+
     # begin parsing configuration file
     if config_file is None:
         logger.error(f'no config_file specified in parameters!')
 
     config = ConfigParser(config_file).data
-    logger = Logger(run_name, output="both", file_mode="w")
-    logger.info("configuring blip...")
 
     if anomaly:
         logger.info(f'setting anomaly detection to {anomaly}')
