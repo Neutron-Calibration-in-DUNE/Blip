@@ -1,20 +1,18 @@
 """
 Generic metric callback
 """
-import numpy as np
-import torch
-from matplotlib import pyplot as plt
-import os
-from sklearn.manifold import TSNE
+import os,torch,copy
+import numpy   as np
 import seaborn as sns
-import pandas as pd
-import copy
+import pandas  as pd
+from matplotlib       import pyplot as plt
+from sklearn.manifold import TSNE
 
-from blip.losses.loss_handler import LossHandler
+from blip.losses.loss_handler    import LossHandler
 from blip.metrics.metric_handler import MetricHandler
-from blip.utils.callbacks import GenericCallback
-from blip.utils import utils
-from blip.dataset.common import *
+from blip.utils.callbacks        import GenericCallback
+from blip.utils                  import utils
+from blip.dataset.common         import *
 
 class AdjustedRandIndexCallback(GenericCallback):
     """

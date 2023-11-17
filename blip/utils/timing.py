@@ -1,8 +1,7 @@
 """
 Classes for storing ML timing information.
 """
-import torch
-import time
+import torch,time
 
 class Timer:
     """

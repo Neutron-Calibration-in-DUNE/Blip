@@ -1,38 +1,34 @@
 """
 Tools for displaying events
 """
-import numpy as np
-from matplotlib import pyplot as plt
-import random
-
-from bokeh.io import curdoc, output_notebook, show
-from bokeh.application import Application
-from bokeh.application.handlers.function import FunctionHandler
-from bokeh.layouts import row, column, layout
-from bokeh.plotting import figure, show
-from bokeh.models import TabPanel, Tabs, TapTool
-from bokeh.models import Div, RangeSlider, Spinner
-from bokeh.models import Slider
-from bokeh.models import Select, MultiSelect, FileInput
-from bokeh.models import Button, CheckboxGroup, TextInput
-from bokeh.models import CategoricalColorMapper, Toggle
-from bokeh.models import CheckboxButtonGroup, CustomJS
-from bokeh.models import Paragraph, PreText, Dropdown
-from bokeh.models import ColumnDataSource, RadioGroup
-from bokeh.models import ColorBar, LinearColorMapper
-from bokeh.events import Tap
-from bokeh.palettes import Turbo256, Category20, Category20b, TolRainbow, Magma256
-from bokeh.transform import linear_cmap
-from bokeh.transform import factor_cmap, factor_mark
-from bokeh.server.server import Server
-from bokeh.command.util import build_single_handler_applications
-from bokeh.document import Document
-
+import random, os, imageio
+import numpy  as np
 import pandas as pd
+from pathlib    import Path
+from matplotlib import pyplot as plt
 
-import os
-from pathlib import Path
-import imageio
+from bokeh.io                            import curdoc, output_notebook, show
+from bokeh.application                   import Application
+from bokeh.application.handlers.function import FunctionHandler
+from bokeh.layouts                       import row, column, layout
+from bokeh.plotting                      import figure, show
+from bokeh.models                        import TabPanel, Tabs, TapTool
+from bokeh.models                        import Div, RangeSlider, Spinner
+from bokeh.models                        import Slider
+from bokeh.models                        import Select, MultiSelect, FileInput
+from bokeh.models                        import Button, CheckboxGroup, TextInput
+from bokeh.models                        import CategoricalColorMapper, Toggle
+from bokeh.models                        import CheckboxButtonGroup, CustomJS
+from bokeh.models                        import Paragraph, PreText, Dropdown
+from bokeh.models                        import ColumnDataSource, RadioGroup
+from bokeh.models                        import ColorBar, LinearColorMapper
+from bokeh.events                        import Tap
+from bokeh.palettes                      import Turbo256, Category20, Category20b, TolRainbow, Magma256
+from bokeh.transform                     import linear_cmap
+from bokeh.transform                     import factor_cmap, factor_mark
+from bokeh.server.server                 import Server
+from bokeh.command.util                  import build_single_handler_applications
+from bokeh.document                      import Document
 
 from blip.utils.logger import Logger
 
@@ -46,18 +42,18 @@ class TPCDisplay:
         # These act as drop down menus which update upon 
         # selecting, one for wire planes and another for 
         # edeps.
-        self.wire_plane_file_folder = str(Path().absolute())
+        self.wire_plane_file_folder       = str(Path().absolute())
+        self.wire_plane_input_file        = ''
         self.wire_plane_available_folders = []
+        self.wire_plane_available_files   = []
         self.update_wire_plane_available_folders()
-        self.wire_plane_input_file = ''
-        self.wire_plane_available_files = []
         self.update_wire_plane_available_files()
         
         # Meta information from blip dataset files (.npz)
-        self.tpc_meta = {}
+        self.tpc_meta         = {}
         self.available_events = []
-        self.event = -1
-        self.tpc_meta_vars = [
+        self.event            = -1
+        self.tpc_meta_vars    = [
             "input_file", "who_created", "when_created",
             "where_created", "num_events", "view",
             "features", "classes"
@@ -91,20 +87,20 @@ class TPCDisplay:
         # event.
         self.edep_features = []
         self.view_features = []
-        self.classes = []
-        self.clusters = []
-        self.hits = []
-        self.edeps = []
-        self.predictions = {}
+        self.classes       = []
+        self.clusters      = []
+        self.hits          = []
+        self.edeps         = []
+        self.predictions   = {}
 
         self.plot_types = [
             "Wire Plane", "Wire Channel", "TPC", "MergeTree"
         ]
-        self.plot_options = ["Truth", "Predictions"]
-        self.wire_plane_options = ["View 0", "View 1", "View 2"]
+        self.plot_options         = ["Truth", "Predictions"]
+        self.wire_plane_options   = ["View 0", "View 1", "View 2"]
         self.wire_channel_options = []
-        self.tpc_options = []
-        self.merge_tree_options = []
+        self.tpc_options          = []
+        self.merge_tree_options   = ["MergeTree"]
 
         # parameters for wire_plane plots
         self.available_wire_plane_truth_labels = [
@@ -113,27 +109,27 @@ class TPCDisplay:
             'cluster_topology', 'cluster_particle', 'cluster_physics',
             'hit_mean', 'hit_rms', 'hit_amplitude', 'hit_charge'
         ]
-        self.available_wire_plane_prediction_labels = ["None"]
-        self.available_wire_channel_truth_labels = ["None"]
+        self.available_wire_plane_prediction_labels   = ["None"]
+        self.available_wire_channel_truth_labels      = ["None"]
         self.available_wire_channel_prediction_labels = ["None"]
-        self.available_edep_truth_labels = [
+        self.available_edep_truth_labels              = [
             'energy', 'num_photons', 'num_electrons', 
             'source', 'topology', 'particle', 'physics', 
             'cluster_topology', 'cluster_particle', 'cluster_physics',
         ]
-        self.available_edep_prediction_labels = ["None"]
-        self.available_merge_tree_truth_labels = ["None"]
-        self.available_merge_tree_prediction_labels = ["None"]
+        self.available_edep_prediction_labels         = ["None"]
+        self.available_merge_tree_truth_labels        = ["None"]
+        self.available_merge_tree_prediction_labels   = ["None"]
 
-        self.first_figure_label = 'adc'
-        self.first_scatter = {}
+        self.first_figure_label     = 'adc'
+        self.first_scatter          = {}
         self.first_figure_plot_type = "Wire Plane"
 
         # parameters for second plot
         self.available_wire_plane_prediction_labels = []
-        self.second_figure_label = ''
-        self.second_scatter = {}
-        self.second_figure_plot_type = "Wire Plane"
+        self.second_figure_label                    = ''
+        self.second_scatter                         = {}
+        self.second_figure_plot_type                = "Wire Plane"
         
         self.document = document
 
@@ -206,9 +202,9 @@ class TPCDisplay:
         # Left hand column
         # Folder select
         self.wire_plane_file_folder_select = Select(
-            title=f"Blip folder: ~/{Path(self.wire_plane_file_folder).parts[-1]}",
-            value=".",
-            options=self.wire_plane_available_folders,
+            title   =  f"Blip folder: ~/{Path(self.wire_plane_file_folder).parts[-1]}",
+            value   =  ".",
+            options = self.wire_plane_available_folders,
             width_policy='fixed', width=350
         )
         self.wire_plane_file_folder_select.on_change(
@@ -216,9 +212,9 @@ class TPCDisplay:
         )
         # File select
         self.file_select = Select(
-            title="Blip file:", value="", 
-            options=self.wire_plane_available_files,
-            width_policy='fixed', width=350
+            title        = "Blip file:", value="", 
+            options      = self.wire_plane_available_files,
+            width_policy = 'fixed', width=350
         )
         if len(self.wire_plane_available_files) > 0:
             self.file_select.value = self.wire_plane_available_files[0]
@@ -228,38 +224,38 @@ class TPCDisplay:
         )
         # Load File button
         self.load_file_button = Button(
-            label="Load file", 
-            button_type="success",
-            width_policy='fixed', width=100
+            label        = "Load file", 
+            button_type  = "success",
+            width_policy = 'fixed', width=100
         )
         self.load_file_button.on_click(
             self.load_input_file
         )
         # Meta information
         self.tpc_meta_pretext = PreText(
-            text=self.tpc_meta_string,
-            width=200,
-            height=200
+            text   = self.tpc_meta_string,
+            width  = 200,
+            height = 200
         )
         self.event_select = Select(
-            title="Event:", value="",
-            options=self.available_events,
-            width_policy='fixed', width=100
+            title        = "Event:", value="",
+            options      = self.available_events,
+            width_policy = 'fixed', width=100
         )
         self.event_select.on_change(
             "value", self.update_event
         )
         self.load_event_button = Button(
-            label="Load event", 
-            button_type="success",
-            width_policy='fixed', width=100
+            label        = "Load event", 
+            button_type  = "success",
+            width_policy = 'fixed', width=100
         )
         self.load_event_button.on_click(
             self.load_event
         )
         self.link_axes_toggle = Toggle(
-            label="Link plots", 
-            button_type="success"
+            label       = "Link plots", 
+            button_type = "success"
         )
         self.link_axes_toggle.on_click(
             self.update_link_axes
@@ -267,39 +263,39 @@ class TPCDisplay:
 
         # First plot column
         self.first_figure_event_features = []
-        self.first_figure_event_classes = []
+        self.first_figure_event_classes  = []
         self.first_figure_event_clusters = []
-        self.first_figure_event_hits = []
-        self.first_figure = figure(
-            title="Plot I [Wire Plane Truth]",
-            x_axis_label="x []",
-            y_axis_label="y []",
-            tools='pan,wheel_zoom,box_zoom,lasso_select,tap,reset,save',
-            toolbar_location="below"
+        self.first_figure_event_hits     = []
+        self.first_figure    = figure(
+            title            = "Plot I [Wire Plane Truth]",
+            x_axis_label     = "x []",
+            y_axis_label     = "y []",
+            tools            = 'pan,wheel_zoom,box_zoom,lasso_select,tap,reset,save',
+            toolbar_location = "below"
         )
         # Defining properties of color mapper
         self.first_figure_color_mapper = LinearColorMapper(palette = "Viridis256")
         self.first_figure_color_bar = ColorBar(
-            color_mapper = self.first_figure_color_mapper,
+            color_mapper   = self.first_figure_color_mapper,
             label_standoff = 12,
-            location = (0,0),
-            title = ''
+            location       = (0,0),
+            title          = ''
         )
         self.first_figure.add_layout(self.first_figure_color_bar, 'right')
         self.first_figure.on_event(Tap, self.update_first_figure_taptool)
         # self.first_figure_taptool = TapTool(callback=self.update_first_figure_taptool)
         # self.first_figure.add_tools(self.first_figure_taptool)
-        self.first_figure.legend.click_policy="hide"
-        self.first_figure_adc_slider_option = CheckboxGroup(labels=["Use ADC Slider"], active=[])
+        self.first_figure.legend.click_policy = "hide"
+        self.first_figure_adc_slider_option   = CheckboxGroup(labels=["Use ADC Slider"], active=[])
         self.first_figure_adc_slider_option.on_change(
             'active', self.update_first_figure_adc_slider_option
         )
         self.first_figure_adc_slider_option_bool = True
         self.first_figure_slider = Slider(start=0.1, end=1, step=0.1, value=0.1)
         # Plot type radio group
-        self.first_figure_plot_type = "Wire Plane"
+        self.first_figure_plot_type  = "Wire Plane"
         self.first_figure_radio_text = PreText(
-            text="Plot I type:"
+            text = "Plot I type:"
         )
         self.first_figure_radio_group = RadioGroup(
             labels = self.plot_types, active=0
@@ -309,17 +305,17 @@ class TPCDisplay:
         )
         # Plot type labeling options
         self.first_figure_color_select = Select(
-            title="Plot I labeling:", value="",
-            options=self.available_wire_plane_truth_labels,
-            width_policy='fixed', width=150
+            title        = "Plot I labeling:", value="",
+            options      = self.available_wire_plane_truth_labels,
+            width_policy ='fixed', width=150
         )
         self.first_figure_color_select.on_change(
             "value", self.update_first_figure_color
         )
         # Plot options (truth/predictions)
-        self.first_figure_plot_option = "Truth"
+        self.first_figure_plot_option      = "Truth"
         self.first_figure_plot_option_text = PreText(
-            text="Truth/Predictions:"
+            text = "Truth/Predictions:"
         )
         self.first_figure_plot_options = RadioGroup(
             labels = self.plot_options, active=0
@@ -329,54 +325,54 @@ class TPCDisplay:
         )
         # Plot type options
         self.first_figure_plot_type_options = Select(
-            title="Plot I options:", value="",
-            options=self.wire_plane_options,
-            width_policy='fixed', width=150
+            title        = "Plot I options:", value="",
+            options      = self.wire_plane_options,
+            width_policy = 'fixed', width=150
         )
         self.first_figure_plot_type_options.on_change(
             "value", self.update_first_figure_plot_type_options
         )
         # Plot button
         self.first_figure_plot_button = Button(
-            label="Plot event",
-            button_type="success",
-            width_policy='fixed', width=100
+            label        = "Plot event",
+            button_type  = "success",
+            width_policy = 'fixed', width=100
         )
         self.first_figure_plot_button.on_click(
             self.plot_first_event
         )
         # Plot text information
         self.simulation_wrangler_pretext = PreText(
-            text=self.simulation_wrangler_string,
-            width=200,
-            height=200
+            text   = self.simulation_wrangler_string,
+            width  = 200,
+            height = 200
         )
 
         # Second plot column
         self.second_figure_event_features = []
-        self.second_figure_event_classes = []
+        self.second_figure_event_classes  = []
         self.second_figure_event_clusters = []
-        self.second_figure_event_hits = []
-        self.second_figure = figure(
-            title="Plot II [Predictions]",
-            x_axis_label="x []",
-            y_axis_label="y []",
-            x_range=self.first_figure.x_range,
-            y_range=self.first_figure.y_range,
-            tools='pan,wheel_zoom,box_zoom,lasso_select,tap,reset,save',
-            toolbar_location="below"
+        self.second_figure_event_hits     = []
+        self.second_figure                = figure(
+            title            = "Plot II [Predictions]",
+            x_axis_label     = "x []",
+            y_axis_label     = "y []",
+            x_range          = self.first_figure.x_range,
+            y_range          = self.first_figure.y_range,
+            tools            = 'pan,wheel_zoom,box_zoom,lasso_select,tap,reset,save',
+            toolbar_location = "below"
         )
         # Defining properties of color mapper
         self.second_figure_color_mapper = LinearColorMapper(palette = "Viridis256")
-        self.second_figure_color_bar = ColorBar(
-            color_mapper = self.second_figure_color_mapper,
+        self.second_figure_color_bar    = ColorBar(
+            color_mapper   = self.second_figure_color_mapper,
             label_standoff = 12,
-            location = (0,0),
-            title = ''
+            location       = (0,0),
+            title          = ''
         )
         self.second_figure.add_layout(self.second_figure_color_bar, 'right')
         self.second_figure_taptool = self.second_figure.select(type=TapTool)
-        self.second_figure_taptool.callback = self.update_second_figure_taptool()
+        self.second_figure_taptool.callback  = self.update_second_figure_taptool()
         self.second_figure_adc_slider_option = CheckboxGroup(labels=["Use ADC Slider"], active=[])
         self.second_figure_adc_slider_option.on_change(
             'active', self.update_second_figure_adc_slider_option
@@ -385,9 +381,9 @@ class TPCDisplay:
         self.second_figure_slider = Slider(start=0.1, end=1, step=0.1, value=0.1)
         self.second_figure.legend.click_policy="hide"
         # Plot II type
-        self.second_figure_plot_type = "Wire Plane"
+        self.second_figure_plot_type  = "Wire Plane"
         self.second_figure_radio_text = PreText(
-            text="Plot II type:"
+            text = "Plot II type:"
         )
         self.second_figure_radio_group = RadioGroup(
             labels = self.plot_types, active=1
@@ -397,17 +393,17 @@ class TPCDisplay:
         )
         # Plot II labeling
         self.second_figure_color_select = Select(
-            title="Plot II labeling:", value="",
-            options=self.available_wire_plane_prediction_labels,
-            width_policy='fixed', width=150
+            title        = "Plot II labeling:", value="",
+            options      = self.available_wire_plane_prediction_labels,
+            width_policy = 'fixed', width=150
         )
         self.second_figure_color_select.on_change(
             "value", self.update_second_figure_color
         )
         # Plot options (truth/predictions)
-        self.second_figure_plot_option = "Truth"
+        self.second_figure_plot_option      = "Truth"
         self.second_figure_plot_option_text = PreText(
-            text="Truth/Predictions:"
+            text = "Truth/Predictions:"
         )
         self.second_figure_plot_options = RadioGroup(
             labels = self.plot_options, active=0
@@ -417,22 +413,22 @@ class TPCDisplay:
         )
         # Plot type options
         self.second_figure_plot_type_options = Select(
-            title="Plot I options:", value="",
-            options=self.wire_plane_options,
-            width_policy='fixed', width=150
+            title        = "Plot I options:", value="",
+            options      = self.wire_plane_options,
+            width_policy = 'fixed', width=150
         )
         self.second_figure_plot_type_options.on_change(
             "value", self.update_second_figure_plot_type_options
         )
         self.second_figure_plot_button = Button(
-            label="Plot event",
-            button_type="success",
-            width_policy='fixed', width=100
+            label        = "Plot event",
+            button_type  = "success",
+            width_policy = 'fixed', width=100
         )
         self.second_figure_plot_button = Button(
-            label="Plot event",
-            button_type="success",
-            width_policy='fixed', width=100
+            label        = "Plot event",
+            button_type  = "success",
+            width_policy = 'fixed', width=100
         )
         self.second_figure_plot_button.on_click(
             self.plot_second_event
@@ -509,8 +505,7 @@ class TPCDisplay:
     def update_file_folder(self, attr, old, new):
         if new == '..':
             self.wire_plane_file_folder = str(Path(self.wire_plane_file_folder).parent)
-        elif new == '.':
-            pass
+        elif new == '.': pass
         else:
             self.wire_plane_file_folder = str(Path(self.wire_plane_file_folder)) + "/" + new
         self.update_wire_plane_available_folders()
@@ -563,7 +558,7 @@ class TPCDisplay:
             if self.first_figure_plot_options.active == 0:
                 self.first_figure_plot_option = "Truth"
                 self.first_figure_color_select.options = self.available_wire_plane_truth_labels
-                self.first_figure_color_select.value = self.available_wire_plane_truth_labels[0]
+                self.first_figure_color_select.value   = self.available_wire_plane_truth_labels[0]
                 self.first_figure_label = self.available_wire_plane_truth_labels[0]
             elif self.first_figure_plot_options.active == 1:
                 self.first_figure_plot_option = "Predictions"
@@ -577,7 +572,7 @@ class TPCDisplay:
             if self.first_figure_plot_options.active == 0:
                 self.first_figure_plot_option = "Truth"
                 self.first_figure_color_select.options = self.available_wire_channel_truth_labels
-                self.first_figure_color_select.value = self.available_wire_channel_truth_labels[0]
+                self.first_figure_color_select.value   = self.available_wire_channel_truth_labels[0]
                 self.first_figure_label = self.available_wire_channel_truth_labels[0]
             elif self.first_figure_plot_options.active == 1:
                 self.first_figure_plot_option = "Predictions"
@@ -591,7 +586,7 @@ class TPCDisplay:
             if self.first_figure_plot_options.active == 0:
                 self.first_figure_plot_option = "Truth"
                 self.first_figure_color_select.options = self.available_edep_truth_labels
-                self.first_figure_color_select.value = self.available_edep_truth_labels[0]
+                self.first_figure_color_select.value   = self.available_edep_truth_labels[0]
                 self.first_figure_label = self.available_edep_truth_labels[0]
             elif self.first_figure_plot_options.active == 1:
                 self.first_figure_plot_option = "Predictions"
@@ -605,7 +600,7 @@ class TPCDisplay:
             if self.first_figure_plot_options.active == 0:
                 self.first_figure_plot_option = "Truth"
                 self.first_figure_color_select.options = self.available_merge_tree_truth_labels
-                self.first_figure_color_select.value = self.available_merge_tree_truth_labels[0]
+                self.first_figure_color_select.value   = self.available_merge_tree_truth_labels[0]
                 self.first_figure_label = self.available_merge_tree_truth_labels[0]
             elif self.first_figure_plot_options.active == 1:
                 self.first_figure_plot_option = "Predictions"
@@ -623,24 +618,24 @@ class TPCDisplay:
         if self.first_figure_plot_type == "Wire Plane":
             if self.first_figure_plot_type_option == "View 0":
                 self.first_figure_event_features = self.view_0_features[self.event]
-                self.first_figure_event_classes = self.view_0_classes[self.event]
+                self.first_figure_event_classes  = self.view_0_classes [self.event]
                 self.first_figure_event_clusters = self.view_0_clusters[self.event]
-                self.first_figure_event_hits = self.view_0_hits[self.event]
+                self.first_figure_event_hits     = self.view_0_hits    [self.event]
             elif self.first_figure_plot_type_option == "View 1":
                 self.first_figure_event_features = self.view_1_features[self.event]
-                self.first_figure_event_classes = self.view_1_classes[self.event]
+                self.first_figure_event_classes  = self.view_1_classes [self.event]
                 self.first_figure_event_clusters = self.view_1_clusters[self.event]
-                self.first_figure_event_hits = self.view_1_hits[self.event]
+                self.first_figure_event_hits     = self.view_1_hits    [self.event]
             elif self.first_figure_plot_type_option == "View 2":
                 self.first_figure_event_features = self.view_2_features[self.event]
-                self.first_figure_event_classes = self.view_2_classes[self.event]
+                self.first_figure_event_classes  = self.view_2_classes [self.event]
                 self.first_figure_event_clusters = self.view_2_clusters[self.event]
-                self.first_figure_event_hits = self.view_2_hits[self.event]
+                self.first_figure_event_hits     = self.view_2_hits    [self.event]
         elif self.first_figure_plot_type == "TPC":
             self.first_figure_event_features = self.edep_features[self.event]
-            self.first_figure_event_classes = self.edep_classes[self.event]
+            self.first_figure_event_classes  = self.edep_classes [self.event]
             self.first_figure_event_clusters = self.edep_clusters[self.event]
-            self.first_figure_event_hits = []
+            self.first_figure_event_hits     = []
 
     def update_second_figure_adc_slider_option(self, attr, old, new):
         if 0 in self.second_figure_adc_slider_option.active:
@@ -655,56 +650,56 @@ class TPCDisplay:
             if self.second_figure_plot_options.active == 0:
                 self.second_figure_plot_option = "Truth"
                 self.second_figure_color_select.options = self.available_wire_plane_truth_labels
-                self.second_figure_color_select.value = self.available_wire_plane_truth_labels[0]
-                self.second_figure_label = self.available_wire_plane_truth_labels[0]
+                self.second_figure_color_select.value   = self.available_wire_plane_truth_labels[0]
+                self.second_figure_label                = self.available_wire_plane_truth_labels[0]
             elif self.second_figure_plot_options.active == 1:
-                self.second_figure_plot_option = "Predictions"
+                self.second_figure_plot_option          = "Predictions"
                 self.second_figure_color_select.options = self.available_wire_plane_prediction_labels
                 if len(self.available_wire_plane_prediction_labels) > 0:
                     self.second_figure_color_select.value = self.available_wire_plane_prediction_labels[0]
-                    self.second_figure_label = self.available_wire_plane_prediction_labels[0]
+                    self.second_figure_label              = self.available_wire_plane_prediction_labels[0]
         elif self.second_figure_radio_group.active == 1:
             self.second_figure_plot_type = "Wire Channel"
             self.second_figure_plot_type_options.options = self.wire_channel_options
             if self.second_figure_plot_options.active == 0:
                 self.second_figure_plot_option = "Truth"
                 self.second_figure_color_select.options = self.available_wire_channel_truth_labels
-                self.second_figure_color_select.value = self.available_wire_channel_truth_labels[0]
-                self.second_figure_label = self.available_wire_channel_truth_labels[0]
+                self.second_figure_color_select.value   = self.available_wire_channel_truth_labels[0]
+                self.second_figure_label                = self.available_wire_channel_truth_labels[0]
             elif self.second_figure_plot_options.active == 1:
-                self.second_figure_plot_option = "Predictions"
+                self.second_figure_plot_option          = "Predictions"
                 self.second_figure_color_select.options = self.available_wire_channel_prediction_labels
                 if len(self.available_wire_channel_prediction_labels) > 0:
                     self.second_figure_color_select.value = self.available_wire_channel_prediction_labels[0]
-                    self.second_figure_label = self.available_wire_channel_prediction_labels[0]
+                    self.second_figure_label              = self.available_wire_channel_prediction_labels[0]
         elif self.second_figure_radio_group.active == 2:
             self.second_figure_plot_type = "TPC"
             self.second_figure_plot_type_options.options = self.tpc_options
             if self.second_figure_plot_options.active == 0:
-                self.second_figure_plot_option = "Truth"
+                self.second_figure_plot_option          = "Truth"
                 self.second_figure_color_select.options = self.available_edep_truth_labels
-                self.second_figure_color_select.value = self.available_edep_truth_labels[0]
+                self.second_figure_color_select.value   = self.available_edep_truth_labels[0]
                 self.second_figure_label = self.available_edep_truth_labels[0]
             elif self.second_figure_plot_options.active == 1:
-                self.second_figure_plot_option = "Predictions"
+                self.second_figure_plot_option          = "Predictions"
                 self.second_figure_color_select.options = self.available_edep_prediction_labels
                 if len(self.available_edep_prediction_labels) > 0:
                     self.second_figure_color_select.value = self.available_edep_prediction_labels[0]
-                    self.second_figure_label = self.available_edep_prediction_labels[0]
+                    self.second_figure_label              = self.available_edep_prediction_labels[0]
         elif self.second_figure_radio_group.active == 3:
             self.second_figure_plot_type = "MergeTree"
             self.second_figure_plot_type_options.options = self.merge_tree_options
             if self.second_figure_plot_options.active == 0:
                 self.second_figure_plot_option = "Truth"
                 self.second_figure_color_select.options = self.available_merge_tree_truth_labels
-                self.second_figure_color_select.value = self.available_merge_tree_truth_labels[0]
-                self.second_figure_label = self.available_merge_tree_truth_labels[0]
+                self.second_figure_color_select.value   = self.available_merge_tree_truth_labels[0]
+                self.second_figure_label                = self.available_merge_tree_truth_labels[0]
             elif self.second_figure_plot_options.active == 1:
-                self.second_figure_plot_option = "Predictions"
+                self.second_figure_plot_option          = "Predictions"
                 self.second_figure_color_select.options = self.available_merge_tree_prediction_labels
                 if len(self.available_merge_tree_prediction_labels) > 0:
                     self.second_figure_color_select.value = self.available_merge_tree_prediction_labels[0]
-                    self.second_figure_label = self.available_merge_tree_prediction_labels[0]
+                    self.second_figure_label              = self.available_merge_tree_prediction_labels[0]
         self.second_figure.title.text = f"Plot II [{self.second_figure_plot_type} {self.second_figure_plot_option}]:"
         
     def update_second_figure_color(self, attr, old, new):
@@ -715,39 +710,43 @@ class TPCDisplay:
         if self.second_figure_plot_type == "Wire Plane":
             if self.second_figure_plot_type_option == "View 0":
                 self.second_figure_event_features = self.view_0_features[self.event]
-                self.second_figure_event_classes = self.view_0_classes[self.event]
+                self.second_figure_event_classes  = self.view_0_classes [self.event]
                 self.second_figure_event_clusters = self.view_0_clusters[self.event]
-                self.second_figure_event_hits = self.view_0_hits[self.event]
+                self.second_figure_event_hits     = self.view_0_hits    [self.event]
             elif self.second_figure_plot_type_option == "View 1":
                 self.second_figure_event_features = self.view_1_features[self.event]
-                self.second_figure_event_classes = self.view_1_classes[self.event]
+                self.second_figure_event_classes  = self.view_1_classes [self.event]
                 self.second_figure_event_clusters = self.view_1_clusters[self.event]
-                self.second_figure_event_hits = self.view_1_hits[self.event]
+                self.second_figure_event_hits     = self.view_1_hits    [self.event]
             elif self.second_figure_plot_type_option == "View 2":
                 self.second_figure_event_features = self.view_2_features[self.event]
-                self.second_figure_event_classes = self.view_2_classes[self.event]
+                self.second_figure_event_classes  = self.view_2_classes [self.event]
                 self.second_figure_event_clusters = self.view_2_clusters[self.event]
-                self.second_figure_event_hits = self.view_2_hits[self.event]
+                self.second_figure_event_hits     = self.view_2_hits    [self.event]
         elif self.second_figure_plot_type == "TPC":
             self.second_figure_event_features = self.edep_features[self.event]
-            self.second_figure_event_classes = self.edep_classes[self.event]
+            self.second_figure_event_classes  = self.edep_classes [self.event]
             self.second_figure_event_clusters = self.edep_clusters[self.event]
-            self.second_figure_event_hits = []
+            self.second_figure_event_hits     = []
 
     def load_input_file(self):
-        if self.wire_plane_input_file.endswith(".npz"):
-            self.load_npz_file()
-        elif self.wire_plane_input_file.endswith(".root"):
-            self.load_root_file()
-        else:
-            print(f"Can't load file {self.wire_plane_input_file}.")
+        '''
+        Load a blip file into the viewer.
+        '''
+        if   self.wire_plane_input_file.endswith(".npz"):  self.load_npz_file()
+        elif self.wire_plane_input_file.endswith(".root"): self.load_root_file()
+        else: print(f"Can't load file {self.wire_plane_input_file}.")
     
     def load_npz_file(self):
+        '''
+        Load a blip npz file into the viewer.
+        '''
         input_file = np.load(
             self.wire_plane_file_folder + "/" + self.wire_plane_input_file, 
             allow_pickle=True
         )
         self.available_wire_plane_prediction_labels = []
+        print(input_file.files)
         if 'meta' in input_file.files:
             self.tpc_meta = input_file['meta'].item()
             self.update_meta()
@@ -835,8 +834,7 @@ class TPCDisplay:
     def plot_first_event(self):
         self.first_figure.renderers = []
         self.first_figure.legend.items = []
-        if self.first_figure_label == 'adc':
-            pass
+        if self.first_figure_label == 'adc': pass
         else:
             if 'cluster' in self.first_figure_label:
                 label_index = self.tpc_meta['clusters'][self.first_figure_label.replace('cluster_','')]
@@ -925,15 +923,14 @@ class TPCDisplay:
                             legend_label=str(val),
                             color=self.first_scatter_colors[val]
                         )
-        self.first_figure.legend.click_policy="hide"
+        self.first_figure.legend.click_policy = "hide"
         self.first_figure.xaxis[0].axis_label = "Channel [n]"
         self.first_figure.yaxis[0].axis_label = "TDC [10ns]"
     
     def plot_second_event(self):
-        self.second_figure.renderers = []
+        self.second_figure.renderers    = []
         self.second_figure.legend.items = []
-        if self.second_figure_label == 'adc':
-            pass
+        if self.second_figure_label == 'adc': pass
         else:
             if 'cluster' in self.second_figure_label:
                 label_index = self.tpc_meta['clusters'][self.second_figure_label.replace('cluster_','')]
@@ -1021,7 +1018,7 @@ class TPCDisplay:
                             legend_label=str(val),
                             color=self.second_scatter_colors[val]
                         )
-        self.second_figure.legend.click_policy="hide"
+        self.second_figure.legend.click_policy = "hide"
         self.second_figure.xaxis[0].axis_label = "Channel [n]"
         self.second_figure.yaxis[0].axis_label = "TDC [10ns]"
     

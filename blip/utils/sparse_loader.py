@@ -7,10 +7,10 @@ from torch_geometric.data import (
     Data,
     InMemoryDataset,
 )
-import MinkowskiEngine as ME
 from torch.utils.data import Dataset
 from torch.utils.data import Subset, random_split
 from torch_geometric.loader import DataLoader
+import MinkowskiEngine as ME
 
 from blip.utils.logger import Logger
 #from blip.dataset import GenericDataset

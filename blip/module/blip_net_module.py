@@ -2,18 +2,15 @@
 """
 Generic model code.
 """
-import torch
-import os
-import csv
-import getpass
-from torch import nn
-from time import time
-from datetime import datetime
-from tqdm import tqdm
+import torch, os, csv, getpass
+from torch                import nn
+from time                 import time
+from datetime             import datetime
+from tqdm                 import tqdm
 from torch_geometric.data import Data
 
-from blip.models import ModelHandler
-from blip.module.common import *
+from blip.models                import ModelHandler
+from blip.module.common         import *
 from blip.module.generic_module import GenericModule
 
 class BlipNetModule(GenericModule):
@@ -92,16 +89,11 @@ class BlipNetModule(GenericModule):
         pass
 
     def run_module(self):
-        if self.mode == 'optimize_blip_graph':
-            self.run_optimize_blip_graph()
-        elif self.mode == 'construct_merge_tree':
-            self.run_construct_merge_tree()
-        elif self.mode == 'evaluate_merge_tree':
-            self.run_evaluate_merge_tree()
-        elif self.mode == 'mcts':
-            self.run_mcts()
-        else:
-            self.logger.warning(f"current mode {self.mode} not an available type!")
+        if   self.mode == 'optimize_blip_graph':  self.run_optimize_blip_graph()
+        elif self.mode == 'construct_merge_tree': self.run_construct_merge_tree()
+        elif self.mode == 'evaluate_merge_tree':  self.run_evaluate_merge_tree()
+        elif self.mode == 'mcts':                 self.run_mcts()
+        else: self.logger.warning(f"current mode {self.mode} not an available type!")
 
     def run_optimize_blip_graph(self):
         pass

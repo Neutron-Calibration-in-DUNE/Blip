@@ -6,18 +6,19 @@ which is associated to the paper:
     Justin Curry, Haibin Hang, Washington Mio, Tom Needham, Osman Berat Okutan
     (https://arxiv.org/abs/2103.15804)
 """
-import numpy    as np
-import networkx as nx
 import ot
-from torch  import nn
-from ripser import ripser
-import scipy.cluster.hierarchy as hierarchy
+import numpy                    as np
+import networkx                 as nx
 import sklearn.metrics.pairwise as pairwise
-from bisect import bisect_left
+import scipy.cluster.hierarchy  as hierarchy
+from torch        import nn
+from ripser       import ripser
+from bisect       import bisect_left
 from hopcroftkarp import HopcroftKarp
 
-from blip.utils.logger import Logger
-from blip.utils.utils import *
+from blip.utils.logger             import Logger
+from blip.utils.utils              import *
+# from blip.module.merge_tree_module import MergeTreeModule
 
 merge_tree_config = {
 
@@ -29,19 +30,16 @@ class MergeTree:
     def __init__(self,
         name:   str="",
         config: dict=merge_tree_config,
-        meta:   dict={},
+        meta:   dict={"verbose":True},
     ):
         self.name = name + '_merge_tree'
         self.config = config
         self.meta = meta
-        if "device" in self.meta:
-            self.device = self.meta['device']
-        else:
-            self.device = 'cpu'
-        if meta['verbose']:
-            self.logger = Logger(name, output="both", file_mode="w")
-        else:
-            self.logger = Logger(name, level='warning', file_mode="w")
+        print(meta)
+        if "device" in self.meta: self.device = self.meta['device']
+        else:                     self.device = 'cpu'
+        if meta['verbose']:       self.logger = Logger(name, output="both",   file_mode="w")
+        else:                     self.logger = Logger(name, level='warning', file_mode="w")
         self.logger.info(f"constructing merge tree.")
 
     def create_merge_tree(self,
@@ -604,11 +602,10 @@ class MergeTree:
     ):
         # Input: merge tree as graph, height
         # Output: draws the merge tree with correct node heights
-        pos = self.merge_tree_position(graph, height)
+        pos     = self.merge_tree_position(graph, height)
         fig, ax = plt.subplots()
         nx.draw_networkx(graph, pos=pos, with_labels=True)
-        if axes: 
-            ax.tick_params(left=True, bottom=False, labelleft=True, labelbottom=False)
+        if axes:  ax.tick_params(left=True, bottom=False, labelleft=True, labelbottom=False)
         return
 
     def draw_labeled_merge_tree(self,
@@ -725,14 +722,14 @@ class MergeTree:
                 else:                            
                     labels2New[pair[1]] = [j]
 
-            res['label1'] = labels1New
-            res['label2'] = labels2New
-            res['ultra1'] = C1New
-            res['ultra2'] = C2New
-            res['dist'] = dist
+            res['label1']  = labels1New
+            res['label2']  = labels2New
+            res['ultra1']  = C1New
+            res['ultra2']  = C2New
+            res['dist']    = dist
             res['dist_l2'] = dist_l2
             res['dist_gw'] = d
-            res['gw_log'] = log
+            res['gw_log']  = log
         else: 
             res = dist
         return res
@@ -745,9 +742,9 @@ class MergeTree:
         return_subdivided = False
     ):
 
-        graph1 = merge_tree1.graph
+        graph1  = merge_tree1.graph
         height1 = merge_tree1.height
-        graph2 = merge_tree2.graph
+        graph2  = merge_tree2.graph
         height2 = merge_tree2.height
 
         graph1_sub, height1_sub = self.get_heights_and_subdivide_edges(graph1,height1,height2,mesh)
@@ -883,16 +880,16 @@ class MergeTree:
                     labels2New[pair[1]].append(j)
                 else:                            
                     labels2New[pair[1]] = [j]
-            res['label1'] = labels1New
-            res['label2'] = labels2New
-            res['ultra1'] = C1New
-            res['ultra2'] = C2New
-            res['dist'] = distMax
-            res['dist_l2'] = dist_l2
-            res['dist_gw'] = dist
+            res['label1']    = labels1New
+            res['label2']    = labels2New
+            res['ultra1']    = C1New
+            res['ultra2']    = C2New
+            res['dist']      = distMax
+            res['dist_l2']   = dist_l2
+            res['dist_gw']   = dist
             res['distMerge'] = distMerge
-            res['distDgm'] = distDgm
-            res['gw_log'] = log
+            res['distDgm']   = distDgm
+            res['gw_log']    = log
         else: 
             res = distMax
         return res
@@ -902,21 +899,21 @@ class MergeTree:
         merge_tree2, 
         mesh,
         thresh = 1e-5, 
-        alpha = 1/2,
+        alpha  = 1/2,
         armijo = True, 
         degree_weight = True,
         verbose = True
     ):
 
-        graph1 = merge_tree1.graph
-        height1  = merge_tree1.height
+        graph1    = merge_tree1.graph
+        height1   = merge_tree1.height
         barcodes1 = merge_tree1.leaf_barcode
 
         if barcodes1 is None: 
             self.logger.error('Merge tree must be decorated with a barcode!')
 
-        graph2 = merge_tree2.graph
-        height2  = merge_tree2.height
+        graph2    = merge_tree2.graph
+        height2   = merge_tree2.height
         barcodes2 = merge_tree2.leaf_barcode
 
         if barcodes2 is None: 

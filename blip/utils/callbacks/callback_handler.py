@@ -1,13 +1,10 @@
 """
 Container for generic callbacks
 """
-import os
-import importlib
-import sys
-import inspect
-from blip.utils.logger import Logger
+import os, importlib, sys, inspect
+from blip.utils.logger    import Logger
 from blip.utils.callbacks import GenericCallback
-from blip.utils.utils import get_method_arguments
+from blip.utils.utils     import get_method_arguments
 
 class CallbackHandler:
     """
@@ -21,14 +18,10 @@ class CallbackHandler:
     ):
         self.name = name + "_callback_handler"
         self.meta = meta
-        if "device" in self.meta:
-            self.device = self.meta['device']
-        else:
-            self.device = 'cpu'
-        if meta['verbose']:
-            self.logger = Logger(self.name, output="both", file_mode="w")
-        else:
-            self.logger = Logger(self.name, level='warning', file_mode="w")
+        if "device" in self.meta: self.device = self.meta['device']
+        else:                     self.device = 'cpu'
+        if meta['verbose']:       self.logger = Logger(self.name, output="both", file_mode="w")
+        else:                     self.logger = Logger(self.name, level='warning', file_mode="w")
 
         if bool(config) and len(callbacks) != 0:
             self.logger.error(
@@ -37,8 +30,7 @@ class CallbackHandler:
         elif bool(config):
             self.set_config(config)
         else:
-            if len(callbacks) == 0:
-                self.logger.warn(f"handler received neither a config or callbacks!")
+            if len(callbacks) == 0: self.logger.warn(f"handler received neither a config or callbacks!")
             self.callbacks = {
                 callback.name: callback 
                 for callback in callbacks
@@ -64,10 +56,8 @@ class CallbackHandler:
                 (".py" not in callback_file)
             ):
                 continue
-            try:
-                self.load_callback(callback_file)
-            except:
-                self.logger.warn(f'problem loading callback from file: {callback_file}')
+            try:    self.load_callback(callback_file)
+            except: self.logger.warn(f'problem loading callback from file: {callback_file}')
     
     def load_callback(self,
         callback_file: str

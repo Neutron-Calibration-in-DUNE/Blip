@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from matplotlib import pyplot as plt
 
-from blip.utils.memory import MemoryTrackers
+from blip.utils.memory    import MemoryTrackers
 from blip.utils.callbacks import GenericCallback
 
 class MemoryTrackerCallback(GenericCallback):

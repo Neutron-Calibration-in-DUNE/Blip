@@ -21,22 +21,17 @@ class ModuleHandler:
     ):
         self.name = name + "_module_handler"
         self.meta = meta
-        if "device" in self.meta:
-            self.device = self.meta['device']
-        else:
-            self.device = 'cpu'
-        if meta['verbose']:
-            self.logger = Logger(self.name, output="both", file_mode="w")
-        else:
-            self.logger = Logger(self.name, level='warning', file_mode="w")
+        if "device" in self.meta: self.device = self.meta['device']
+        else:                     self.device = 'cpu'
+        if meta['verbose']:       self.logger = Logger(self.name, output="both", file_mode="w")
+        else:                     self.logger = Logger(self.name, level='warning', file_mode="w")
         
         self.modules = {}
-
         if bool(config) and len(modules) != 0:
             self.logger.error(
                 f"handler received both a config and a list of modules! " + 
                 f"The user should only provide one or the other!")
-        elif bool(config):
+        elif bool(config): 
             self.set_config(config)
         else:
             if len(modules) == 0:

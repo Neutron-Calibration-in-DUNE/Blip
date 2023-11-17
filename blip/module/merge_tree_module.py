@@ -2,17 +2,15 @@
 """
 Generic model code.
 """
-import torch
-import getpass
-from torch    import nn
-from time     import time
-from datetime import datetime
-
-import os,csv,random,copy,ot,persim,warnings
+import os,csv,random,copy,ot,persim,warnings,torch,getpass
 import numpy             as np
 import networkx          as nx
 import gudhi             as gd
 import matplotlib.pyplot as plt
+from tqdm                     import tqdm
+from torch                    import nn
+from time                     import time
+from datetime                 import datetime
 from ripser                   import ripser
 from scipy.cluster.hierarchy  import dendrogram, linkage, cut_tree
 from scipy.optimize           import linear_sum_assignment
@@ -23,12 +21,12 @@ from hopcroftkarp             import HopcroftKarp
 from blip.utils.logger          import Logger
 from blip.utils.utils           import print_colored
 from blip.module.generic_module import GenericModule
+from blip.topology.merge_tree   import MergeTree
+
 warnings.filterwarnings("ignore")
 
 
 generic_config = { "no_params":    "no_values" }
-
-
 
 class MergeTreeModule(GenericModule):
     """
@@ -58,12 +56,13 @@ class MergeTreeModule(GenericModule):
         if (progress_bar == True):
             inference_loop = tqdm(
                 enumerate(inference_loader, 0), 
-                total=len(list(inference_indices)), 
+                total=len(list(inference_loader)), 
+                # total=len(list(inference_indices)), 
                 leave=rewrite_bar,
                 colour='magenta'
             )
-        else: 
-            inference_loop = enumerate(inference_loader, 0)
+        else: inference_loop = enumerate(inference_loader, 0)
+        
         for ii, data in inference_loop:
             vietoris_rips, tree = self.merge_tree.create_merge_tree(
                 data)

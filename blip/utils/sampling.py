@@ -3,11 +3,11 @@ Implementation of the blip model using pytorch
 """
 import numpy as np
 import torch
-import torch.nn as nn
-from collections import OrderedDict
+import torch.nn                   as nn
 import torch_geometric.transforms as T
-from torch.nn import Linear
-import torch.nn.functional as F
+import torch.nn.functional        as F
+from torch.nn    import Linear
+from collections import OrderedDict
 
 
 def farthest_point_sampling(

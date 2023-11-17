@@ -89,17 +89,13 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         config: dict=blip_dataset_config,
         meta:   dict={}
     ):
-        self.name = name + '_dataset'
+        self.name   = name + '_dataset'
         self.config = config
-        self.meta = meta
-        if "device" in self.meta:
-            self.device = self.meta['device']
-        else:
-            self.device = 'cpu'
-        if meta['verbose']:
-            self.logger = Logger(self.name, output="both", file_mode="w")
-        else:
-            self.logger = Logger(self.name, level='warning', file_mode="w")
+        self.meta   = meta
+        if "device" in self.meta: self.device = self.meta['device']
+        else:                     self.device = 'cpu'
+        if meta['verbose']: self.logger = Logger(self.name, output="both",   file_mode="w")
+        else:               self.logger = Logger(self.name, level='warning', file_mode="w")
         self.logger.info(f"constructing blip dataset.")
 
         self.number_of_events = 0

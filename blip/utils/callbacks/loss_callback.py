@@ -5,9 +5,9 @@ import numpy as np
 import torch
 from matplotlib import pyplot as plt
 
-from blip.losses.loss_handler import LossHandler
+from blip.losses.loss_handler    import LossHandler
 from blip.metrics.metric_handler import MetricHandler
-from blip.utils.callbacks import GenericCallback
+from blip.utils.callbacks        import GenericCallback
 
 class LossCallback(GenericCallback):
     """

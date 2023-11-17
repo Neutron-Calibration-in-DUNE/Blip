@@ -4,8 +4,8 @@ Functions for evaluating and storing training information.
 import matplotlib.colors as mcolors
 import random
 
-from blip.utils.logger import Logger
-from blip.losses.loss_handler import LossHandler
+from blip.utils.logger           import Logger
+from blip.losses.loss_handler    import LossHandler
 from blip.metrics.metric_handler import MetricHandler
 
 class GenericCallback:

@@ -2,31 +2,26 @@
 Generic metric callback
 """
 import numpy as np
-import torch
-from matplotlib import pyplot as plt
-import os
-from sklearn.manifold import TSNE
+import os, torch
 import seaborn as sns
-import pandas as pd
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-from sklearn.metrics import auc
+import pandas  as pd
+from sklearn.manifold import TSNE
+from sklearn.metrics  import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics  import auc
+from matplotlib       import pyplot as plt
 
-from blip.losses.loss_handler import LossHandler
+from blip.losses.loss_handler    import LossHandler
 from blip.metrics.metric_handler import MetricHandler
-from blip.utils.callbacks import GenericCallback
-from blip.utils import utils
-
+from blip.utils.callbacks        import GenericCallback
+from blip.utils                  import utils
 
 def histogram(x, bins, range=[], density=False):
     # Like torch.histogram, but works with cuda
-    if len(range) == 0:
-        min, max = x.min(), x.max()
-    else:
-        min, max = range[0], range[1]
+    if len(range) == 0: min, max = x.min(), x.max()
+    else:               min, max = range[0], range[1]
     counts = torch.histc(x, bins, min=min, max=max)
     boundaries = torch.linspace(min, max, bins + 1)
-    if density:
-        counts /= torch.sum(counts)
+    if density: counts /= torch.sum(counts)
     return counts, boundaries
 
 class ConfusionMatrixCallback(GenericCallback):
@@ -93,19 +88,16 @@ class ConfusionMatrixCallback(GenericCallback):
         train_type='train'
     ):  
         if train_type == "train":
-            if self.skip_metrics:
-                return
+            if self.skip_metrics: return
             self.training_confusion = self.metric.compute()
         elif train_type == "validation":
-            if self.skip_metrics:
-                return
+            if self.skip_metrics: return
             self.validation_confusion = self.metric.compute()
-        else:
+        else: 
             self.test_confusion = self.metric.compute()
 
     def evaluate_training(self):
-        if self.skip_metrics:
-            return
+        if self.skip_metrics: return
         for kk, output in enumerate(self.metric.outputs):
             # plot the training confusion matrix
             if self.consolidate_classes:

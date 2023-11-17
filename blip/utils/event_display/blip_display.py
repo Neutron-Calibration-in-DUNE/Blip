@@ -1,39 +1,36 @@
 """
 Tools for displaying events
 """
-import numpy as np
-from matplotlib import pyplot as plt
-
-from bokeh.io import curdoc, output_notebook, show
-from bokeh.application import Application
-from bokeh.application.handlers.function import FunctionHandler
-from bokeh.layouts import row, column, layout
-from bokeh.plotting import figure, show
-from bokeh.models import TabPanel, Tabs, TapTool
-from bokeh.models import Div, RangeSlider, Spinner
-from bokeh.models import Select, MultiSelect, FileInput
-from bokeh.models import Button, CheckboxGroup, TextInput
-from bokeh.models import CategoricalColorMapper, Toggle
-from bokeh.models import CheckboxButtonGroup, CustomJS
-from bokeh.models import Paragraph, PreText, Dropdown
-from bokeh.models import ColumnDataSource, RadioGroup
-from bokeh.events import Tap
-from bokeh.palettes import Turbo256, Category20, Category20b, TolRainbow, Magma256
-from bokeh.transform import linear_cmap
-from bokeh.transform import factor_cmap, factor_mark
-from bokeh.server.server import Server
-from bokeh.command.util import build_single_handler_applications
-from bokeh.document import Document
-
-import panel as pn
-
+import os,imageio
+import numpy  as np
 import pandas as pd
+import panel  as pn
+from matplotlib import pyplot as plt
+from pathlib    import Path
 
-import os
-from pathlib import Path
-import imageio
 
-from blip.utils.logger import Logger
+from bokeh.io                            import curdoc, output_notebook, show
+from bokeh.application                   import Application
+from bokeh.application.handlers.function import FunctionHandler
+from bokeh.layouts                       import row, column, layout
+from bokeh.plotting                      import figure, show
+from bokeh.models                        import TabPanel, Tabs, TapTool
+from bokeh.models                        import Div, RangeSlider, Spinner
+from bokeh.models                        import Select, MultiSelect, FileInput
+from bokeh.models                        import Button, CheckboxGroup, TextInput
+from bokeh.models                        import CategoricalColorMapper, Toggle
+from bokeh.models                        import CheckboxButtonGroup, CustomJS
+from bokeh.models                        import Paragraph, PreText, Dropdown
+from bokeh.models                        import ColumnDataSource, RadioGroup
+from bokeh.events                        import Tap
+from bokeh.palettes                      import Turbo256, Category20, Category20b, TolRainbow, Magma256
+from bokeh.transform                     import linear_cmap
+from bokeh.transform                     import factor_cmap, factor_mark
+from bokeh.server.server                 import Server
+from bokeh.command.util                  import build_single_handler_applications
+from bokeh.document                      import Document
+
+from blip.utils.logger            import Logger
 from blip.utils.event_display.tpc import TPCDisplay
 
 class BlipDisplay:
@@ -42,10 +39,8 @@ class BlipDisplay:
     def __init__(self,
         document = None
     ):
-        if document == None:
-            self.document = curdoc()
-        else:
-            self.document = document
+        if document == None: self.document = curdoc()
+        else:               self.document = document
 
         self.construct_widgets(self.document)
 

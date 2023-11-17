@@ -1,19 +1,15 @@
 """
 Various utility functions
 """
-import numpy as np
-from matplotlib import pyplot as plt
-import pandas as pd
-import torch
-import inspect
-import os
-from os import listdir
-from os.path import isfile, join
-import shutil
-from itertools import product
-from datetime import datetime
+import os,torch,inspect,shutil,yaml
+import numpy   as np
+import pandas  as pd
 import seaborn as sns
-import yaml
+from matplotlib import pyplot as plt
+from os         import listdir
+from os.path    import isfile, join
+from itertools  import product
+from datetime   import datetime
 
 def index_positions(
     positions,

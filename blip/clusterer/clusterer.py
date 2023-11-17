@@ -1,18 +1,17 @@
 """
 Class for a generic clusterer.
 """
-import torch
+import torch, os
 import numpy as np
-import os
-from tqdm import tqdm
-from blip.dataset.blip import BlipDataset
+from tqdm                       import tqdm
+from blip.dataset.blip          import BlipDataset
 from blip.clustering_algorithms import ClusteringAlgorithmHandler
-from blip.utils.logger import Logger
-from blip.utils.timing import Timers
-from blip.utils.memory import MemoryTrackers
-from blip.metrics import MetricHandler
-from blip.utils.callbacks import CallbackHandler
-from blip.utils.callbacks import TimingCallback, MemoryTrackerCallback
+from blip.utils.logger          import Logger
+from blip.utils.timing          import Timers
+from blip.utils.memory          import MemoryTrackers
+from blip.metrics               import MetricHandler
+from blip.utils.callbacks       import CallbackHandler
+from blip.utils.callbacks       import TimingCallback, MemoryTrackerCallback
 import blip.utils.utils as utils
 
 class Clusterer:
