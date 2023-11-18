@@ -1,5 +1,9 @@
 """
-Implementation of the BlipGraph model using pytorch
+Implementation of the BlipGraph model using pytorch.
+
+BlipGraph consists of the following architecture:
+
+
 """
 import numpy as np
 import torch
@@ -10,6 +14,7 @@ from torch.nn import Linear
 import torch.nn.functional as F
 from torch_geometric.nn import MLP, DynamicEdgeConv, PointNetConv, PointTransformerConv
 from torch_geometric.nn import global_add_pool, global_mean_pool, global_max_pool
+from torch_geometric.nn import fps, radius
 
 
 from blip.models.common import activations, normalizations
@@ -32,10 +37,22 @@ blip_graph_config = {
             "embedding_mlp_layers": [5, 10, 25, 10],
         },
         'embedding_2': {
-            "embedding_type":   "point_net_conv",
-            "local_mlp_layers": [5, 10, 25, 10],
-            "add_self_loops":   True,
+            "embedding_type":       "point_net_conv",
+            "local_mlp_layers":     [5, 10, 25, 10],
+            "fps_ratio":            0.5,
+            "cluster_radius":       0.25,
+            "max_number_neighbors": 5,
+            "add_self_loops":       True,
         },
+        'embedding_3': {
+            "embedding_type":       'point_transformer_conv',
+            "pos_nn_layers":        [10,25,10],
+            "attn_nn_layers":       [10,25,10],
+            "fps_ratio":            0.25,
+            "cluster_radius":       0.25,
+            "max_number_neighbors": 5,
+            "add_self_loops":       True,
+        }
     },
     'reduction': {
         'linear_output':        128,
@@ -47,6 +64,110 @@ blip_graph_config = {
         'out_channels':         [8, 7, 32],
     },
 }
+
+# PointNetConv Modules
+class PointNetModule(torch.nn.Module):
+    """
+    Methodology for using PointNetConv is to not reduce
+    positions into cluster centers, but rather return the
+    full set of positions after each layer.
+    """
+    def __init__(self, 
+        local_mlp:      MLP,
+        fps_ratio:      float=0.5, 
+        cluster_radius: float=0.25, 
+        max_number_neighbors:   int=10,
+        add_self_loops:     bool=False
+    ):
+        super().__init__()
+        self.local_mlp = local_mlp
+        self.fps_ratio = fps_ratio
+        self.cluster_radius = cluster_radius
+        self.max_number_neighbors = max_number_neighbors
+        self.add_self_loops = add_self_loops
+        self.point_net_conv = PointNetConv(
+            local_nn=self.local_mlp, 
+            add_self_loops=self.add_self_loops
+        )
+
+    def forward(self, pos, batch):
+        # find indices with furthest point sampling 
+        idx = fps(
+            pos, batch, 
+            ratio=self.fps_ratio
+        )
+        # gather clusters
+        row, col = radius(
+            pos, pos[idx], 
+            self.cluster_radius, 
+            batch, batch[idx],
+            max_num_neighbors=self.max_number_neighbors
+        )
+        # determine edges for convolution
+        edge_index = torch.stack([col, row], dim=0)
+        output = self.point_net_conv(
+            None, 
+            pos, 
+            edge_index
+        )
+        return output
+
+# PointTransformerConv Modules
+class PointTransformerModule(torch.nn.Module):
+    """
+    Methodology for using PointTransformerConv is to not reduce
+    positions into cluster centers, but rather return the
+    full set of positions after each layer.
+    """
+    def __init__(self, 
+        in_channels:    int,
+        out_channels:   int,
+        pos_nn:         MLP,
+        attn_nn:        MLP,
+        fps_ratio:      float=0.5, 
+        cluster_radius: float=0.25, 
+        max_number_neighbors:   int=10,
+        add_self_loops:     bool=False
+    ):
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.pos_nn = pos_nn
+        self.attn_nn = attn_nn
+        self.fps_ratio = fps_ratio
+        self.cluster_radius = cluster_radius
+        self.max_number_neighbors = max_number_neighbors
+        self.add_self_loops = add_self_loops
+        self.point_transformer_conv = PointTransformerConv(
+            in_channels=self.in_channels,
+            out_channels=self.out_channels,
+            pos_nn=self.pos_nn,
+            attn_nn=self.attn_nn,
+            add_self_loops=self.add_self_loops
+        )
+
+    def forward(self, pos, batch):
+        # find indices with furthest point sampling 
+        idx = fps(
+            pos, batch, 
+            ratio=self.fps_ratio
+        )
+        # gather clusters
+        row, col = radius(
+            pos, pos[idx], 
+            self.cluster_radius, 
+            batch, batch[idx],
+            max_num_neighbors=self.max_number_neighbors
+        )
+        # determine edges for convolution
+        edge_index = torch.stack([col, row], dim=0)
+        output = self.point_transformer_conv(
+            pos, 
+            pos, 
+            edge_index
+        )
+        return output
+
 
 class BlipGraph(GenericModel):
     """
@@ -70,6 +191,10 @@ class BlipGraph(GenericModel):
 
     def construct_augmentations(self):
         """
+        Currently there are four augmentations that can be implemented
+        as part of the contrastive learning in BlipGraph, 
+        'jitter', 'flip', 'shear' and 'rotate'.
+
         """
         augmentations = []
         for augmentation in self.config["augmentations"]:
@@ -137,11 +262,35 @@ class BlipGraph(GenericModel):
                 )
                 _input_dimension = embedding_config[embedding]['embedding_mlp_layers'][-1]
             elif embedding_config[embedding]['embedding_type'] == 'point_net_conv':
-                _embedding_dict[embedding] = PointNetConv(
-                    local_nn=MLP([_input_dimension + self.config['input_dimension']] + embedding_config[embedding]['local_mlp_layers']), 
+                _embedding_dict[embedding] = PointNetModule(
+                    local_mlp=MLP(
+                        [_input_dimension] + 
+                        embedding_config[embedding]['local_mlp_layers']
+                    ), 
+                    fps_ratio=embedding_config[embedding]['fps_ratio'],
+                    cluster_radius=embedding_config[embedding]['cluster_radius'],
+                    max_number_neighbors=embedding_config[embedding]['max_number_neighbors'],
                     add_self_loops=embedding_config[embedding]['add_self_loops']
                 )
                 _input_dimension = embedding_config[embedding]['local_mlp_layers'][-1]
+            elif embedding_config[embedding]['embedding_type'] == 'point_transformer_conv':
+                _embedding_dict[embedding] = PointTransformerModule(
+                    in_channels=_input_dimension,
+                    out_channels=embedding_config[embedding]['pos_nn_layers'][-1],
+                    pos_nn=MLP(
+                        [_input_dimension] + 
+                        embedding_config[embedding]['pos_nn_layers']
+                    ),
+                    attn_nn=MLP(
+                        [embedding_config[embedding]['pos_nn_layers'][-1]] + 
+                        embedding_config[embedding]['attn_nn_layers']
+                    ), 
+                    fps_ratio=embedding_config[embedding]['fps_ratio'],
+                    cluster_radius=embedding_config[embedding]['cluster_radius'],
+                    max_number_neighbors=embedding_config[embedding]['max_number_neighbors'],
+                    add_self_loops=embedding_config[embedding]['add_self_loops']
+                )
+                _input_dimension = embedding_config[embedding]['pos_nn_layers'][-1]
             else:
                 self.logger.error(f'specified embedding type {embedding_config[embedding]["embedding_type"]} not allowed!')
             _num_embedding_outputs += _input_dimension

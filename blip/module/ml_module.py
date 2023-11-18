@@ -297,9 +297,11 @@ class MachineLearningModule(GenericModule):
     ):
         model_parameters = hyper_parameters_config["model_parameters"]
         self.parameter_paths = flatten_dict(model_parameters)
+        self.logger.info(f"generating hyper parameter combinations.")
         self.parameter_combinations = generate_combinations_from_arrays(
             {tuple(k): v for k, v in self.parameter_paths if isinstance(v, list)}
         )
+        self.logger.info(f"generated {len(self.parameter_combinations)} different possible hyper parameter combinations.")
         random.shuffle(self.parameter_combinations)
         if len(self.parameter_combinations) < len(self.hyper_parameters.keys()):
             self.logger.info(f'number of iterations {self.iterations} larger than possible combinations {len(self.parameter_combinations)}.  Setting number of iterations to {len(self.parameter_combinations)}.')
