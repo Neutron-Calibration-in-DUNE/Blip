@@ -20,9 +20,10 @@ Blip is a python package which can be installed locally, or on the Wilson Cluste
 
    0.0.GettingStarted
    1.0.Blip
-   2.Dataset
-   3.Arrakis
-   4.Examples
+   2.0.Dataset
+   3.0.Arrakis
+   4.0.ArrakisND
+   5.0.Examples
 
 ---------------------------------------------------------------------------------------------------------------------------------------------
 

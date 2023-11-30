@@ -38,7 +38,6 @@ class LinearEvaluation(GenericModel):
         # register hooks
         self.register_forward_hooks()
 
-
     def construct_model(self):
         """
         This model takes in a trained contrastive learning model and appends
@@ -49,25 +48,39 @@ class LinearEvaluation(GenericModel):
         self.logger.info(f"Attempting to build LinearEvaluation architecture using config: {self.config}")
 
         self.blip_graph_model = self.config['model']
-        checkpoint = torch.load(self.blip_graph_model)
-        self.blip_graph_config = checkpoint['model_config']
+        if isinstance(self.blip_graph_model, str):
+            try:
+                checkpoint = torch.load(self.blip_graph_model)
+            except:
+                self.logger.error(f"failed to load model from ckpt: {self.blip_graph_model}! Does this file exist?")
+            try:
+                self.blip_graph_config = checkpoint['model_config']
+            except:
+                self.logger.error(f"could not load 'model_config' from checkpoint of {self.blip_graph_model}!")
         
-        self.logger.info(f"Loading BlipGraph from {self.config['model']}.")
-        if self.blip_graph_config["add_summed_adc"]:
-            self.blip_graph_config['reduction']['linear_output'] -= 1
-        self.blip_graph = BlipGraph(
-            'blip_graph',
-            self.blip_graph_config,
-            self.meta
-        )
-        self.blip_graph.load_state_dict(checkpoint['model_state_dict'])
-        
+            self.logger.info(f"loading BlipGraph from {self.config['model']}.")
+            if self.blip_graph_config["add_summed_adc"]:
+                self.blip_graph_config['reduction']['linear_output'] -= 1
+            
+            self.blip_graph = BlipGraph(
+                'blip_graph',
+                self.blip_graph_config,
+                self.meta
+            )
+            self.blip_graph.load_state_dict(checkpoint['model_state_dict'])
+        else:
+            self.logger.info("setting BlipGraph from config.")
+            self.blip_graph = self.config["model"]
+            self.config["model"] = ''
+            self.blip_graph_config = self.blip_graph.config
+
         reduction_config = self.blip_graph_config['reduction']
-        classifcation_config = self.blip_graph_config['classification']
+        classification_config = self.blip_graph_config['classification']
         # now attach the linear layer to the reductions layer of the BlipGraph.
-        for ii, classification in enumerate(self.config["classifications"]):
+        for ii, classification in enumerate(self.blip_graph_config["classifications"]):
             _classification_dict[f'{classification}'] = MLP(
-                [reduction_config['linear_output']] + [classifcation_config['out_channels'][ii]]
+                [reduction_config['linear_output']] + [classification_config['out_channels'][ii]],
+                act='LeakyReLU',
             )
         self.classification_dict = nn.ModuleDict(_classification_dict)
         self.softmax = nn.Softmax(dim=1)

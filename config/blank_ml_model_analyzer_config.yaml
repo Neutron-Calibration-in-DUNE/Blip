@@ -102,7 +102,6 @@ inference:
 model_analyzer:
   models: []    # list of models to analyze
   
-
 model:
   # uncomment the line below and specify the model to load from a checkpoint.
   load_model:   ".checkpoints/checkpoint_200.ckpt"

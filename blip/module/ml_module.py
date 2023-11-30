@@ -70,6 +70,7 @@ class MachineLearningModule(GenericModule):
         self.parse_training()
         self.parse_inference()
         self.parse_hyper_parameters()
+        self.parse_linear_evaluation()
         self.parse_model_analyzer()
      
     def check_config(self):
@@ -99,6 +100,12 @@ class MachineLearningModule(GenericModule):
         if self.mode == "linear_evaluation":
             if "linear_evaluation" not in self.config.keys():
                 self.logger.error(f"'linear_evaluation' section not specified in config!")
+        else:
+            if "linear_evaluation" in self.config.keys():
+                self.post_training_linear_evaluation = True
+                self.logger.info(f"setting up post training linear_evaluation.")
+            else:
+                self.post_training_linear_evaluation = False
         
         if self.mode == "model_analyzer":
             if "model_analyzer" not in self.config.keys():
@@ -275,6 +282,26 @@ class MachineLearningModule(GenericModule):
         elif self.search_type == 'random':
             self.generate_random_hyper_parameters(hyper_parameters_config)
     
+    def parse_linear_evaluation(self,
+        name:   str=''
+    ):
+        if "linear_evaluation" not in self.config.keys():
+            self.logger.warn("no linear_evaluation in config file.")
+            return
+        self.logger.info("configuring linear_evaluation")
+        linear_evaluation_config = self.config["linear_evaluation"]
+        if "model_directory" in linear_evaluation_config.keys():
+            self.linear_evaluation_model_directory = linear_evaluation_config['model_directory']
+            if not os.path.isdir(self.linear_evaluation_model_directory):
+                self.logger.error(f"linear_evaluation model_directory: {self.linear_evaluation_model_directory} does not exist!")
+            self.logger.info(f"setting linear_evaluation model_directory to {self.linear_evaluation_model_directory}.")
+        else:
+            self.linear_evaluation_model_directory = ''
+            self.logger.info(f"linear_evaluation model_directory not specified, setting to './'.")
+        if "epochs" not in linear_evaluation_config.keys():
+            self.logger.warn(f"linear_evaluation: epochs not specified in config.  Setting to 50.")
+            self.config["linear_evaluation"]["epochs"] = 50
+
     def parse_model_analyzer(self,
         name:   str=''
     ):
@@ -292,6 +319,8 @@ class MachineLearningModule(GenericModule):
             meta=self.meta
         )
 
+    # TODO: Fix this so that it doesn't need to compute all the paths, but only a subset of
+    # random ones, since the number of paths is N!, which is intractable.
     def generate_grid_hyper_parameters(self,
         hyper_parameters_config
     ):
@@ -393,9 +422,9 @@ class MachineLearningModule(GenericModule):
     
     def run_training(self):
         if 'run_name' in self.config['training'].keys():
-            now = self.config['training']['run_name'] + f"_{get_datetime()}"
+            self.now = self.config['training']['run_name'] + f"_{get_datetime()}"
         else:
-            now = self.name + f"_{get_datetime()}"
+            self.now = self.name + f"_{get_datetime()}"
         for jj in range(self.config['training']['iterations']):
             self.parse_model(f'_{jj}')
             self.parse_optimizer(f'_{jj}')
@@ -414,7 +443,12 @@ class MachineLearningModule(GenericModule):
             )
             if self.model_analyzer is not None:
                 self.model_analyzer.analyze(self.model.model)
-            self.save_iteration(f"{now}/iteration_{jj}")
+            self.save_iteration(f"{self.now}/iteration_{jj}")
+            if self.post_training_linear_evaluation:
+                    self.run_post_training_linear_evaluation(
+                        name=f'_{jj}',
+                        model_folder=f"{self.now}/iteration_{jj}/"
+                    )
     
     def run_model_analyzer(self):
         pass
@@ -423,9 +457,9 @@ class MachineLearningModule(GenericModule):
         self.logger.info(f"running hyper_parameter scan over {self.iterations} iterations")
         training_config = self.config['training']
         if 'run_name' in self.config['training'].keys():
-            now = self.config['training']['run_name'] + f"_{get_datetime()}"
+            self.now = self.config['training']['run_name'] + f"_{get_datetime()}"
         else:
-            now = self.name + f"_{get_datetime()}"
+            self.now = self.name + f"_{get_datetime()}"
         for ii, iteration in enumerate(self.hyper_parameters.keys()):
             for jj in range(self.config['training']['iterations']):
                 self.model = ModelHandler(
@@ -450,9 +484,14 @@ class MachineLearningModule(GenericModule):
                 )
                 if self.model_analyzer is not None:
                     self.model_analyzer.analyze(self.model.model)
-                self.save_iteration(f"{now}/hyper_parameter_{ii}/iteration_{jj}")
+                self.save_iteration(f"{self.now}/hyper_parameter_{ii}/iteration_{jj}")
+                if self.post_training_linear_evaluation:
+                    self.run_post_training_linear_evaluation(
+                        name=f'_{ii}_{jj}',
+                        model_folder=f"{self.now}/hyper_parameter_{ii}/iteration_{jj}/"
+                    )
         np.savez(
-            f"{self.meta['local_scratch']}/runs/{now}/hyper_parameters.npz",
+            f"{self.meta['local_scratch']}/runs/{self.now}/hyper_parameters.npz",
             hyper_parameters=self.hyper_parameters
         )
     
@@ -468,14 +507,13 @@ class MachineLearningModule(GenericModule):
             return
         linear_evaluation_config = self.config['linear_evaluation']
         if 'run_name' in self.config['training'].keys():
-            now = self.config['training']['run_name'] + f"_{get_datetime()}"
+            self.now = self.config['training']['run_name'] + f"_{get_datetime()}"
         else:
-            now = self.name + f"_{get_datetime()}"
+            self.now = self.name + f"_{get_datetime()}"
         for ii, model in enumerate(linear_evaluation_config['models']):
             for jj in range(self.config['training']['iterations']):
                 linear_config = {
-                    'model':    model,
-                    'classifications': linear_evaluation_config['classifications']  
+                    'model':    self.linear_evaluation_model_directory + model,
                 }
                 self.model = LinearEvaluation(
                     config=linear_config,
@@ -497,5 +535,39 @@ class MachineLearningModule(GenericModule):
                 )
                 if self.model_analyzer is not None:
                     self.model_analyzer.analyze(self.model.model)
-                self.save_iteration(f"{now}/linear_{ii}/iteration_{jj}")
+                self.save_iteration(f"{self.now}/linear_{ii}/iteration_{jj}")
     
+    def run_post_training_linear_evaluation(self,
+        name:   str='',
+        model_folder:   str=''
+    ):
+        linear_config = {
+            'model':    self.model.model,
+        }
+        linear_model = LinearEvaluation(
+            name=f'{self.model.model.name}'+'_linear_evaluation',
+            config=linear_config,
+            meta=self.meta
+        )
+        self.model = ModelHandler(
+            self.name + name,
+            models=[linear_model],
+            meta=self.meta
+        )
+        self.parse_optimizer(f'_{name}_linear_evaluation')
+        self.parse_loss(f'_{name}_linear_evaluation')
+        self.parse_metrics(f'_{name}_linear_evaluation')
+        self.parse_callbacks(f'_{name}_linear_evaluation')
+        self.parse_training(f'_{name}_linear_evaluation')
+        self.module_data_product[f'predictions_{name}_linear_evaluation'] = self.trainer.train(
+            epochs=self.config['linear_evaluation']['epochs'],
+            checkpoint=self.config['training']['checkpoint'],
+            progress_bar=self.config['training']['progress_bar'],
+            rewrite_bar=self.config['training']['rewrite_bar'],
+            save_predictions=self.config['training']['save_predictions'],
+            no_timing=self.config['training']['no_timing'],
+            skip_metrics=self.config['training']['skip_metrics']
+        )
+        if self.model_analyzer is not None:
+            self.model_analyzer.analyze(self.model.model)
+        self.save_iteration(f"{model_folder}/linear_evaluation")

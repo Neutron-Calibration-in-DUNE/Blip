@@ -48,6 +48,8 @@ class ModelHandler:
                 model.name: model 
                 for model in models
             }
+            if len(models) == 1:
+                self.model = list(self.models.values())[0]
         
     def set_config(self, config):
         self.config = config
