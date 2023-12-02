@@ -2,6 +2,7 @@
 """
 contrastive learning model analyzer code.
 """
+import os
 import numpy as np
 from matplotlib import pyplot as plt
 from sklearn import manifold
@@ -35,11 +36,13 @@ class ContrastiveModelAnalyzer(GenericModelAnalyzer):
         self.min_samples = min_samples
         self.num_cubes = num_cubes
         self.perc_overlap = perc_overlap
+
+        if not os.path.isdir(f"{self.meta['local_scratch']}/.tmp/manifold"):
+            os.makedirs(f"{self.meta['local_scratch']}/.tmp/manifold")
     
     def analyze(self,
         input,
-        predictions,
-        plot_directory='./'
+        predictions
     ):
         for jj, output in enumerate(self.outputs):
             for kk, perplexity in enumerate(self.perplexities):
@@ -69,7 +72,7 @@ class ContrastiveModelAnalyzer(GenericModelAnalyzer):
                     axs.set_title(f"tSNE embedding for category '{class_target}'")
                     plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
                     plt.tight_layout()
-                    plt.savefig(f"{plot_directory}/manifold/{output}_{class_target}_p={perplexity}_tsne_projection.png")
+                    plt.savefig(f"{self.meta['local_scratch']}/.tmp/manifold/{output}_{class_target}_p={perplexity}_tsne_projection.png")
                     plt.close()
 
                     for mm, eps in enumerate(self.eps_values):
@@ -90,7 +93,7 @@ class ContrastiveModelAnalyzer(GenericModelAnalyzer):
                         # mapper.visualize(
                         #     graph,
                         #     title=f"{output} {class_target} Mapper",
-                        #     path_html=f"{plot_directory}/manifold/{output}_{class_target}_p={perplexity}_eps={eps}_mapper.html",
+                        #     path_html=f"{self.meta['local_scratch']}/.tmp/manifold/{output}_{class_target}_p={perplexity}_eps={eps}_mapper.html",
                         #     color_values=temp_targets,
                         #     color_function_name="labels",
                         #     custom_tooltips=temp_targets,
@@ -100,7 +103,7 @@ class ContrastiveModelAnalyzer(GenericModelAnalyzer):
                         # mapper.visualize(
                         #     graph,
                         #     title=f"{output} {class_target} Mapper",
-                        #     path_html=f"{plot_directory}/manifold/{output}_{class_target}_p={perplexity}_eps={eps}_tooltips_mapper.html",
+                        #     path_html=f"{self.meta['local_scratch']}/.tmp/manifold/{output}_{class_target}_p={perplexity}_eps={eps}_tooltips_mapper.html",
                         #     custom_tooltips=temp_targets,
                         # )              
                         fig, axs = plt.subplots(figsize=(25,25))
@@ -117,5 +120,5 @@ class ContrastiveModelAnalyzer(GenericModelAnalyzer):
                         axs.axis("square")
                         axs.axis("off")
                         axs.set_title(f"Mapper graph with DBSCAN({eps},{self.min_samples}) on tSNE embedding")
-                        plt.savefig(f"{plot_directory}/manifold/{output}_{class_target}_p={perplexity}_eps={eps}_mapper.png")
+                        plt.savefig(f"{self.meta['local_scratch']}/.tmp/manifold/{output}_{class_target}_p={perplexity}_eps={eps}_mapper.png")
                         plt.close()

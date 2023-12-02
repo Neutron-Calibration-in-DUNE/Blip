@@ -5,9 +5,9 @@ import numpy as np
 import torch
 from matplotlib import pyplot as plt
 
-from blip.losses.loss_handler    import LossHandler
+from blip.losses.loss_handler import LossHandler
 from blip.metrics.metric_handler import MetricHandler
-from blip.utils.callbacks        import GenericCallback
+from blip.utils.callbacks import GenericCallback
 
 class LossCallback(GenericCallback):
     """
@@ -69,7 +69,7 @@ class LossCallback(GenericCallback):
         for name in self.test_target_loss.keys():
             self.test_target_loss[name].cpu().numpy()
         np.savez(
-            f"{self.meta['local_scratch']}/losses.npz",
+            f"{self.meta['local_scratch']}/.tmp/losses.npz",
             loss_names=self.loss_names,
             training_loss=self.training_loss.cpu().numpy(),
             validation_loss=self.validation_loss.cpu().numpy(),
@@ -240,7 +240,7 @@ class LossCallback(GenericCallback):
             plt.title("loss vs. epoch (training)")
             plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
             plt.tight_layout()
-            plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_training_loss.png")
+            plt.savefig(f"{self.meta['local_scratch']}/.tmp/plots/epoch_training_loss.png")
         # validation plot
         if self.num_validation_batches != 0:
             fig, axs = plt.subplots(figsize=(15, 10))
@@ -272,7 +272,7 @@ class LossCallback(GenericCallback):
             plt.title("loss vs. epoch (validation)")
             plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
             plt.tight_layout()
-            plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_validation_loss.png")
+            plt.savefig(f"{self.meta['local_scratch']}/.tmp/plots/epoch_validation_loss.png")
         # plot both
         if self.num_training_batches != 0 and self.num_validation_batches != 0:
             fig, axs = plt.subplots(figsize=(15, 10))
@@ -337,7 +337,7 @@ class LossCallback(GenericCallback):
             plt.title("loss vs. epoch")
             plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
             plt.tight_layout()
-            plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_loss.png")
+            plt.savefig(f"{self.meta['local_scratch']}/.tmp/plots/epoch_loss.png")
 
         ########### Plots for each loss with target contributions ##########
         for name, loss in self.criterion_handler.losses.items():
@@ -358,7 +358,7 @@ class LossCallback(GenericCallback):
                 plt.title(f"{name} - loss vs. epoch")
                 plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
                 plt.tight_layout()
-                plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_loss_{name}.png")
+                plt.savefig(f"{self.meta['local_scratch']}/.tmp/plots/epoch_loss_{name}.png")
         # save losses to npz
         self.save_losses()
 

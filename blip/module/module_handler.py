@@ -1,6 +1,6 @@
 """
 """
-import os 
+import os
 import importlib.util
 import sys
 import inspect
@@ -10,41 +10,47 @@ from blip.module import GenericModule
 from blip.module.common import *
 from blip.utils.utils import get_method_arguments
 
+
 class ModuleHandler:
     """
     """
-    def __init__(self,
+    def __init__(
+        self,
         name:   str,
-        config: dict={},
-        modules:    list=[],
-        meta:   dict={}
+        config: dict = {},
+        modules:    list = [],
+        meta:   dict = {}
     ):
         self.name = name + "_module_handler"
         self.meta = meta
-        if "device" in self.meta: self.device = self.meta['device']
-        else:                     self.device = 'cpu'
-        if meta['verbose']:       self.logger = Logger(self.name, output="both", file_mode="w")
-        else:                     self.logger = Logger(self.name, level='warning', file_mode="w")
-        
+        if "device" in self.meta:
+            self.device = self.meta['device']
+        else:
+            self.device = 'cpu'
+        if meta['verbose']:
+            self.logger = Logger(self.name, output="both", file_mode="w")
+        else:
+            self.logger = Logger(self.name, level='warning', file_mode="w")
+
         self.modules = {}
         if bool(config) and len(modules) != 0:
             self.logger.error(
-                f"handler received both a config and a list of modules! " + 
-                f"The user should only provide one or the other!")
-        elif bool(config): 
+                "handler received both a config and a list of modules! " +
+                "The user should only provide one or the other!")
+        elif bool(config):
             self.set_config(config)
         else:
             if len(modules) == 0:
-                self.logger.error(f"handler received neither a config or modules!")
+                self.logger.error("handler received neither a config or modules!")
             self.modules = {
-                module.name: module 
+                module.name: module
                 for module in modules
             }
-        
+
     def set_config(self, config):
         self.config = config
         self.process_config()
-    
+
     def collect_modules(self):
         self.available_modules = {}
         self.module_files = [
@@ -61,16 +67,17 @@ class ModuleHandler:
                 (".py" not in module_file)
             ):
                 continue
-            # try:
-            self.load_module(module_file)
-            # except:
-            #     self.logger.warn(f'problem loading module from file: {module_file}')
-    
-    def load_module(self,
+            try:
+                self.load_module(module_file)
+            except:
+                self.logger.warn(f'problem loading module from file: {module_file}')
+
+    def load_module(
+        self,
         module_file: str
     ):
         spec = importlib.util.spec_from_file_location(
-            f'{module_file.removesuffix(".py")}.name', 
+            f'{module_file.removesuffix(".py")}.name',
             module_file
         )
         custom_module_file = importlib.util.module_from_spec(spec)
@@ -81,7 +88,7 @@ class ModuleHandler:
                 custom_class = getattr(custom_module_file, name)
                 if issubclass(custom_class, GenericModule):
                     self.available_modules[name] = custom_class
-    
+
     def process_config(self):
         # list of available 
         self.collect_modules()

@@ -1,15 +1,32 @@
 """
 Various utility functions
 """
-import os,torch,inspect,shutil,yaml
-import numpy   as np
-import pandas  as pd
-import seaborn as sns
+import os
+import torch
+import inspect
+import shutil
+import numpy as np
+import pandas as pd
+import tarfile
 from matplotlib import pyplot as plt
-from os         import listdir
-from os.path    import isfile, join
-from itertools  import product
-from datetime   import datetime
+from os import listdir
+from os.path import isfile, join
+from itertools import product
+from datetime import datetime
+
+
+def tar_directory(
+    path,
+    name
+):
+    with tarfile.open(name, "w:gz") as tarhandle:
+        base_path = os.path.basename(path)
+        for root, dirs, files in os.walk(path):
+            for f in files:
+                file_path = os.path.join(root, f)
+                arcname = os.path.relpath(file_path, path)
+                tarhandle.add(file_path, arcname=os.path.join(base_path, arcname))
+
 
 def index_positions(
     positions,
@@ -17,52 +34,65 @@ def index_positions(
 ):
     return positions[indices]
 
+
 def get_datetime():
     time = datetime.now()
     now = f"{time.year}.{time.month}.{time.day}.{time.hour}.{time.minute}.{time.second}"
     return now
 
+
 def get_key(dictionary, val):
     # Given a dictionary and a value, returns list of keys with that value
     res = []
     for key, value in dictionary.items():
-         if val == value: res.append(key)
+        if val == value:
+            res.append(key)
     return res
+
 
 def invert_label_dict(label):
     # Take dict {key:item}, return dict {item:key}
     inverted_label = dict()
     for key in label.keys():
-        if type(label[key]) == list:
-            for l in label[key]: inverted_label[l] = key
-        else: inverted_label[label[key]] = key
+        if isinstance(label[key], list):
+            for ll in label[key]:
+                inverted_label[ll] = key
+        else:
+            inverted_label[label[key]] = key
     return inverted_label
 
-def matrix_ell_infinity_distance(M1,M2):
+
+def matrix_ell_infinity_distance(M1, M2):
     # Inputs: two numpy arrays of the same size
     # Output: \ell_\infty distance between the matrices
     M = np.abs(M1 - M2)
     dist = np.max(M)
     return dist
 
+
 def remove_short_bars(barcode, thresh=0.01):
-    barcode_thresh = barcode[(barcode[:,1]-barcode[:,0] > thresh)]
+    barcode_thresh = barcode[(barcode[:, 1]-barcode[:, 0] > thresh)]
     return barcode_thresh
 
-"""
-Get the names of the arrays in an .npz file
-"""
+
 def get_array_names(
     input_file: str
 ):
+    """
+    Get the names of the arrays in an .npz file
+    """
     # check that file exists
     if not os.path.isfile(input_file):
         raise FileNotFoundError(f"Specified input file: '{input_file}' does not exist!")
     loaded_file = np.load(input_file)
     return list(loaded_file.files)
 
-# Flatten the dictionary to get path/value pairs
-def flatten_dict(dictionary, parent_keys=[]):
+
+def flatten_dict(
+    dictionary,
+    parent_keys=[]
+):
+    # Flatten the dictionary to get path/value pairs
     items = []
     for key, value in dictionary.items():
         current_keys = parent_keys + [str(key)]
@@ -72,22 +102,26 @@ def flatten_dict(dictionary, parent_keys=[]):
             items.append((current_keys, value))
     return items
 
-# Generate combinations from arrays
-def generate_combinations_from_arrays(dictionary):
+
+def generate_combinations_from_arrays(
+    dictionary
+):
+    # Generate combinations from arrays
     arrays = list(dictionary.values())
     all_combinations = list(product(*arrays))
     return all_combinations
 
-"""
-The following function takes in a .npz file, and a set
-of arrays specified by a dictionary, and appends them
-to the .npz file, provided there are no collisions.
-"""
+
 def append_npz(
     input_file: str,
     arrays:     dict,
-    override:   bool=False,
+    override:   bool = False,
 ):
+    """
+    The following function takes in a .npz file, and a set
+    of arrays specified by a dictionary, and appends them
+    to the .npz file, provided there are no collisions.
+    """
     # check that file exists
     if not os.path.isfile(input_file):
         raise FileNotFoundError(f"Specified input file: '{input_file}' does not exist!")
@@ -99,7 +133,7 @@ def append_npz(
         key: loaded_file[key] for key in loaded_file.files
     }
     # check that there are no identical array names if override set to false
-    if override == False:
+    if override is False:
         for item in loaded_arrays.keys():
             if item in arrays.keys():
                 raise ValueError(f"Array '{item}' already exists in .npz file '{input_file}'!")
@@ -110,17 +144,18 @@ def append_npz(
         **loaded_arrays
     )
 
-"""
-Get a list of arguments and default values for a method.
-"""
+
 def get_method_arguments(method):
+    """
+    Get a list of arguments and default values for a method.
+    """
     # argpase grabs input values for the method
     try:
         argparse = inspect.getfullargspec(method)
         args = argparse.args
         args.remove('self')
         default_params = [None for item in args]
-        if argparse.defaults != None:
+        if argparse.defaults is not None:
             for ii, value in enumerate(argparse.defaults):
                 default_params[ii] = value
         argdict = {item: default_params[ii] for ii, item in enumerate(args)}
@@ -128,15 +163,16 @@ def get_method_arguments(method):
     except:
         return {}
 
-"""
-Method for getting shapes of data and various other
-useful information.
-"""
+
 def get_shape_dictionary(
     dataset=None,
     dataset_loader=None,
     model=None,
 ):
+    """
+    Method for getting shapes of data and various other
+    useful information.
+    """
     data_shapes = {}
     # list of desired dataset values
     dataset_values = [
@@ -175,16 +211,17 @@ def get_shape_dictionary(
             data_shapes[item] = 'missing'
     return data_shapes
 
+
 def boxcar(
     x,
-    mean:   float=0.11,
-    sigma:  float=0.3,
-    mode:   str='regular',
-):  
+    mean:   float = 0.11,
+    sigma:  float = 0.3,
+    mode:   str = 'regular',
+):
     """
     Returns a value between -1 and ...
     depending on whether the values (x - (mean +- sigma))
-    are < 0, == 0, or > 0.  If 
+    are < 0, == 0, or > 0.  If
         a) regular :  return 0 if x < or > mean+-sigma
         b) regular :  return 1 if x > low but <= high
     """
@@ -195,6 +232,7 @@ def boxcar(
         return low - high
     else:
         return unit + high - low
+
 
 def get_base_classes(derived):
     """
@@ -207,6 +245,7 @@ def get_base_classes(derived):
     except:
         pass
     return bases
+
 
 def generate_plot_grid(
     num_plots,
@@ -224,21 +263,24 @@ def generate_plot_grid(
         axs.flat[-(ii+1)].set_visible(False)
     return fig, axs
 
+
 def concatenate_csv(
     files,
     output_file
 ):
     combined_csv = pd.concat([pd.read_csv(f) for f in files])
     combined_csv.to_csv(output_file, header=None, index=False,)
-    
+
+
 def get_files(
     directory
 ):
     return [f for f in listdir(directory) if isfile(join(directory, f))]
 
+
 def save_model(
-    name:   str='',
-    config_file: str='',
+    name:   str = '',
+    config_file: str = '',
 ):
     # clean up directories first
     if name == '':
@@ -256,33 +298,36 @@ def save_model(
     shutil.move(".checkpoints/", f"runs/{now}")
     shutil.copy(config_file, f"runs/{now}")
 
+
 def color_list(color):
     '''
     Function which returns the color in ascii.
     '''
     colors = {
-              "DEBUG":   '\033[35m', #PURPLE
-              "ERROR":   '\033[91m', #RED
-              "SUCCESS": '\033[92m', #GREEN
-              "WARNING": '\033[93m', #YELLOW
-              "INFO":    '\033[94m', #BLUE
-              "blue":    '\033[94m', #BLUE
-              "magenta": '\033[95m',
-              "cyan":    '\033[96m',
-              "white":   '\033[97m',
-              "black":   '\033[98m',
-              "end":     '\033[0m'
-              }
-    
+        "DEBUG":   '\033[35m',  # PURPLE
+        "ERROR":   '\033[91m',  # RED
+        "SUCCESS": '\033[92m',  # GREEN
+        "WARNING": '\033[93m',  # YELLOW
+        "INFO":    '\033[94m',  # BLUE
+        "blue":    '\033[94m',  # BLUE
+        "magenta": '\033[95m',
+        "cyan":    '\033[96m',
+        "white":   '\033[97m',
+        "black":   '\033[98m',
+        "end":     '\033[0m'
+    }
     return colors[color]
 
-def print_colored(string, color, bold=False, end = "\n"):
+
+def print_colored(string, color, bold=False, end="\n"):
     '''
     Print a string in a specific color.
-    '''  
-    
+    '''
+
     color = color_list(color)
-    if bold == False: output = color + str(string) + color_list("end")
-    if bold == True:  output = '\033[1m' + color + string + color_list("end")
-    
-    print(output, end = end)
+    if bold is False:
+        output = color + str(string) + color_list("end")
+    if bold is True:
+        output = '\033[1m' + color + string + color_list("end")
+
+    print(output, end=end)

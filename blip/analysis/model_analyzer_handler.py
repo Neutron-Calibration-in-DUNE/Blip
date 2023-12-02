@@ -188,6 +188,5 @@ class ModelAnalyzerHandler:
                 for key in predictions.keys():
                     predictions[key] = np.array(np.concatenate(predictions[key]))
                 self.model_analyzers[analyzer].analyze(
-                    input, predictions, 
-                    plot_directory=f'{self.meta["local_scratch"]}/plots/{model.name}/'
+                    input, predictions
                 )

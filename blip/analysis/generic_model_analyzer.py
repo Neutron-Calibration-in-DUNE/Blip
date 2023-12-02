@@ -52,8 +52,7 @@ class GenericModelAnalyzer:
     
     def analyze(self,
         input,
-        predictions,
-        plot_directory='./'
+        predictions
     ):
         self.logger.error(f'analyze function has not been defined!')
         

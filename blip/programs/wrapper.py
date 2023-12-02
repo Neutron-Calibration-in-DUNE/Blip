@@ -1,16 +1,6 @@
-import torch
-import os
-import csv
-import getpass
-from torch import nn
-import torch.nn.functional as F
-from time import time
-from datetime import datetime
-import argparse
-os.environ["TQDM_NOTEBOOK"] = "false"
-
-from blip.utils.logger import Logger, default_logger
+from blip.utils.logger import Logger
 from blip.utils.config import ConfigParser
+from blip.utils.utils import get_datetime
 
 from blip.dataset.arrakis import Arrakis
 from blip.dataset.arrakis_nd import ArrakisND
@@ -21,13 +11,19 @@ from blip.utils.loader import Loader
 from blip.module import ModuleHandler
 from blip.module.common import module_types
 
+import torch
+import os
+import shutil
+os.environ["TQDM_NOTEBOOK"] = "false"
+
+
 def wrangle_data(
     config_file:    str,
-    run_name:       str='default',
-    local_scratch:  str='./',
-    local_blip:     str='./',
-    local_data:     str='./',
-    anomaly:        bool=False      
+    run_name:       str = None,
+    local_scratch:  str = './',
+    local_blip:     str = './',
+    local_data:     str = './',
+    anomaly:        bool = False
 ):
     # set up directories
     if not os.path.isdir(local_scratch):
@@ -37,11 +33,11 @@ def wrangle_data(
     if not os.path.isdir(local_data):
         local_data = './'
     local_blip_files = [
-        local_blip + '/' + file 
+        local_blip + '/' + file
         for file in os.listdir(path=os.path.dirname(local_blip))
     ]
     local_data_files = [
-        local_data + '/' + file 
+        local_data + '/' + file
         for file in os.listdir(path=os.path.dirname(local_data))
     ]
     os.environ['LOCAL_SCRATCH'] = local_scratch
@@ -53,7 +49,7 @@ def wrangle_data(
 
     # begin parsing configuration file
     if config_file is None:
-        logger.error(f'no config_file specified in parameters!')
+        logger.error('no config_file specified in parameters!')
 
     config = ConfigParser(config_file).data
 
@@ -62,27 +58,58 @@ def wrangle_data(
         torch.autograd.set_detect_anomaly(bool(anomaly))
 
     if "module" not in config.keys():
-        logger.error(f'"module" section not specified in config!')
+        logger.error('"module" section not specified in config!')
     if "dataset" not in config.keys():
-        logger.error(f'"dataset" section not specified in config!')
+        logger.error('"dataset" section not specified in config!')
     if "loader" not in config.keys():
-        logger.error(f'"loader" section not specified in config!')
+        logger.error('"loader" section not specified in config!')
     system_info = logger.get_system_info()
     for key, value in system_info.items():
         logger.info(f"system_info - {key}: {value}")
-    
+
+    # get run_name
+    if run_name is None:
+        run_name = config['module']['module_name']
+    # add unique datetime
+    now = get_datetime()
+    run_name += f"_{now}"
+    local_run = local_scratch + '/' + run_name
+
     meta = {
+        'now':              now,
+        'run_name':         run_name,
         'config_file':      config_file,
+        'run_directory':    local_run,
         'local_scratch':    local_scratch,
         'local_blip':       local_blip,
         'local_data':       local_data,
         'local_blip_files': local_blip_files,
         'local_data_files': local_data_files
     }
+    logger.info(f'"now" set to: {now}')
+    logger.info(f'"run_name" set to: {run_name}')
+    logger.info(f'"run" directory set to: {local_run}.')
     logger.info(f'"local_scratch" directory set to: {local_scratch}.')
     logger.info(f'"local_blip" directory set to: {local_blip}.')
     logger.info(f'"local_data" directory set to: {local_data}.')
-    
+
+    # create .tmp directory
+    if not os.path.isdir(f"{local_scratch}/.backup"):
+        os.makedirs(f"{local_scratch}/.backup")
+    if os.path.isdir(f"{local_scratch}/.backup/.tmp"):
+        shutil.rmtree(f"{local_scratch}/.backup/.tmp")
+    if os.path.isdir(f"{local_scratch}/.tmp"):
+        shutil.move(
+            f"{local_scratch}/.tmp/",
+            f"{local_scratch}/.backup/"
+        )
+        logger.info(f"copied old .tmp to .backup in local_scratch directory.")
+    os.makedirs(f"{local_scratch}/.tmp")
+
+    # create run directory
+    if not os.path.isdir(local_run):
+        os.makedirs(local_run)
+
     # set verbosity of logger
     if "verbose" in config["module"]:
         if not isinstance(config["module"]["verbose"], bool):
@@ -90,24 +117,24 @@ def wrangle_data(
         meta["verbose"] = config["module"]["verbose"]
     else:
         meta["verbose"] = False
-    
+
     # Eventually we will want to check that the order of the modules makes sense,
     # and that the data products are compatible and available for the different modes.
 
     # check for devices
     if "gpu" not in config["module"].keys():
-        logger.warn(f'"module:gpu" not specified in config!')
+        logger.warn('"module:gpu" not specified in config!')
         gpu = None
     else:
         gpu = config["module"]["gpu"]
     if "gpu_device" not in config["module"].keys():
-        logger.warn(f'"module:gpu_device" not specified in config!')
+        logger.warn('"module:gpu_device" not specified in config!')
         gpu_device = None
     else:
         gpu_device = config["module"]["gpu_device"]
-    
+
     if torch.cuda.is_available():
-        logger.info(f"CUDA is available with devices:")
+        logger.info("CUDA is available with devices:")
         for ii in range(torch.cuda.device_count()):
             device_properties = torch.cuda.get_device_properties(ii)
             cuda_stats = f"name: {device_properties.name}, "
@@ -123,18 +150,18 @@ def wrangle_data(
                 gpu_device = 0
             meta['device'] = torch.device(f"cuda:{gpu_device}")
             logger.info(
-                f"CUDA is available, using device {gpu_device}" + 
+                f"CUDA is available, using device {gpu_device}" +
                 f": {torch.cuda.get_device_name(gpu_device)}"
             )
         else:
-            gpu == False
-            logger.warn(f"CUDA not available! Using the cpu")
+            gpu = False
+            logger.warn("CUDA not available! Using the cpu")
             meta['device'] = torch.device("cpu")
     else:
-        logger.info(f"using cpu as device")
+        logger.info("using cpu as device")
         meta['device'] = torch.device("cpu")
     meta['gpu'] = gpu
-    
+
     # Configure the dataset
     logger.info("configuring dataset.")
     dataset_config = config['dataset']
@@ -145,37 +172,37 @@ def wrangle_data(
     if ("simulation_folder" in dataset_config):
         simulation_folder = dataset_config["simulation_folder"]
         logger.info(
-            f"Set simulation file folder from configuration. " +
-            f" simulation_folder : {simulation_folder}"
+            "Set simulation file folder from configuration. " +
+            " simulation_folder : {simulation_folder}"
         )
-    elif ('BLIP_SIMULATION_PATH' in os.environ ):
-        logger.debug(f'Found BLIP_SIMULATION_PATH in environment')
+    elif ('BLIP_SIMULATION_PATH' in os.environ):
+        logger.debug('Found BLIP_SIMULATION_PATH in environment')
         simulation_folder = os.environ['BLIP_SIMULATION_PATH']
         logger.info(
-            f"Setting simulation path from Enviroment." +
+            "Setting simulation path from Enviroment." +
             f" BLIP_SIMULATION_PATH = {simulation_folder}"
         )
     else:
-        logger.error(f'No dataset_folder specified in environment or configuration file!')
+        logger.error('No dataset_folder specified in environment or configuration file!')
 
     # check for processing simulation files
     if "simulation_files" in dataset_config and dataset_config["process_simulation"]:
         if 'simulation_type' not in dataset_config.keys():
-            logger.error(f'simulation_type not specified in dataset config!')
+            logger.error('simulation_type not specified in dataset config!')
         if dataset_config["simulation_type"] == "LArSoft":
-            arrakis_dataset = Arrakis(
+            _ = Arrakis(
                 run_name,
                 dataset_config,
                 meta
             )
         elif dataset_config["simulation_type"] == "larnd-sim":
-            arrakis_dataset = ArrakisND(
+            _ = ArrakisND(
                 run_name,
                 dataset_config,
                 meta
             )
         elif dataset_config["simulation_type"] == "MSSM":
-            mssm_dataset = MSSM(
+            _ = MSSM(
                 run_name,
                 dataset_config,
                 meta
@@ -211,15 +238,10 @@ def wrangle_data(
     )
     return meta, module_handler
 
+
 def parse_command_line_config(
     params
 ):
-    # set up parameters
-    if params.name is not None:
-        run_name = params.name
-    else:
-        run_name = 'default'
-    
     # set up local scratch and local blip
     if params.local_scratch is not None:
         if not os.path.isdir(params.local_scratch):
@@ -247,4 +269,3 @@ def parse_command_line_config(
         params.local_data,
         params.anomaly
     )
-    

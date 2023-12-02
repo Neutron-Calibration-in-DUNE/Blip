@@ -1,78 +1,82 @@
 """
 Classes for storing ML timing information.
 """
-import torch,time
+import torch
+import time
+
 
 class Timer:
     """
     Internal class for recording timing information.
     """
-    def __init__(self,
+    def __init__(
+        self,
         name:   str,
-        level:  str='epoch',
-        type:   str='train',
-        gpu:    bool=True,
+        level:  str = 'epoch',
+        type:   str = 'train',
+        gpu:    bool = True,
     ):
         self.name = name
         self.level = level
         self.type = type
         self.gpu = gpu
         # initialized tensor
-        self.timer_values = torch.empty(size=(0,1), dtype=torch.float)
+        self.timer_values = torch.empty(size=(0, 1), dtype=torch.float)
         if self.gpu:
             self.timer_values.cuda()
-            self.timer_start  = torch.cuda.Event(enable_timing=True)
-            self.timer_end    = torch.cuda.Event(enable_timing=True)
+            self.timer_start = torch.cuda.Event(enable_timing=True)
+            self.timer_end = torch.cuda.Event(enable_timing=True)
             self.start = self._start_cuda
-            self.end   = self._end_cuda
+            self.end = self._end_cuda
         else:
             self.timer_start = 0
-            self.timer_end   = 0
+            self.timer_end = 0
             self.start = self._start_cpu
-            self.end   = self._end_cpu
-    
+            self.end = self._end_cpu
+
     def synchronize(self):
         torch.cuda.synchronize()
 
     def _start_cuda(self):
         self.timer_start.record()
-    
+
     def _start_cpu(self):
         self.timer_start = time.time()
-    
+
     def _end_cuda(self):
         self.timer_end.record()
         torch.cuda.synchronize()
         self.timer_values = torch.cat(
-            (self.timer_values,
-            torch.tensor([[self.timer_start.elapsed_time(self.timer_end)]])),
+            (self.timer_values, torch.tensor([[self.timer_start.elapsed_time(self.timer_end)]]))
         )
-    
+
     def _end_cpu(self):
         self.timer_end = time.time()
+
 
 class Timers:
     """
     Collection of timers for ML tasks.
     """
-    def __init__(self,
-        gpu:    bool=True,
+    def __init__(
+        self,
+        gpu:    bool = True,
     ):
         self.gpu = gpu
         self.train_batch_params = {
-            'type': 'training',
-            'level':'batch',
-            'gpu':  'self.gpu'
+            'type':     'training',
+            'level':    'batch',
+            'gpu':      'self.gpu'
         }
         self.validation_batch_params = {
-            'type': 'validation',
-            'level':'batch',
-            'gpu':  'self.gpu'
+            'type':     'validation',
+            'level':    'batch',
+            'gpu':      'self.gpu'
         }
         self.clustering_batch_params = {
-            'type': 'clustering',
-            'level': 'event',
-            'gpu':  'self.gpu'
+            'type':     'clustering',
+            'level':    'event',
+            'gpu':      'self.gpu'
         }
         self.timers = {
             'epoch_training':   Timer('epoch_training', type='training', level='epoch',  gpu=self.gpu),
@@ -82,7 +86,7 @@ class Timers:
             'training_zero_grad':       Timer('training_zero_grad',    **self.train_batch_params),
             'training_forward':         Timer('training_forward',      **self.train_batch_params),
             'training_loss':            Timer('training_loss',         **self.train_batch_params),
-            'training_loss_backward':   Timer('training_loss_backward',**self.train_batch_params),
+            'training_loss_backward':   Timer('training_loss_backward', **self.train_batch_params),
             'training_backprop':        Timer('training_backprop',     **self.train_batch_params),
             'training_metrics':         Timer('training_metrics',      **self.train_batch_params),
             'training_progress':        Timer('training_progress',     **self.train_batch_params),
@@ -103,7 +107,7 @@ class Timers:
             'cluster_progress':     Timer('cluster_progress',     **self.clustering_batch_params),
             'cluster_callbacks':    Timer('cluster_callbacks',    type='clustering', level='parameter', gpu=self.gpu),
         }
-    
+
     def reset_timers(self):
         self.timers = {
             'epoch_training':   Timer('epoch_training', type='training', level='epoch',  gpu=self.gpu),
@@ -113,7 +117,7 @@ class Timers:
             'training_zero_grad':       Timer('training_zero_grad',    **self.train_batch_params),
             'training_forward':         Timer('training_forward',      **self.train_batch_params),
             'training_loss':            Timer('training_loss',         **self.train_batch_params),
-            'training_loss_backward':   Timer('training_loss_backward',**self.train_batch_params),
+            'training_loss_backward':   Timer('training_loss_backward', **self.train_batch_params),
             'training_backprop':        Timer('training_backprop',     **self.train_batch_params),
             'training_metrics':         Timer('training_metrics',      **self.train_batch_params),
             'training_progress':        Timer('training_progress',     **self.train_batch_params),
@@ -133,7 +137,7 @@ class Timers:
             'cluster_metrics':      Timer('cluster_metrics',      **self.clustering_batch_params),
             'cluster_progress':     Timer('cluster_progress',     **self.clustering_batch_params),
             'cluster_callbacks':    Timer('cluster_callbacks',    type='clustering', level='parameter', gpu=self.gpu),
-        }   
-        
+        }
+
     def synchronize(self):
         torch.cuda.synchronize()

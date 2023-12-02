@@ -161,7 +161,15 @@ class MetricHandler:
                 f' Only metric functions which inherit from GenericMetric can' +
                 f' be used by the metricHandler in BLIP.'
             )
-    
+
+    def remove_metric(
+        self,
+        metric:   str
+    ):
+        if metric in self.metrics.keys():
+            self.metrics.pop(metric)
+            self.logger.info(f'removed {metric} from metrics.')
+
     def update(self,
         outputs,
         data,

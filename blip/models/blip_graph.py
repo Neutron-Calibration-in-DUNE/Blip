@@ -204,6 +204,8 @@ class BlipGraph(GenericModel):
             name, config, meta
         )
         self.config = config
+        # linear evaluation protocol
+        self.linear = False
 
         # construct augmentations
         self.construct_augmentations()
@@ -211,6 +213,28 @@ class BlipGraph(GenericModel):
         self.construct_model()
         # register hooks
         self.register_forward_hooks()
+
+    def linear_evaluation(self):
+        self.linear = True
+        for embedding in self.embedding_dict.keys():
+            self.embedding_dict[embedding].requires_grad = False
+        for reduction in self.reduction_dict.keys():
+            self.reduction_dict[reduction].requires_grad = False
+        for classification in self.classification_dict.keys():
+            self.classification_dict[classification].requires_grad = False
+        for linear_classification in self.linear_classification_dict.keys():
+            self.linear_classification_dict[linear_classification].requires_grad = True
+
+    def contrastive_learning(self):
+        self.linear = False
+        for embedding in self.embedding_dict.keys():
+            self.embedding_dict[embedding].requires_grad = True
+        for reduction in self.reduction_dict.keys():
+            self.reduction_dict[reduction].requires_grad = True
+        for classification in self.classification_dict.keys():
+            self.classification_dict[classification].requires_grad = True
+        for linear_classification in self.linear_classification_dict.keys():
+            self.linear_classification_dict[linear_classification].requires_grad = False
 
     def construct_augmentations(self):
         """
@@ -284,6 +308,7 @@ class BlipGraph(GenericModel):
         _embedding_dict = OrderedDict()
         _reduction_dict = OrderedDict()
         _classification_dict = OrderedDict()
+        _linear_classification_dict = OrderedDict()
 
         if 'input_dimension' not in self.config.keys():
             self.logger.error(
@@ -531,10 +556,16 @@ class BlipGraph(GenericModel):
                 act=classification_config['activation'],
                 act_kwargs=classification_config['activation_params']
             )
+            _linear_classification_dict[f'{classification}'] = MLP(
+                [reduction_output] + [classification_config['out_channels'][ii]],
+                act=classification_config['activation'],
+                act_kwargs=classification_config['activation_params']
+            )
 
         self.embedding_dict = nn.ModuleDict(_embedding_dict)
         self.reduction_dict = nn.ModuleDict(_reduction_dict)
         self.classification_dict = nn.ModuleDict(_classification_dict)
+        self.linear_classification_dict = nn.ModuleDict(_linear_classification_dict)
         self.softmax = nn.Softmax(dim=1)
 
         # record the info
@@ -583,13 +614,22 @@ class BlipGraph(GenericModel):
                     linear_pool = self.reduction_dict['projection_head'](linear_pool)
                 projection_head.append(linear_pool)
 
-                # Pass through classification dictionary
-                for jj, classification in enumerate(
-                    self.classification_dict.keys()
-                ):
-                    classifications[jj].append(
-                        self.classification_dict[classification](linear_pool)
-                    )
+                if not self.linear:
+                    # Pass through classification dictionary
+                    for jj, classification in enumerate(
+                        self.classification_dict.keys()
+                    ):
+                        classifications[jj].append(
+                            self.classification_dict[classification](linear_pool)
+                        )
+                else:
+                    # Pass through linear classification dictionary
+                    for jj, classification in enumerate(
+                        self.classification_dict.keys()
+                    ):
+                        classifications[jj].append(
+                            self.linear_classification_dict[classification](linear_pool)
+                        )
 
             outputs = {
                 classification: torch.cat(classifications[jj])
@@ -626,10 +666,17 @@ class BlipGraph(GenericModel):
             if self.projection_head:
                 linear_pool = self.reduction_dict['projection_head'](linear_pool)
 
-            outputs = {
-                classifications: self.classification_dict[classifications](linear_pool)
-                for classifications in self.classification_dict.keys()
-            }
+            if not self.linear:
+                outputs = {
+                    classifications: self.classification_dict[classifications](linear_pool)
+                    for classifications in self.classification_dict.keys()
+                }
+            else:
+                outputs = {
+                    classifications: self.linear_classification_dict[classifications](linear_pool)
+                    for classifications in self.classification_dict.keys()
+                }
+
             outputs['reductions'] = reductions
             outputs['projection_head'] = linear_pool
             outputs['augmentations'] = 1

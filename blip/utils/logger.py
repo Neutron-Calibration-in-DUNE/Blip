@@ -40,15 +40,17 @@ error_list = {
     'value':        ValueError,
 }
 
+
 class Logger:
     """
     """
-    def __init__(self,
-        name:   str='default',
-        level:  str='debug',
-        output: str='file',
-        output_file:str='',
-        file_mode:  str='a',
+    def __init__(
+        self,
+        name:   str = 'default',
+        level:  str = 'debug',
+        output: str = 'file',
+        output_file: str = '',
+        file_mode:  str = 'a',
     ):
         # check for mistakes
         if level not in logging_level.keys():
@@ -58,7 +60,7 @@ class Logger:
 
         # create the logging directory
         if 'LOCAL_SCRATCH' in os.environ.keys():
-            self.local_log_dir = os.environ['LOCAL_SCRATCH'] + f'/.logs'
+            self.local_log_dir = os.environ['LOCAL_SCRATCH'] + '/.logs'
         else:
             self.local_log_dir = '.logs'
         if not os.path.isdir(self.local_log_dir):
@@ -82,8 +84,8 @@ class Logger:
 
         # set format
         self.dateformat = '%H:%M:%S'
+
         class LoggingFormatter(logging.Formatter):
-            
             console_extra = ' [%(name)s]: %(message)s'
             grey = "\x1b[38;20m"
             yellow = "\x1b[33;20m"
@@ -99,13 +101,14 @@ class Logger:
                 logging.ERROR: '[' + red + '%(levelname)s' + reset + '] [' + purple + '%(name)s' + reset + ']: %(message)s',
                 logging.CRITICAL: '[' + bold_red + '%(levelname)s' + reset + '] [' + purple + '%(name)s' + reset + ']: %(message)s'
             }
+
             def format(self, record):
                 log_fmt = self.FORMATS.get(record.levelno)
                 formatter = logging.Formatter(log_fmt)
                 return formatter.format(record)
 
         self.console_formatter = LoggingFormatter()
-        self.file_formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s',self.dateformat)
+        self.file_formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s', self.dateformat)
 
         # create handler
         if self.output == 'console' or self.output == 'both':
@@ -120,27 +123,31 @@ class Logger:
             self.logger.addHandler(self.file)
         self.logger.propagate = False
 
-    def info(self,
+    def info(
+        self,
         message:    str,
     ):
         """ Output to the standard logger "info" """
         return self.logger.info(message)
-    
-    def debug(self,
+
+    def debug(
+        self,
         message:    str,
     ):
         """ Output to the standard logger "debug" """
         return self.logger.debug(message)
 
-    def warn(self,
+    def warn(
+        self,
         message:    str,
     ):
         """ Output to the standard logger "warning" """
         return self.logger.warning(message)
 
-    def warning(self,
+    def warning(
+        self,
         message:    str,
-        warning_type:str='user',
+        warning_type: str = 'user',
     ):
         """ Output to the standard logger "warning" """
         formatted_lines = traceback.format_stack()[-2]
@@ -152,9 +159,10 @@ class Logger:
             return self.logger.warning(f"traceback: {formatted_lines}\nerror: {message}")
         return
 
-    def error(self,
+    def error(
+        self,
         message:    str,
-        error_type: str='value',
+        error_type: str = 'value',
     ):
         """ Output to the standard logger "error" """
         formatted_lines = str(traceback.format_stack()[-1][0])
@@ -164,22 +172,23 @@ class Logger:
             self.logger.error(f"traceback: {formatted_lines}\nerror: {message}")
         self.logger.error(message)
         raise error_list[error_type](f"traceback: {formatted_lines}\nerror: {message}")
-    
+
     def get_system_info(self):
-        info={}
+        info = {}
         try:
-            info['platform']=platform.system()
-            info['platform-release']=platform.release()
-            info['platform-version']=platform.version()
-            info['architecture']=platform.machine()
-            info['hostname']=socket.gethostname()
-            info['ip-address']=socket.gethostbyname(socket.gethostname())
-            info['mac-address']=':'.join(re.findall('..', '%012x' % uuid.getnode()))
-            info['processor']=platform.processor()
-            info['ram']=str(round(psutil.virtual_memory().total / (1024.0 **3)))+" GB"   
+            info['platform'] = platform.system()
+            info['platform-release'] = platform.release()
+            info['platform-version'] = platform.version()
+            info['architecture'] = platform.machine()
+            info['hostname'] = socket.gethostname()
+            info['ip-address'] = socket.gethostbyname(socket.gethostname())
+            info['mac-address'] = ':'.join(re.findall('..', '%012x' % uuid.getnode()))
+            info['processor'] = platform.processor()
+            info['ram'] = str(round(psutil.virtual_memory().total / (1024.0 ** 3)))+" GB"
         except Exception as e:
             self.logger.error(f"Unable to obtain system information: {e}.")
         return info
+
 
 # create global logger
 default_logger = Logger(

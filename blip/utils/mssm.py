@@ -1,15 +1,17 @@
 """
 Interface to the micrOMEGAs software
 """
-import os,csv
-import numpy  as np
-import scipy  as sp
-import pandas as pd 
-from multiprocessing.sharedctypes import Value
-from multiprocessing              import Pool
-from tqdm                         import tqdm
-from datetime                     import datetime
-from blip.dataset.common import *
+import os
+import csv
+import numpy as np
+import pandas as pd
+from multiprocessing import Pool
+from tqdm import tqdm
+from datetime import datetime
+
+from blip.utils.logger import Logger
+from blip.dataset.common import simple_columns, cmssm_columns, pmssm_columns
+from blip.dataset.common import softsusy_physical_parameters, softsusy_weak_parameters
 
 """
 Standard model inputs for SoftSUSY.
@@ -23,16 +25,17 @@ Standard model inputs for SoftSUSY.
 """
 sm_inputs = [
     ["BLOCK SMINPUTS"],
-    [" 1 1.27934e+02"],     
+    [" 1 1.27934e+02"],
     [" 2 1.16637e-05"],
     [" 3 1.17200e-01"],
     [" 4 9.11876e+01"],
     [" 5 4.25000e+00"],
-    [" 6 1.74200e+02"],  
+    [" 6 1.74200e+02"],
     [" 7 1.77700e+00"],
 ]
 
 fail_values = [-1 for ii in range(146)]
+
 
 class MSSMGenerator:
     """
@@ -42,18 +45,20 @@ class MSSMGenerator:
     It requires that you've installed both SoftSUSY and micrOMEGAs
     and must provide the location of their directories.
     """
-    def __init__(self,
+    def __init__(
+        self,
         microemgas_dir: str,
         softsusy_dir:   str,
-        param_space:    str='cmssm'
+        param_space:    str = 'cmssm'
     ):
         # set micromegas and softsusy directories
+        self.logger = Logger(name='mssm_generator', output='both', file_mode="w")
         self.micromegas_dir = microemgas_dir
-        self.softsusy_dir   = softsusy_dir
+        self.softsusy_dir = softsusy_dir
         # set the parameter space
         if param_space not in ['simple', 'cmssm', 'pmssm']:
             raise ValueError(f"Specified parameter space '{param_space}' not allowed!")
-        self.param_space    = param_space
+        self.param_space = param_space
         # set up input variable names
         if self.param_space == 'simple':
             self.input_variables = simple_columns
@@ -61,7 +66,7 @@ class MSSMGenerator:
             self.input_variables = cmssm_columns
         else:
             self.input_variables = pmssm_columns
-        
+
         # various commands
         self.softsusy_cmd = self.softsusy_dir + "/softpoint.x leshouches < "
         self.micromegas_cmd = self.micromegas_dir + "/main "
@@ -69,7 +74,8 @@ class MSSMGenerator:
         # indices of events which are "super-invalid"
         self.super_invalid = []
 
-    def load_file(self,
+    def load_file(
+        self,
         input_file: str,
     ):
         """
@@ -77,23 +83,24 @@ class MSSMGenerator:
         for both CMSSM and PMSSM theories.
         """
         mssm_points = pd.read_csv(
-            input_file, 
+            input_file,
             names=self.input_variables,
             usecols=self.input_variables,
             dtype=float
         )
         return mssm_points
-    
-    def sugra_input(self,
-        m_scalar:     float=125.0,
-        m_gaugino:    float=500.0,
-        trilinear:    float=0.0,
-        higgs_tanbeta:float=10.0,
-        sign_mu:      float=1.0,
+
+    def sugra_input(
+        self,
+        m_scalar:     float = 125.0,
+        m_gaugino:    float = 500.0,
+        trilinear:    float = 0.0,
+        higgs_tanbeta: float = 10.0,
+        sign_mu:      float = 1.0,
     ):
         """
         This function generates the input for SoftSUSY.
-        The default inputs to this model are from the 
+        The default inputs to this model are from the
         CMSSM10.1.1.
         """
         sugra = [["BLOCK MODSEL"]]
@@ -105,7 +112,7 @@ class MSSMGenerator:
         sugra.append([f" 3 {higgs_tanbeta:.6e}"])
         sugra.append([f" 4 {int(sign_mu)}"])
         sugra.append([f" 5 {trilinear:.6e}"])
-        sugra.append([f"BLOCK EXTPAR"])
+        sugra.append(["BLOCK EXTPAR"])
         # Gaugino masses
         sugra.append([f" 1 {m_gaugino:.6e}"])   # Bino mass
         sugra.append([f" 2 {m_gaugino:.6e}"])   # Wino mass
@@ -115,8 +122,8 @@ class MSSMGenerator:
         sugra.append([f" 12 {trilinear:.6e}"])  # Bottom trilinear coupling
         sugra.append([f" 13 {trilinear:.6e}"])  # tau trilinear coupling
         # Higgs parameters
-        sugra.append([f" 21 {pow(m_scalar,2):.6e}"]) # down type higgs mass^2
-        sugra.append([f" 22 {pow(m_scalar,2):.6e}"]) # up type higgs mass^2
+        sugra.append([f" 21 {pow(m_scalar,2):.6e}"])  # down type higgs mass^2
+        sugra.append([f" 22 {pow(m_scalar,2):.6e}"])  # up type higgs mass^2
         # sfermion masses
         sugra.append([f" 31 {m_scalar:.6e}"])   # left 1st-gen scalar lepton
         sugra.append([f" 32 {m_scalar:.6e}"])   # left 2nd-gen scalar lepton
@@ -136,7 +143,8 @@ class MSSMGenerator:
 
         return sugra
 
-    def universal_input(self,
+    def universal_input(
+        self,
         m_bino:     float,
         m_wino:     float,
         m_gluino:   float,
@@ -145,7 +153,7 @@ class MSSMGenerator:
         trilinear_tau:      float,
         higgs_mu:       float,
         higgs_pseudo:   float,
-        m_left_electron:float,
+        m_left_electron: float,
         m_left_tau:     float,
         m_right_electron:   float,
         m_right_tau:        float,
@@ -168,9 +176,9 @@ class MSSMGenerator:
         universal += sm_inputs
         universal.append(["BLOCK MINPAR"])
         universal.append([f" 3 {higgs_tanbeta:.6e}"])
-        universal.append([f"BLOCK EXTPAR"])
+        universal.append(["BLOCK EXTPAR"])
         # input scale
-        universal.append([f" 0 -1"])    # a priori unknown input scale
+        universal.append([" 0 -1"])    # a priori unknown input scale
         # Gaugino masses
         universal.append([f" 1 {m_bino:.6e}"])      # Bino mass
         universal.append([f" 2 {m_wino:.6e}"])      # Wino mass
@@ -201,9 +209,10 @@ class MSSMGenerator:
 
         return universal
 
-    def parse_slha(self,
+    def parse_slha(
+        self,
         event_id:   int,
-    ):  
+    ):
         """
         This function parses SLHA output files from SoftSUSY
         to get various parameter values.
@@ -211,7 +220,7 @@ class MSSMGenerator:
         parameters = {}
         input_values = []
         with open(f".tmp/susy_output_{event_id}", "r") as file:
-            reader = csv.reader(file,delimiter='@')
+            reader = csv.reader(file, delimiter='@')
             for row in reader:
                 input_values.append([item for item in row])
         # loop through input values and look for blocks
@@ -228,56 +237,57 @@ class MSSMGenerator:
                     parameters[temp_block] = {}
                 if split_row[2] == 'Q=':
                     if 'Q' not in parameters[temp_block]:
-                        parameters[temp_block]['Q'] = [round(float(split_row[3]),6)]
+                        parameters[temp_block]['Q'] = [round(float(split_row[3]), 6)]
                     else:
-                        parameters[temp_block]['Q'].append(round(float(split_row[3]),6))
+                        parameters[temp_block]['Q'].append(round(float(split_row[3]), 6))
                 continue
             # if a comment line, then skip
             elif split_row[0] == '#':
                 continue
             # Now parse the results of this block.
             elif split_row[2] == '#':
-                row_type = split_row[3].replace('(Q)','').replace('MSSM','').replace('(MX)','')
+                row_type = split_row[3].replace('(Q)', '').replace('MSSM', '').replace('(MX)', '')
                 if 'Q' in parameters[temp_block]:
                     if row_type not in parameters[temp_block]:
-                        parameters[temp_block][row_type] = [round(float(split_row[1]),6)]
+                        parameters[temp_block][row_type] = [round(float(split_row[1]), 6)]
                     else:
-                        parameters[temp_block][row_type].append(round(float(split_row[1]),6))
+                        parameters[temp_block][row_type].append(round(float(split_row[1]), 6))
                 else:
                     try:
-                        parameters[temp_block][row_type] = [round(float(split_row[1]),6)]
+                        parameters[temp_block][row_type] = [round(float(split_row[1]), 6)]
                     except:
                         parameters[temp_block][row_type] = [split_row[1]]
             elif split_row[3] == '#':
-                row_type = split_row[4].replace('(Q)','').replace('MSSM','').replace('(MX)','')
+                row_type = split_row[4].replace('(Q)', '').replace('MSSM', '').replace('(MX)', '')
                 if 'Q' in parameters[temp_block]:
                     if row_type not in parameters[temp_block]:
-                        parameters[temp_block][row_type] = [round(float(split_row[2]),6)]
+                        parameters[temp_block][row_type] = [round(float(split_row[2]), 6)]
                     else:
-                        parameters[temp_block][row_type].append(round(float(split_row[2]),6))
+                        parameters[temp_block][row_type].append(round(float(split_row[2]), 6))
                 else:
                     try:
-                        parameters[temp_block][row_type] = [round(float(split_row[2]),6)]
+                        parameters[temp_block][row_type] = [round(float(split_row[2]), 6)]
                     except:
                         parameters[temp_block][row_type] = [split_row[2]]
         return parameters
 
-    def compute_gut_coupling(self,
+    def compute_gut_coupling(
+        self,
         parameters: dict
     ):
         """
-        This function receives input from 'parse_slha' and 
+        This function receives input from 'parse_slha' and
         computes various gauge couplings via linear interpolation.
         """
-        gauge_couplings = [-1,-1,-1,-1]
+        gauge_couplings = [-1, -1, -1, -1]
         if self.param_space == 'pmssm':
             mx_scale = parameters['EXTPAR']['Set'][0]
         else:
             mx_scale = parameters['EXTPAR']['MX'][0]
-        gauge_q      = parameters['gauge']['Q']
+        gauge_q = parameters['gauge']['Q']
         gauge_gprime = parameters['gauge']["g'"]
-        gauge_g      = parameters['gauge']['g']
-        gauge_g3     = parameters['gauge']['g3']
+        gauge_g = parameters['gauge']['g']
+        gauge_g3 = parameters['gauge']['g3']
         for ii in range(len(gauge_q)-1):
             if (gauge_q[ii] < mx_scale and gauge_q[ii+1] > mx_scale):
                 high_q = gauge_q[ii+1]
@@ -292,8 +302,8 @@ class MSSMGenerator:
                 gauge_couplings[3] = low_g3 + ratio * (high_g3 - low_g3)
         return gauge_couplings
 
-
-    def run_softsusy(self,
+    def run_softsusy(
+        self,
         event_id:   int,
     ):
         """
@@ -338,8 +348,8 @@ class MSSMGenerator:
         cmd = self.softsusy_cmd + f" .tmp/input_{event_id}.csv > .tmp/susy_output_{event_id}"
         return os.system(cmd)
 
-    
-    def run_micromegas(self,
+    def run_micromegas(
+        self,
         event_id:   int,
     ):
         """
@@ -348,8 +358,9 @@ class MSSMGenerator:
         """
         cmd = self.micromegas_cmd + f" .tmp/susy_output_{event_id} .tmp/ _{event_id}"
         return os.system(cmd)
-                
-    def parse_micromegas(self,
+
+    def parse_micromegas(
+        self,
         event_id:   int,
     ):
         """
@@ -358,12 +369,13 @@ class MSSMGenerator:
         """
         # read in results
         with open(f".tmp/micrOmegas_output_{event_id}.txt", "r") as file:
-            reader = csv.reader(file,delimiter=",")
+            reader = csv.reader(file, delimiter=",")
             return next(reader)
 
-    def run_event(self,
+    def run_event(
+        self,
         event_id:   int,
-    ):  
+    ):
         """
         Runs the SoftSUSY + micrOMEGAs software
         for a particular event.
@@ -400,7 +412,6 @@ class MSSMGenerator:
             ]
         softsusy_error = self.run_softsusy(event_id)
         if (softsusy_error != 0):
-            #print(f"Error occured with SoftSUSY for event {event_id}.")
             os.remove(f".tmp/input_{event_id}.csv")
             os.remove(f".tmp/susy_output_{event_id}")
             with open(".tmp/super_invalid_ids.txt", "a") as file:
@@ -420,7 +431,7 @@ class MSSMGenerator:
         micromegas_params = self.parse_micromegas(event_id)
         gut_params = self.compute_gut_coupling(susy_params)
         physical_params = [
-            susy_params[item][key][0] for ii, (key,item) in enumerate(softsusy_physical_parameters.items())
+            susy_params[item][key][0] for ii, (key, item) in enumerate(softsusy_physical_parameters.items())
         ]
         weak_params = [
             susy_params[item][key][0] for ii, (key, item) in enumerate(softsusy_weak_parameters.items())
@@ -429,15 +440,15 @@ class MSSMGenerator:
         with open(f".tmp/final_output_{event_id}", "w") as file:
             writer = csv.writer(file, delimiter=",")
             writer.writerows([all_params])
-        
 
-    def run_parameters(self,
+    def run_parameters(
+        self,
         input_file:     str,
-        output_dir:     str='mssm_output/',
-        output_flag:    str='',
-        num_events:     int=-1,
-        num_workers:    int=1,
-        save_super_invalid: bool=True,
+        output_dir:     str = 'mssm_output/',
+        output_flag:    str = '',
+        num_events:     int = -1,
+        num_workers:    int = 1,
+        save_super_invalid: bool = True,
     ):
         """
         The main function which runs through SoftSUSY and
@@ -487,7 +498,7 @@ class MSSMGenerator:
                 os.remove(f".tmp/final_output_{ii}")
             except Exception as e:
                 pass
-        
+
         # save super invalid points
         if save_super_invalid:
             with open(".tmp/super_invalid_ids.txt", "r") as file:
@@ -504,7 +515,7 @@ class MSSMGenerator:
             os.remove(".tmp/super_invalid_ids.txt")
         except Exception as e:
             pass
-        
+
         # clean up
         if os.path.isdir(".tmp/"):
             os.rmdir(".tmp/")
