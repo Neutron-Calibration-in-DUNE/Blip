@@ -19,8 +19,8 @@ blip_dataset_config = {
     "name":               "default",
     # type of this blip dataset which could be
     # view, wire_plane, tpc, tpc_reco, view_cluster, tpc_cluster
-    "dataset_type":       "view",   
-    # input folder and files    
+    "dataset_type":       "view",
+    # input folder and files
     "dataset_folder":   "data/",
     "dataset_files":    [""],
     # positions, features, classes, etc.

@@ -1,20 +1,29 @@
-import uproot,os,getpass,socket
-import numpy               as np
-import matplotlib.pyplot   as plt
-from scipy    import stats as st
-from ctypes   import sizeof
+"""
+Arrakis dataset class.  This class processes LArSoft Arrakis and ndlar-flow Arrakis output
+and constructs BlipDatasets from them.  It also generates specific datasets for tasks 
+such as the singles needed to train BlipGraph, etc.
+"""
+import uproot
+import os
+import getpass
+import socket
+import numpy as np
 from datetime import datetime
+import h5py
 
-from blip.utils.logger   import Logger
-from blip.dataset.common import *
+from blip.utils.logger import Logger
+from blip.utils.utils import get_files_with_extension
+from blip.dataset.common import classification_labels
+
 
 class Arrakis:
-    def __init__(self,
-        name:   str="arrakis",
-        config: dict={},
-        meta:   dict={}
+    def __init__(
+        self,
+        name:   str = "arrakis",
+        config: dict = {},
+        meta:   dict = {}
     ):
-        self.name = name + '_dataset'
+        self.name = name + '_arrakis'
         self.config = config
         self.meta = meta
         if "device" in self.meta:
@@ -25,11 +34,14 @@ class Arrakis:
             self.logger = Logger(name, output="both", file_mode="w")
         else:
             self.logger = Logger(name, level='warning', file_mode="w")
-        self.logger.info(f"constructing arrakis dataset.")
+        self.logger.info("constructing arrakis dataset.")
 
-        self.simulation_files = []
-        self.output_folders = {}
-        
+        self.wire_experiments = ['protodune', 'microboone', 'icarus', 'sbnd', 'protodune_vd']
+        self.larpix_experiments = ['2x2']
+
+        self.wire_process_types = []
+        self.larpix_process_types = []
+
         """
         ProtoDUNE channel mappings for different
         TPCs.  Only some of the view2 TPCs are
@@ -40,32 +52,32 @@ class Arrakis:
             "tpc1", "tpc2", "tpc5", "tpc6", "tpc9", "tpc10"
         ]
         self.protodune_tpc_wire_channels = {
-            "tpc0": [[0,799],[800,1599],[1600,2079]],
-            "tpc1": [[0,799],[800,1599],[2080,2559]],
-            "tpc2": [[2560,3359],[3360,4159],[4160,4639]],
-            "tpc3": [[2560,3359],[3360,4159],[4640,5119]],
-            "tpc4": [[5120,5919],[5920,6719],[6720,7199]],
-            "tpc5": [[5120,5919],[5920,6719],[7200,7679]],
-            "tpc6": [[7680,8479],[8480,9279],[9280,9759]],
-            "tpc7": [[7680,8479],[8480,9279],[9760,10239]],
-            "tpc8": [[10240,11039],[11040,11839],[11840,12319]],
-            "tpc9": [[10240,11039],[11040,11839],[12320,12799]],
-            "tpc10": [[12800,13599],[13600,14399],[14400,14879]],
-            "tpc11": [[12800,13599],[13600,14399],[14880,15359]],
+            "tpc0": [[0, 799], [800, 1599], [1600, 2079]],
+            "tpc1": [[0, 799], [800, 1599], [2080, 2559]],
+            "tpc2": [[2560, 3359], [3360, 4159], [4160, 4639]],
+            "tpc3": [[2560, 3359], [3360, 4159], [4640, 5119]],
+            "tpc4": [[5120, 5919], [5920, 6719], [6720, 7199]],
+            "tpc5": [[5120, 5919], [5920, 6719], [7200, 7679]],
+            "tpc6": [[7680, 8479], [8480, 9279], [9280, 9759]],
+            "tpc7": [[7680, 8479], [8480, 9279], [9760, 10239]],
+            "tpc8": [[10240, 11039], [11040, 11839], [11840, 12319]],
+            "tpc9": [[10240, 11039], [11040, 11839], [12320, 12799]],
+            "tpc10": [[12800, 13599], [13600, 14399], [14400, 14879]],
+            "tpc11": [[12800, 13599], [13600, 14399], [14880, 15359]],
         }
         self.protodune_tpc_positions = {
-            "tpc0": [[-376.8501, -366.8851],[0., 607.49875],[-0.49375, 231.16625]],
-            "tpc1": [[-359.2651,   -0.1651],[0., 607.49875],[-0.49375, 231.16625]],
-            "tpc2": [[0.1651, 359.2651],    [0., 607.49875],[-0.49375, 231.16625]],
-            "tpc3": [[366.8851, 376.8501],  [0., 607.49875],[-0.49375, 231.16625]],
-            "tpc4": [[-376.8501, -366.8851],[0., 607.49875],[231.56625, 463.22625]],
-            "tpc5": [[-359.2651, -0.1651],  [0., 607.49875],[231.56625, 463.22625]],
-            "tpc6": [[0.1651, 359.2651],    [0., 607.49875],[231.56625, 463.22625]],
-            "tpc7": [[366.8851, 376.8501],  [0., 607.49875],[231.56625, 463.22625]],
-            "tpc8": [[-376.8501, -366.8851],[0., 607.49875],[463.62625, 695.28625]],
-            "tpc9": [[-359.2651, -0.1651],  [0., 607.49875],[463.62625, 695.28625]],
-            "tpc10": [[0.1651, 359.2651],   [0., 607.49875],[463.62625, 695.28625]],
-            "tpc11": [[366.8851, 376.8501], [0., 607.49875],[463.62625, 695.28625]],
+            "tpc0": [[-376.8501, -366.8851], [0., 607.49875], [-0.49375, 231.16625]],
+            "tpc1": [[-359.2651,   -0.1651], [0., 607.49875], [-0.49375, 231.16625]],
+            "tpc2": [[0.1651, 359.2651],    [0., 607.49875], [-0.49375, 231.16625]],
+            "tpc3": [[366.8851, 376.8501],  [0., 607.49875], [-0.49375, 231.16625]],
+            "tpc4": [[-376.8501, -366.8851], [0., 607.49875], [231.56625, 463.22625]],
+            "tpc5": [[-359.2651, -0.1651],  [0., 607.49875], [231.56625, 463.22625]],
+            "tpc6": [[0.1651, 359.2651],    [0., 607.49875], [231.56625, 463.22625]],
+            "tpc7": [[366.8851, 376.8501],  [0., 607.49875], [231.56625, 463.22625]],
+            "tpc8": [[-376.8501, -366.8851], [0., 607.49875], [463.62625, 695.28625]],
+            "tpc9": [[-359.2651, -0.1651],  [0., 607.49875], [463.62625, 695.28625]],
+            "tpc10": [[0.1651, 359.2651],   [0., 607.49875], [463.62625, 695.28625]],
+            "tpc11": [[366.8851, 376.8501], [0., 607.49875], [463.62625, 695.28625]],
         }
 
         """
@@ -139,68 +151,91 @@ class Arrakis:
         self.parse_config()
 
     def parse_config(self):
-        if "simulation_folder" not in self.config.keys():
-            self.logger.warn(f'simulation_folder not specified in config! Setting to "./".')
-            self.config['simulation_folder'] = './'
-        self.simulation_folder = self.config['simulation_folder']
-        if "simulation_files" not in self.config.keys():
-            self.logger.warn(f'simulation_files not specified in config!')
-            self.config['simulation_files'] = []
-        self.simulation_files = self.config['simulation_files']
-        self.output_folders = {
-            self.simulation_folder + simulation_file: simulation_file.replace('.root','') 
-            for simulation_file in self.simulation_files
-        }
-        for output_folder in self.output_folders.values():
-            if not os.path.isdir(f"data/{output_folder}"):
-                os.makedirs(f"data/{output_folder}")
-        if "process_type" not in self.config.keys():
-            self.logger.warn(f'process_type not specified in config! Setting to "all".')
-            self.config["process_type"] = "all"
-        self.process_type = self.config["process_type"]
         if "experiment" not in self.config.keys():
-            self.logger.warn(f'no experiment specified in config! Setting to ProtoDUNE.')
+            self.logger.warn('no experiment specified in config! Setting to ProtoDUNE.')
             self.config['experiment'] = 'protodune'
         if self.config['experiment'] == 'protodune':
+            self.logger.info('setting Arrakis parameters for ProtoDUNE')
             self.active_tpcs_view2 = self.protodune_active_tpcs_view2
             self.tpc_wire_channels = self.protodune_tpc_wire_channels
             self.tpc_positions = self.protodune_tpc_positions
         elif self.config['experiment'] == 'microboone':
+            self.logger.info('setting Arrakis parameters for MicroBooNE')
             self.active_tpcs_view2 = self.microboone_active_tpcs_view2
             self.tpc_wire_channels = self.microboone_tpc_wire_channels
             self.tpc_positions = self.microboone_tpc_positions
         elif self.config['experiment'] == 'icarus':
+            self.logger.info('setting Arrakis parameters for ICARUS')
             self.active_tpcs_view2 = self.icarus_active_tpcs_view2
             self.tpc_wire_channels = self.icarus_tpc_wire_channels
             self.tpc_positions = self.icarus_tpc_positions
         elif self.config['experiment'] == 'sbnd':
+            self.logger.info('setting Arrakis parameters for SBND')
             self.active_tpcs_view2 = self.sbnd_active_tpcs_view2
             self.tpc_wire_channels = self.sbnd_tpc_wire_channels
             self.tpc_positions = self.sbnd_tpc_positions
         elif self.config['experiment'] == 'protodune_vd':
+            self.logger.info('setting Arrakis parameters for ProtoDUNE-VD')
             self.active_tpcs_view2 = self.protodune_vd_active_tpcs_view2
             self.tpc_wire_channels = self.protodune_vd_tpc_wire_channels
             self.tpc_positions = self.protodune_vd_tpc_positions
+        elif self.config['experiment'] == '2x2':
+            self.logger.info('setting Arrakis parameters for the 2x2')
         else:
             self.logger.error(f'specified experiment "{self.config["experiment"]}" not an allowed type!')
-        
-        if "process_simulation" in self.config.keys():
-            if self.config["process_simulation"]:
-                for ii, input_file in enumerate(self.simulation_files):
-                    self.load_arrays(self.simulation_folder, input_file)
-                    self.generate_training_data(self.process_type, self.simulation_folder + input_file)
 
-    def load_arrays(self,
-        input_folder:   str='',
-        input_file:    str=''
+        if "simulation_folder" not in self.config.keys():
+            self.logger.warn('simulation_folder not specified in config! Setting to "/local_data/".')
+            self.config['simulation_folder'] = '/local_data/'
+        self.simulation_folder = self.config['simulation_folder']
+        if "simulation_files" not in self.config.keys():
+            self.logger.warn('simulation_files not specified in config! setting to "[]"')
+            self.config['simulation_files'] = []
+
+        # if simulation_files == [], grab all .root or .h5 files in the simulation_folder
+        if self.config['simulation_files'] == []:
+            if self.config['experiment'] in self.wire_experiments:
+                self.logger.info(
+                    f'no simulation_files specified, grabbing all .root files in directory {self.simulation_folder}'
+                )
+                self.config['simulation_files'] = get_files_with_extension(self.simulation_folder, '.root')
+                self.simulation_files = self.config['simulation_files']
+                # create output folders for processed simulation
+                self.output_folders = {
+                    simulation_file: simulation_file.replace('.root', '')
+                    for simulation_file in self.simulation_files
+                }
+            else:
+                self.logger.info(
+                    f'no simulation_files specified, grabbing all .h5 files in directory {self.simulation_folder}'
+                )
+                self.config['simulation_files'] = get_files_with_extension(self.simulation_folder, '.h5')
+                self.simulation_files = self.config['simulation_files']
+                # create output folders for processed simulation
+                self.output_folders = {
+                    simulation_file: simulation_file.replace('.h5', '')
+                    for simulation_file in self.simulation_files
+                }
+        for output_folder in self.output_folders.values():
+            if not os.path.isdir(f"/local_data/{output_folder}"):
+                os.makedirs(f"/local_data/{output_folder}")
+
+        if "process_type" not in self.config.keys():
+            self.logger.warn('process_type not specified in config! Setting to "[all]".')
+            self.config["process_type"] = ["all"]
+        self.process_type = self.config["process_type"]
+
+    def load_root_arrays(
+        self,
+        input_file:    str = ''
     ):
         try:
-            self.uproot_file = uproot.open(input_folder + input_file)
+            self.uproot_file = uproot.open(self.simulation_folder + input_file)
         except:
             self.logger.error(
-                f'error while atttempting to load input file {input_folder + input_file}'
+                f'error while atttempting to load input file {self.simulation_folder + input_file}'
             )
-        
+
         self.mc_map = None
         self.energy_deposit_point_cloud = None
         self.wire_plane_point_cloud = None
@@ -215,11 +250,22 @@ class Arrakis:
             elif 'mc_maps' in key:
                 self.mc_map = self.uproot_file[key].arrays(library="np")
 
-    def generate_training_data(self,
-        process_type: list = ['all'],
-        input_file:   str  = ''
+    def load_flow_arrays(
+        self,
+        input_file:    str = ''
     ):
-        self.meta    = {}
+        try:
+            self.h5_file = h5py.File(self.simulation_folder + input_file, 'r')
+        except:
+            self.logger.error(
+                f'error while atttempting to load input file {self.simulation_folder + input_file}'
+            )
+
+    def generate_wire_training_data(
+        self,
+        input_file:   str = ''
+    ):
+        self.meta = {}
         self.mc_maps = {}
         self.energy_deposit_point_clouds = {}
         self.wire_plane_point_clouds = {}
@@ -256,15 +302,15 @@ class Arrakis:
                 "particle_labels": {
                     key: value
                     for key, value in classification_labels["particle"].items()
-                },      
+                },
                 "physics_labels": {
                     key: value
                     for key, value in classification_labels["physics"].items()
-                },  
+                },
                 "hit_labels": {
                     key: value
                     for key, value in classification_labels["hit"].items()
-                },    
+                },
             }
             self.mc_maps[tpc] = {
                 'pdg_code': [],
@@ -275,7 +321,7 @@ class Arrakis:
             self.energy_deposit_point_clouds[tpc] = {
                 'edep_features': [],
                 'edep_classes':  [],
-                'edep_clusters': [],                
+                'edep_clusters': [],
             }
             self.wire_plane_point_clouds[tpc] = {
                 'view_0_features':  [],
@@ -290,49 +336,56 @@ class Arrakis:
                 'view_2_classes':   [],
                 'view_2_clusters':  [],
                 'view_2_hits':      []
-            }   
+            }
 
-        for process in process_type:
+        for process in self.process_type:
             if process == 'energy_deposit_point_cloud':
-                self.generate_energy_deposit_point_cloud(input_file)
+                self.generate_larsoft_energy_deposit_point_cloud(self.simulation_folder + input_file)
             elif process == 'wire_plane_point_cloud':
-                self.generate_wire_plane_point_cloud(input_file)
+                self.generate_wire_plane_point_cloud(self.simulation_folder + input_file)
             elif process == 'op_det_point_cloud':
-                self.generate_op_det_point_cloud(input_file)
+                self.generate_larsoft_op_det_point_cloud(self.simulation_folder + input_file)
             elif process == 'mc_maps':
-                self.generate_mc_maps(input_file)
+                self.generate_larsoft_mc_maps(self.simulation_folder + input_file)
             elif process == 'all':
-                self.generate_energy_deposit_point_cloud(input_file)
-                self.generate_wire_plane_point_cloud(input_file)
-                self.generate_op_det_point_cloud(input_file)
-                self.generate_mc_maps(input_file)
+                self.generate_larsoft_energy_deposit_point_cloud(self.simulation_folder + input_file)
+                self.generate_wire_plane_point_cloud(self.simulation_folder + input_file)
+                self.generate_larsoft_op_det_point_cloud(self.simulation_folder + input_file)
+                self.generate_larsoft_mc_maps(self.simulation_folder + input_file)
             else:
                 self.logger.error(f'specified process type {process} not allowed!')
 
         for tpc, tpc_ranges in self.tpc_positions.items():
             np.savez(
-                f"data/{self.output_folders[input_file]}/{tpc}.npz",
-                edep_features   = self.energy_deposit_point_clouds[tpc]['edep_features'],
-                edep_classes    = self.energy_deposit_point_clouds[tpc]['edep_classes'],
-                edep_clusters   = self.energy_deposit_point_clouds[tpc]['edep_clusters'],
-                view_0_features = self.wire_plane_point_clouds[tpc]['view_0_features'],
-                view_0_classes  = self.wire_plane_point_clouds[tpc]['view_0_classes'],
-                view_0_clusters = self.wire_plane_point_clouds[tpc]['view_0_clusters'],
-                view_0_hits     = self.wire_plane_point_clouds[tpc]['view_0_hits'],
-                view_1_features = self.wire_plane_point_clouds[tpc]['view_1_features'],
-                view_1_classes  = self.wire_plane_point_clouds[tpc]['view_1_classes'],
-                view_1_clusters = self.wire_plane_point_clouds[tpc]['view_1_clusters'],
-                view_1_hits     = self.wire_plane_point_clouds[tpc]['view_1_hits'],
-                view_2_features = self.wire_plane_point_clouds[tpc]['view_2_features'],
-                view_2_classes  = self.wire_plane_point_clouds[tpc]['view_2_classes'],
-                view_2_clusters = self.wire_plane_point_clouds[tpc]['view_2_clusters'],
-                view_2_hits     = self.wire_plane_point_clouds[tpc]['view_2_hits'],
-                mc_maps         = self.mc_maps[tpc],
-                meta            = self.meta[tpc]
+                f"/local_data/{self.output_folders[input_file]}/{tpc}.npz",
+                edep_features=self.energy_deposit_point_clouds[tpc]['edep_features'],
+                edep_classes=self.energy_deposit_point_clouds[tpc]['edep_classes'],
+                edep_clusters=self.energy_deposit_point_clouds[tpc]['edep_clusters'],
+                view_0_features=self.wire_plane_point_clouds[tpc]['view_0_features'],
+                view_0_classes=self.wire_plane_point_clouds[tpc]['view_0_classes'],
+                view_0_clusters=self.wire_plane_point_clouds[tpc]['view_0_clusters'],
+                view_0_hits=self.wire_plane_point_clouds[tpc]['view_0_hits'],
+                view_1_features=self.wire_plane_point_clouds[tpc]['view_1_features'],
+                view_1_classes=self.wire_plane_point_clouds[tpc]['view_1_classes'],
+                view_1_clusters=self.wire_plane_point_clouds[tpc]['view_1_clusters'],
+                view_1_hits=self.wire_plane_point_clouds[tpc]['view_1_hits'],
+                view_2_features=self.wire_plane_point_clouds[tpc]['view_2_features'],
+                view_2_classes=self.wire_plane_point_clouds[tpc]['view_2_classes'],
+                view_2_clusters=self.wire_plane_point_clouds[tpc]['view_2_clusters'],
+                view_2_hits=self.wire_plane_point_clouds[tpc]['view_2_hits'],
+                mc_maps=self.mc_maps[tpc],
+                meta=self.meta[tpc]
             )
 
-    def generate_mc_maps(self,
-        input_file: str=''
+    def generate_larpix_training_data(
+        self,
+        input_file:   str = ''
+    ):
+        pass
+
+    def generate_larsoft_mc_maps(
+        self,
+        input_file: str = ''
     ):
         for tpc, tpc_ranges in self.tpc_wire_channels.items():
             for event in range(len(self.mc_map['pdg_code_map.first'])):
@@ -353,16 +406,17 @@ class Arrakis:
                     for ii in range(len(self.mc_map['ancestor_level_map.first'][event]))
                 })
 
-    def generate_energy_deposit_point_cloud(self,
-        input_file: str=''
+    def generate_larsoft_energy_deposit_point_cloud(
+        self,
+        input_file: str = ''
     ):
         """
-        We iterate over each tpc and collect all (x,y,z) points for each 
+        We iterate over each tpc and collect all (x,y,z) points for each
         point cloud into a features array, together with (source, topology, particle) as
         the categorical information and (topology, particle) as clustering
         information.
         """
-        if self.energy_deposit_point_cloud == None:
+        if self.energy_deposit_point_cloud is None:
             self.logger.warn(f'no energy_deposit_point_cloud data in file {input_file}!')
             return
         self.logger.info(
@@ -372,44 +426,44 @@ class Arrakis:
         edep_x = self.energy_deposit_point_cloud['edep_x']
         edep_y = self.energy_deposit_point_cloud['edep_y']
         edep_z = self.energy_deposit_point_cloud['edep_z']
-        edep_energy        = self.energy_deposit_point_cloud['edep_energy']
-        edep_num_photons   = self.energy_deposit_point_cloud['edep_num_photons']
+        edep_energy = self.energy_deposit_point_cloud['edep_energy']
+        edep_num_photons = self.energy_deposit_point_cloud['edep_num_photons']
         edep_num_electrons = self.energy_deposit_point_cloud['edep_num_electrons']
 
         # construct ids and names for source, topology and particle labels
-        source_label   = self.energy_deposit_point_cloud['source_label']
+        source_label = self.energy_deposit_point_cloud['source_label']
         topology_label = self.energy_deposit_point_cloud['topology_label']
         particle_label = self.energy_deposit_point_cloud['particle_label']
-        physics_label  = self.energy_deposit_point_cloud['physics_label']
+        physics_label = self.energy_deposit_point_cloud['physics_label']
         unique_topology_label = self.energy_deposit_point_cloud['unique_topology']
         unique_particle_label = self.energy_deposit_point_cloud['unique_particle']
-        unique_physics_label  = self.energy_deposit_point_cloud['unique_physics']
+        unique_physics_label = self.energy_deposit_point_cloud['unique_physics']
 
         for tpc, tpc_ranges in self.tpc_positions.items():
             edep_t_tpc = []
             edep_x_tpc = []
             edep_y_tpc = []
             edep_z_tpc = []
-            edep_energy_tpc        = []
-            edep_num_photons_tpc   = []
+            edep_energy_tpc = []
+            edep_num_photons_tpc = []
             edep_num_electrons_tpc = []
-            source_label_tpc   = []
+            source_label_tpc = []
             topology_label_tpc = []
             particle_label_tpc = []
-            physics_label_tpc  = []
+            physics_label_tpc = []
             unique_topology_label_tpc = []
             unique_particle_label_tpc = []
-            unique_physics_label_tpc  = []
+            unique_physics_label_tpc = []
 
             for event in range(len(edep_t)):
                 view_mask = (
-                    (edep_x[event] >= tpc_ranges[0][0]) & 
-                    (edep_x[event] < tpc_ranges[0][1])  & 
-                    (edep_y[event] >= tpc_ranges[1][0]) & 
-                    (edep_y[event] < tpc_ranges[1][1])  & 
-                    (edep_z[event] >= tpc_ranges[2][0]) & 
-                    (edep_z[event] < tpc_ranges[2][1])  & 
-                    #(source_label[event] >= 0) &        # we don't want 'undefined' points in our dataset.
+                    (edep_x[event] >= tpc_ranges[0][0]) &
+                    (edep_x[event] < tpc_ranges[0][1]) &
+                    (edep_y[event] >= tpc_ranges[1][0]) &
+                    (edep_y[event] < tpc_ranges[1][1]) &
+                    (edep_z[event] >= tpc_ranges[2][0]) &
+                    (edep_z[event] < tpc_ranges[2][1]) &
+                    # (source_label[event] >= 0) &        # we don't want 'undefined' points in our dataset.
                     (topology_label[event] >= 0) &         # i.e., things with a label == -1
                     (particle_label[event] >= 0)
                 )
@@ -433,24 +487,24 @@ class Arrakis:
             edep_x_tpc = np.array(edep_x_tpc, dtype=object)
             edep_y_tpc = np.array(edep_y_tpc, dtype=object)
             edep_z_tpc = np.array(edep_z_tpc, dtype=object)
-            edep_energy_tpc        = np.array(edep_energy_tpc, dtype=object)
-            edep_num_photons_tpc   = np.array(edep_num_photons_tpc, dtype=object)
+            edep_energy_tpc = np.array(edep_energy_tpc, dtype=object)
+            edep_num_photons_tpc = np.array(edep_num_photons_tpc, dtype=object)
             edep_num_electrons_tpc = np.array(edep_num_electrons_tpc, dtype=object)
-            source_label_tpc   = np.array(source_label_tpc, dtype=object)
+            source_label_tpc = np.array(source_label_tpc, dtype=object)
             topology_label_tpc = np.array(topology_label_tpc, dtype=object)
             particle_label_tpc = np.array(particle_label_tpc, dtype=object)
-            physics_label_tpc  = np.array(physics_label_tpc, dtype=object)
+            physics_label_tpc = np.array(physics_label_tpc, dtype=object)
             unique_topology_label_tpc = np.array(unique_topology_label_tpc, dtype=object)
             unique_particle_label_tpc = np.array(unique_particle_label_tpc, dtype=object)
-            unique_physics_label_tpc  = np.array(unique_physics_label_tpc, dtype=object)
+            unique_physics_label_tpc = np.array(unique_physics_label_tpc, dtype=object)
 
             if len(edep_t_tpc.flatten()) == 0:
                 continue
             features = np.array([
                 np.vstack((
-                    edep_t_tpc[ii], 
-                    edep_x_tpc[ii], 
-                    edep_y_tpc[ii], 
+                    edep_t_tpc[ii],
+                    edep_x_tpc[ii],
+                    edep_y_tpc[ii],
                     edep_z_tpc[ii],
                     edep_energy_tpc[ii],
                     edep_num_photons_tpc[ii],
@@ -460,16 +514,16 @@ class Arrakis:
             )
             classes = np.array([
                 np.vstack((
-                    source_label_tpc[ii], 
-                    topology_label_tpc[ii], 
-                    particle_label_tpc[ii], 
+                    source_label_tpc[ii],
+                    topology_label_tpc[ii],
+                    particle_label_tpc[ii],
                     physics_label_tpc[ii])).T
                 for ii in range(len(edep_t_tpc))],
                 dtype=object
-            )          
+            )
             clusters = np.array([
                 np.vstack((
-                    unique_topology_label_tpc[ii], 
+                    unique_topology_label_tpc[ii],
                     unique_particle_label_tpc[ii],
                     unique_physics_label_tpc[ii])).T
                 for ii in range(len(edep_t_tpc))],
@@ -493,15 +547,15 @@ class Arrakis:
                 key: np.count_nonzero(np.concatenate(physics_label_tpc) == key)
                 for key, value in classification_labels["physics"].items()
             }
-            self.meta[tpc]["edep_total_points"] = len(np.concatenate(features))   
+            self.meta[tpc]["edep_total_points"] = len(np.concatenate(features))
 
             self.energy_deposit_point_clouds[tpc]['edep_features'] = features
             self.energy_deposit_point_clouds[tpc]['edep_classes'] = classes
             self.energy_deposit_point_clouds[tpc]['edep_clusters'] = clusters
 
-
-    def generate_wire_plane_point_cloud(self,
-        input_file: str=''
+    def generate_wire_plane_point_cloud(
+        self,
+        input_file: str = ''
     ):
         """
         We iterate over each view (wire plane) and collect all
@@ -510,61 +564,61 @@ class Arrakis:
         the categorical information and (topology, particle) as clustering
         information.
         """
-        if self.wire_plane_point_cloud == None:
+        if self.wire_plane_point_cloud is None:
             self.logger.warn(f'no wire_plane_point_cloud data in file {input_file}!')
             return
         self.logger.info(
             f"generating 'wire_plane_point_cloud' training data from file: {input_file}"
         )
-        
+
         channel = self.wire_plane_point_cloud['channel']
-        tdc     = self.wire_plane_point_cloud['tdc']
-        energy  = self.wire_plane_point_cloud['energy'] * 10e5
-        adc     = self.wire_plane_point_cloud['adc']
+        tdc = self.wire_plane_point_cloud['tdc']
+        energy = self.wire_plane_point_cloud['energy'] * 10e5
+        adc = self.wire_plane_point_cloud['adc']
 
         # construct ids and names for source, topology and particle labels
-        source_label   = self.wire_plane_point_cloud['source_label']
+        source_label = self.wire_plane_point_cloud['source_label']
         topology_label = self.wire_plane_point_cloud['topology_label']
         particle_label = self.wire_plane_point_cloud['particle_label']
-        physics_label  = self.wire_plane_point_cloud['physics_label']
+        physics_label = self.wire_plane_point_cloud['physics_label']
         unique_topology_label = self.wire_plane_point_cloud['unique_topology']
         unique_particle_label = self.wire_plane_point_cloud['unique_particle']
-        unique_physics_label  = self.wire_plane_point_cloud['unique_physics']
+        unique_physics_label = self.wire_plane_point_cloud['unique_physics']
         hit_mean = self.wire_plane_point_cloud['hit_mean']
-        hit_rms  = self.wire_plane_point_cloud['hit_rms']
+        hit_rms = self.wire_plane_point_cloud['hit_rms']
         hit_amplitude = self.wire_plane_point_cloud['hit_amplitude']
-        hit_charge    = self.wire_plane_point_cloud['hit_charge']
+        hit_charge = self.wire_plane_point_cloud['hit_charge']
 
         for tpc, tpc_ranges in self.tpc_wire_channels.items():
             self.wire_plane_point_cloud[tpc] = {}
             for v, tpc_view in enumerate(tpc_ranges):
                 """
                 For each point cloud, we want to normalize adc against
-                all point clouds in the data set, so that it is independent 
+                all point clouds in the data set, so that it is independent
                 of the specific detector readout.
                 """
                 channel_view = []
                 tdc_view = []
                 adc_view = []
                 energy_view = []
-                source_label_view   = []
+                source_label_view = []
                 topology_label_view = []
                 particle_label_view = []
-                physics_label_view  = []
+                physics_label_view = []
                 unique_topology_label_view = []
                 unique_particle_label_view = []
-                unique_physics_label_view  = []
+                unique_physics_label_view = []
                 hit_class_view = []
-                hit_mean_view  = []
-                hit_rms_view   = []
+                hit_mean_view = []
+                hit_rms_view = []
                 hit_amplitude_view = []
-                hit_charge_view    = []
+                hit_charge_view = []
 
                 for event in range(len(channel)):
                     view_mask = (
-                        (channel[event] >= tpc_view[0]) & 
-                        (channel[event] < tpc_view[1]) & 
-                        #(source_label[event] >= 0) &        # we don't want 'undefined' points in our dataset.
+                        (channel[event] >= tpc_view[0]) &
+                        (channel[event] < tpc_view[1]) &
+                        # (source_label[event] >= 0) &        # we don't want 'undefined' points in our dataset.
                         (topology_label[event] >= 0) &         # i.e., things with a label == -1
                         (particle_label[event] >= 0)
                     )
@@ -618,17 +672,17 @@ class Arrakis:
                 )
                 classes = np.array([
                     np.vstack((
-                        source_label_view[ii], 
-                        topology_label_view[ii], 
-                        particle_label_view[ii], 
+                        source_label_view[ii],
+                        topology_label_view[ii],
+                        particle_label_view[ii],
                         physics_label_view[ii],
                         hit_class_view[ii])).T
                     for ii in range(len(channel_view))],
                     dtype=object
-                )          
+                )
                 clusters = np.array([
                     np.vstack((
-                        unique_topology_label_view[ii], 
+                        unique_topology_label_view[ii],
                         unique_particle_label_view[ii],
                         unique_physics_label_view[ii])).T
                     for ii in range(len(channel_view))],
@@ -661,21 +715,30 @@ class Arrakis:
                     key: np.count_nonzero(np.concatenate(physics_label_view) == key)
                     for key, value in classification_labels["physics"].items()
                 }
-                self.meta[tpc][f"view_{v}_total_points"] = len(np.concatenate(features))   
+                self.meta[tpc][f"view_{v}_total_points"] = len(np.concatenate(features))
                 self.meta[tpc][f"view_{v}_adc_sum"] = adc_view_sum
                 self.wire_plane_point_clouds[tpc][f'view_{v}_features'] = features
                 self.wire_plane_point_clouds[tpc][f'view_{v}_classes'] = classes
                 self.wire_plane_point_clouds[tpc][f'view_{v}_clusters'] = clusters
                 self.wire_plane_point_clouds[tpc][f'view_{v}_hits'] = hits
-    
-    def generate_op_det_point_cloud(self,
-        input_file: str=''
+
+    def generate_larsoft_op_det_point_cloud(
+        self,
+        input_file: str = ''
     ):
         """
         """
-        if self.op_det_point_cloud == None:
+        if self.op_det_point_cloud is None:
             self.logger.warn(f'no op_det_point_cloud data in file {input_file}!')
             return
         self.logger.info(
             f"generating 'op_det_point_cloud' training data from file: {input_file}"
         )
+
+    def generate_larsoft_singles(
+        self,
+        input_file: str = ''
+    ):
+        """
+        """
+

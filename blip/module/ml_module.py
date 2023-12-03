@@ -2,7 +2,6 @@
 Generic module
 """
 import os
-import shutil
 import copy
 import random
 import numpy as np
@@ -40,6 +39,8 @@ class MachineLearningModule(GenericModule):
         super(MachineLearningModule, self).__init__(
             self.name, config, mode, meta
         )
+        self.consumes = ['dataset', 'loader']
+        self.produces = ['predictions']
 
     def parse_config(self):
         """

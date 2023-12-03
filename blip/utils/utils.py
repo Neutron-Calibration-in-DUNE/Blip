@@ -278,6 +278,27 @@ def get_files(
     return [f for f in listdir(directory) if isfile(join(directory, f))]
 
 
+def get_files_with_extension(
+    root_dir,
+    target_extension: str = ''
+):
+    matching_files = []
+
+    if target_extension != '':
+        for foldername, subfolders, filenames in os.walk(root_dir):
+            for filename in filenames:
+                if filename.endswith(target_extension):
+                    file_path = os.path.relpath(os.path.join(foldername, filename), root_dir)
+                    matching_files.append(file_path)
+    else:
+        for foldername, subfolders, filenames in os.walk(root_dir):
+            for filename in filenames:
+                file_path = os.path.relpath(os.path.join(foldername, filename), root_dir)
+                matching_files.append(file_path)
+
+    return matching_files
+
+
 def save_model(
     name:   str = '',
     config_file: str = '',

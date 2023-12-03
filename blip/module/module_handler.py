@@ -7,8 +7,7 @@ import inspect
 from tqdm import tqdm
 from blip.utils.logger import Logger
 from blip.module import GenericModule
-from blip.module.common import *
-from blip.utils.utils import get_method_arguments
+from blip.module.common import module_aliases
 
 
 class ModuleHandler:
@@ -54,15 +53,15 @@ class ModuleHandler:
     def collect_modules(self):
         self.available_modules = {}
         self.module_files = [
-            os.path.dirname(__file__) + '/' + file 
+            os.path.dirname(__file__) + '/' + file
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
         self.module_files.extend(self.meta['local_blip_files'])
         for module_file in self.module_files:
             if (
-                ("__init__.py" in module_file) or 
-                ("__pycache__.py" in module_file) or 
-                ("generic_module.py" in module_file) or 
+                ("__init__.py" in module_file) or
+                ("__pycache__.py" in module_file) or
+                ("generic_module.py" in module_file) or
                 ("__pycache__" in module_file) or
                 (".py" not in module_file)
             ):
@@ -90,7 +89,7 @@ class ModuleHandler:
                     self.available_modules[name] = custom_class
 
     def process_config(self):
-        # list of available 
+        # list of available modules
         self.collect_modules()
         # check config
         if "custom_module_file" in self.config["module"].keys():
@@ -105,14 +104,14 @@ class ModuleHandler:
             else:
                 self.logger.error(f'custom_module_file {self.config["module"]["custom_module_file"]} not found!')
         if "module_type" not in self.config["module"].keys():
-            self.logger.error(f'module_type not specified in config!')
+            self.logger.error('module_type not specified in config!')
         if "module_mode" not in self.config["module"].keys():
-            self.logger.error(f'module_mode not specified in config!')
+            self.logger.error('module_mode not specified in config!')
         self.module_type = self.config["module"]["module_type"]
         self.module_mode = self.config["module"]["module_mode"]
         if len(self.module_type) != len(self.module_mode):
-            self.logger.error(f'module:module_type and module:module_mode must have the same number of entries!')
-        
+            self.logger.error('module:module_type and module:module_mode must have the same number of entries!')
+
         # process modules
         for ii, item in enumerate(self.module_type):
             if item in module_aliases.keys():
@@ -121,7 +120,7 @@ class ModuleHandler:
             # check that module exists
             if self.module_type[ii] not in self.available_modules.keys():
                 self.logger.error(
-                    f"specified module '{item}' is not an available type! " + 
+                    f"specified module '{item}' is not an available type! " +
                     f"Available types:\n{self.available_modules.keys()}"
                 )
         self.modules = {}
@@ -132,15 +131,17 @@ class ModuleHandler:
             self.modules[item].parse_config()
             self.logger.info(f'added module "{item}" to ModuleHandler.')
 
-    def set_device(self,
+    def set_device(
+        self,
         device
-    ):  
+    ):
         self.logger.info(f'setting device to "{device}".')
         for name, module in self.modules.items():
             module.set_device(device)
         self.device = device
-    
-    def add_module(self,
+
+    def add_module(
+        self,
         module:   GenericModule
     ):
         if issubclass(type(module), GenericModule):
@@ -148,18 +149,18 @@ class ModuleHandler:
             self.modules[module.name] = module
         else:
             self.logger.error(
-                f'specified module {module} is not a child of "GenericModule"!' + 
-                f' Only modules which inherit from GenericModule can' +
-                f' be used by the ModuleHandler in BLIP.'
+                f'specified module {module} is not a child of "GenericModule"!' +
+                ' Only modules which inherit from GenericModule can' +
+                ' be used by the ModuleHandler in BLIP.'
             )
-    
+
     def run_modules(self):
         """
         Once everything is configured, we run the modules here.
         """
         module_loop = tqdm(
-            enumerate(self.modules, 0), 
-            total=len(self.modules), 
+            enumerate(self.modules, 0),
+            total=len(self.modules),
             leave=False,
             colour='white'
         )

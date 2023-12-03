@@ -103,7 +103,7 @@ def wrangle_data(
             f"{local_scratch}/.tmp/",
             f"{local_scratch}/.backup/"
         )
-        logger.info(f"copied old .tmp to .backup in local_scratch directory.")
+        logger.info("copied old .tmp to .backup in local_scratch directory.")
     os.makedirs(f"{local_scratch}/.tmp")
 
     # create run directory
