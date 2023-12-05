@@ -5,10 +5,6 @@ from blip.utils.config import ConfigParser
 from blip.utils.utils import get_datetime
 
 from blip.module import ModuleHandler
-from blip.dataset.mssm import MSSM
-from blip.dataset.blip import BlipDataset
-from blip.dataset.vanilla import VanillaDataset
-from blip.utils.loader import Loader
 
 import torch
 import os
@@ -36,6 +32,24 @@ class BlipRunner:
         self.local_data = local_data
         self.anomaly = anomaly
 
+        if not os.path.isdir(self.local_scratch):
+            self.local_scratch = './'
+        if not os.path.isdir(self.local_blip):
+            self.local_blip = './'
+        if not os.path.isdir(self.local_data):
+            self.local_data = './'
+        self.local_blip_files = [
+            self.local_blip + '/' + file
+            for file in os.listdir(path=os.path.dirname(self.local_blip))
+        ]
+        self.local_data_files = [
+            self.local_data + '/' + file
+            for file in os.listdir(path=os.path.dirname(self.local_data))
+        ]
+        os.environ['LOCAL_SCRATCH'] = self.local_scratch
+        os.environ['LOCAL_BLIP'] = self.local_blip
+        os.environ['LOCAL_DATA'] = self.local_data
+
         self.logger = Logger('blip_runner', output="both", file_mode="w")
 
         # begin parsing configuration file
@@ -57,24 +71,6 @@ class BlipRunner:
         self.set_up_modules()
 
     def set_up_directories(self):
-        if not os.path.isdir(self.local_scratch):
-            self.local_scratch = './'
-        if not os.path.isdir(self.local_blip):
-            self.local_blip = './'
-        if not os.path.isdir(self.local_data):
-            self.local_data = './'
-        self.local_blip_files = [
-            self.local_blip + '/' + file
-            for file in os.listdir(path=os.path.dirname(self.local_blip))
-        ]
-        self.local_data_files = [
-            self.local_data + '/' + file
-            for file in os.listdir(path=os.path.dirname(self.local_data))
-        ]
-        os.environ['LOCAL_SCRATCH'] = self.local_scratch
-        os.environ['LOCAL_BLIP'] = self.local_blip
-        os.environ['LOCAL_DATA'] = self.local_data
-
         # create .tmp and .backup directories
         if not os.path.isdir(f"{self.local_scratch}/.backup"):
             os.makedirs(f"{self.local_scratch}/.backup")
