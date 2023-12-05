@@ -56,11 +56,11 @@ class MachineLearningModule(GenericModule):
         self.model_analyzer = None
 
         self.parse_model()
-        self.parse_loss()
-        self.parse_optimizer()
-        self.parse_metrics()
-        self.parse_callbacks()
-        self.parse_training()
+        # self.parse_loss()
+        # self.parse_optimizer()
+        # self.parse_metrics()
+        # self.parse_callbacks()
+        # self.parse_training()
         self.parse_inference()
         self.parse_hyper_parameters()
         self.parse_linear_evaluation()

@@ -5,7 +5,7 @@ Module data
 module_types = {
     "clustering": ["parameter_scan"],
     "arrakis":    ["larsoft", "ndlar_flow"],
-    "data_prep":  [],
+    "dataset":    ["blip_dataset"],
     "ml":   [
         "training", "contrastive_training",
         "inference",
@@ -21,6 +21,9 @@ module_aliases = {
     "arrakis":          "ArrakisModule",
     "Arrakis":          "ArrakisModule",
     "arrakis_module":   "ArrakisModule",
+    "dataset":          "DatasetModule",
+    "Dataset":          "DatasetModule",
+    "data_prep":        "DatasetModule",
     "ml":               "MachineLearningModule",
     "machine_learning": "MachineLearningModule",
     "machinelearning":  "MachineLearningModule",

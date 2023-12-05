@@ -44,7 +44,7 @@ class ArrakisModule(GenericModule):
         """
         """
         self.check_config()
-    
+
     def check_config(self):
         if "arrakis" not in self.config.keys():
             self.logger.error('"arrakis" section not specified in config!')
@@ -85,7 +85,7 @@ class ArrakisModule(GenericModule):
         )
         for ii, simulation_file in simulation_file_loop:
             self.arrakis.load_root_arrays(simulation_file)
-            self.arrakis.generate_wire_training_data(simulation_file)
+            self.arrakis.generate_larsoft_training_data(simulation_file)
             simulation_file_loop.set_description(f"Running LArSoft Arrakis: File [{ii+1}/{len(self.arrakis.simulation_files)}]")
         self.logger.info('larsoft arrakis finished')
 
@@ -113,6 +113,38 @@ class ArrakisModule(GenericModule):
         )
         for ii, simulation_file in simulation_file_loop:
             self.arrakis.load_root_arrays(simulation_file)
-            self.arrakis.generate_wire_training_data(simulation_file)
+            # check what kind of file this is.  If it's a capture gamma, then
+            # adjust all the physics labels to the right value.  This is cludgey for now,
+            # but we'll make this better later.
+            if 'capture_gamma' in simulation_file:
+                if 'capture_gamma_474' in simulation_file:
+                    replace_label = 8
+                elif 'capture_gamma_336' in simulation_file:
+                    replace_label = 9
+                elif 'capture_gamma_256' in simulation_file:
+                    replace_label = 10
+                elif 'capture_gamma_118' in simulation_file:
+                    replace_label = 11
+                elif 'capture_gamma_083' in simulation_file:
+                    replace_label = 12
+                elif 'capture_gamma_051' in simulation_file:
+                    replace_label = 13
+                elif 'capture_gamma_016' in simulation_file:
+                    replace_label = 14
+                else:
+                    replace_label = 15
+                self.arrakis.generate_larsoft_singles_training_data(
+                    simulation_file,
+                    unique_label='topology',
+                    replace_topology_label=1,
+                    replace_physics_label=replace_label,
+                    limit_tpcs='tpc2',
+                    make_gifs=True
+                )
+            else:
+                self.arrakis.generate_larsoft_singles_training_data(
+                    simulation_file,
+                    unique_label='topology',
+                )
             simulation_file_loop.set_description(f"Running LArSoft Arrakis: File [{ii+1}/{len(self.arrakis.simulation_files)}]")
         self.logger.info('larsoft arrakis sinles finished')

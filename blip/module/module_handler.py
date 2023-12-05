@@ -107,6 +107,13 @@ class ModuleHandler:
             self.logger.error('module_type not specified in config!')
         if "module_mode" not in self.config["module"].keys():
             self.logger.error('module_mode not specified in config!')
+        # check for dataset module.  If it doesn't exist, but there is a dataset and loader section
+        # in the config, then add the dataset module to the list in the config.
+        if 'DatasetModule' not in self.config['module']['module_type']:
+            if ('dataset' in self.config.keys()) and ('loader' in self.config.keys()):
+                self.logger.info("no DatasetModule specified in config; adding it based on 'dataset' and 'loader' sections.")
+                self.config['module']['module_type'].insert(0, 'dataset')
+                self.config['module']['module_mode'].insert(0, 'blip_dataset')
         self.module_type = self.config["module"]["module_type"]
         self.module_mode = self.config["module"]["module_mode"]
         if len(self.module_type) != len(self.module_mode):
@@ -124,12 +131,35 @@ class ModuleHandler:
                     f"Available types:\n{self.available_modules.keys()}"
                 )
         self.modules = {}
+
+        # set up modules
         for ii, item in enumerate(self.module_type):
             self.modules[item] = self.available_modules[item](
                 item, self.config, self.module_mode[ii], self.meta
             )
             self.modules[item].parse_config()
             self.logger.info(f'added module "{item}" to ModuleHandler.')
+
+        for ii, item in enumerate(self.module_type):
+            # check that the products of one module feed sequentially to
+            # the next module.
+            input_products = self.modules[item].consumes
+            if ii == 0:
+                if input_products != [None]:
+                    self.logger.error(
+                        f'first module {item} should have [None] for required inputs, but instead has {input_products}!'
+                    )
+                output_products = self.modules[item].produces
+                continue
+            elif ii == len(self.module_type):
+                continue
+            else:
+                for input_product in input_products:
+                    if input_product not in output_products:
+                        self.logger.error(
+                            f'input product for {ii}th-module: {item} not produced by any previous modules!'
+                        )
+                output_products += self.modules[item].produces
 
     def set_device(
         self,

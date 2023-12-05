@@ -35,6 +35,8 @@ class GenericModule:
         self.consumes = [None]
         self.produces = [None]
 
+        self.module_data_product = {}
+
     def set_device(
         self,
         device

@@ -10,6 +10,8 @@ import socket
 import numpy as np
 from datetime import datetime
 import h5py
+import imageio
+from matplotlib import pyplot as plt
 
 from blip.utils.logger import Logger
 from blip.utils.utils import get_files_with_extension
@@ -79,6 +81,7 @@ class Arrakis:
             "tpc10": [[0.1651, 359.2651],   [0., 607.49875], [463.62625, 695.28625]],
             "tpc11": [[366.8851, 376.8501], [0., 607.49875], [463.62625, 695.28625]],
         }
+        self.protodune_active_tpc_views = {}
 
         """
         MicroBooNE channel mappings for different
@@ -193,29 +196,30 @@ class Arrakis:
             self.config['simulation_files'] = []
 
         # if simulation_files == [], grab all .root or .h5 files in the simulation_folder
-        if self.config['simulation_files'] == []:
-            if self.config['experiment'] in self.wire_experiments:
+        if self.config['experiment'] in self.wire_experiments:
+            if self.config['simulation_files'] == []:
                 self.logger.info(
                     f'no simulation_files specified, grabbing all .root files in directory {self.simulation_folder}'
                 )
                 self.config['simulation_files'] = get_files_with_extension(self.simulation_folder, '.root')
-                self.simulation_files = self.config['simulation_files']
-                # create output folders for processed simulation
-                self.output_folders = {
-                    simulation_file: simulation_file.replace('.root', '')
-                    for simulation_file in self.simulation_files
-                }
-            else:
+            self.simulation_files = self.config['simulation_files']
+            # create output folders for processed simulation
+            self.output_folders = {
+                simulation_file: simulation_file.replace('.root', '')
+                for simulation_file in self.simulation_files
+            }
+        else:
+            if self.config['simulation_files'] == []:
                 self.logger.info(
                     f'no simulation_files specified, grabbing all .h5 files in directory {self.simulation_folder}'
                 )
                 self.config['simulation_files'] = get_files_with_extension(self.simulation_folder, '.h5')
-                self.simulation_files = self.config['simulation_files']
-                # create output folders for processed simulation
-                self.output_folders = {
-                    simulation_file: simulation_file.replace('.h5', '')
-                    for simulation_file in self.simulation_files
-                }
+            self.simulation_files = self.config['simulation_files']
+            # create output folders for processed simulation
+            self.output_folders = {
+                simulation_file: simulation_file.replace('.h5', '')
+                for simulation_file in self.simulation_files
+            }
         for output_folder in self.output_folders.values():
             if not os.path.isdir(f"/local_data/{output_folder}"):
                 os.makedirs(f"/local_data/{output_folder}")
@@ -261,10 +265,7 @@ class Arrakis:
                 f'error while atttempting to load input file {self.simulation_folder + input_file}'
             )
 
-    def generate_wire_training_data(
-        self,
-        input_file:   str = ''
-    ):
+    def prep_larsoft_training_data(self):
         self.meta = {}
         self.mc_maps = {}
         self.energy_deposit_point_clouds = {}
@@ -338,24 +339,56 @@ class Arrakis:
                 'view_2_hits':      []
             }
 
+    def generate_larsoft_training_data(
+        self,
+        input_file:   str = '',
+        limit_tpcs:   list = []
+    ):
+        self.prep_larsoft_training_data()
         for process in self.process_type:
             if process == 'energy_deposit_point_cloud':
-                self.generate_larsoft_energy_deposit_point_cloud(self.simulation_folder + input_file)
+                self.generate_larsoft_energy_deposit_point_cloud(
+                    self.simulation_folder + input_file,
+                    limit_tpcs=limit_tpcs
+                )
             elif process == 'wire_plane_point_cloud':
-                self.generate_wire_plane_point_cloud(self.simulation_folder + input_file)
+                self.generate_larsoft_wire_plane_point_cloud(
+                    self.simulation_folder + input_file,
+                    limit_tpcs=limit_tpcs
+                )
             elif process == 'op_det_point_cloud':
-                self.generate_larsoft_op_det_point_cloud(self.simulation_folder + input_file)
+                self.generate_larsoft_op_det_point_cloud(
+                    self.simulation_folder + input_file,
+                    limit_tpcs=limit_tpcs
+                )
             elif process == 'mc_maps':
-                self.generate_larsoft_mc_maps(self.simulation_folder + input_file)
+                self.generate_larsoft_mc_maps(
+                    self.simulation_folder + input_file,
+                    limit_tpcs=limit_tpcs
+                )
             elif process == 'all':
-                self.generate_larsoft_energy_deposit_point_cloud(self.simulation_folder + input_file)
-                self.generate_wire_plane_point_cloud(self.simulation_folder + input_file)
-                self.generate_larsoft_op_det_point_cloud(self.simulation_folder + input_file)
-                self.generate_larsoft_mc_maps(self.simulation_folder + input_file)
+                self.generate_larsoft_energy_deposit_point_cloud(
+                    self.simulation_folder + input_file,
+                    limit_tpcs=limit_tpcs
+                )
+                self.generate_larsoft_wire_plane_point_cloud(
+                    self.simulation_folder + input_file,
+                    limit_tpcs=limit_tpcs
+                )
+                self.generate_larsoft_op_det_point_cloud(
+                    self.simulation_folder + input_file,
+                    limit_tpcs=limit_tpcs
+                )
+                self.generate_larsoft_mc_maps(
+                    self.simulation_folder + input_file,
+                    limit_tpcs=limit_tpcs
+                )
             else:
                 self.logger.error(f'specified process type {process} not allowed!')
 
         for tpc, tpc_ranges in self.tpc_positions.items():
+            if len(limit_tpcs) != 0 and tpc not in limit_tpcs:
+                continue
             np.savez(
                 f"/local_data/{self.output_folders[input_file]}/{tpc}.npz",
                 edep_features=self.energy_deposit_point_clouds[tpc]['edep_features'],
@@ -379,15 +412,25 @@ class Arrakis:
 
     def generate_larpix_training_data(
         self,
-        input_file:   str = ''
+        input_file:   str = '',
+        limit_tpcs:   list = [], 
     ):
         pass
 
     def generate_larsoft_mc_maps(
         self,
-        input_file: str = ''
+        input_file:         str = '',
+        limit_tpcs:         list = [],
     ):
+        if self.mc_maps is None:
+            self.logger.warn(f'no mc_maps data in file {input_file}!')
+            return
+        self.logger.info(
+            f"generating 'mc_maps' training data from file: {input_file}"
+        )
         for tpc, tpc_ranges in self.tpc_wire_channels.items():
+            if len(limit_tpcs) != 0 and tpc not in limit_tpcs:
+                continue
             for event in range(len(self.mc_map['pdg_code_map.first'])):
                 self.mc_maps[tpc]['pdg_code'].append({
                     self.mc_map['pdg_code_map.first'][event][ii]: self.mc_map['pdg_code_map.second'][event][ii]
@@ -408,7 +451,15 @@ class Arrakis:
 
     def generate_larsoft_energy_deposit_point_cloud(
         self,
-        input_file: str = ''
+        input_file:         str = '',
+        separate_unique:    bool = False,
+        unique_label:       str = 'topology',
+        replace_topology_label:  int = -1,
+        replace_particle_label:  int = -1,
+        replace_physics_label:  int = -1,
+        max_events:     int = 5000,
+        limit_tpcs:     list = [],
+        make_gifs:      bool = False
     ):
         """
         We iterate over each tpc and collect all (x,y,z) points for each
@@ -440,6 +491,8 @@ class Arrakis:
         unique_physics_label = self.energy_deposit_point_cloud['unique_physics']
 
         for tpc, tpc_ranges in self.tpc_positions.items():
+            if len(limit_tpcs) != 0 and tpc not in limit_tpcs:
+                continue
             edep_t_tpc = []
             edep_x_tpc = []
             edep_y_tpc = []
@@ -468,20 +521,65 @@ class Arrakis:
                     (particle_label[event] >= 0)
                 )
                 if np.sum(view_mask) > 0:
-                    edep_t_tpc.append(edep_t[event][view_mask])
-                    edep_x_tpc.append(edep_x[event][view_mask])
-                    edep_y_tpc.append(edep_y[event][view_mask])
-                    edep_z_tpc.append(edep_z[event][view_mask])
-                    edep_energy_tpc.append(edep_energy[event][view_mask])
-                    edep_num_photons_tpc.append(edep_num_photons[event][view_mask])
-                    edep_num_electrons_tpc.append(edep_num_electrons[event][view_mask])
-                    source_label_tpc.append(source_label[event][view_mask])
-                    topology_label_tpc.append(topology_label[event][view_mask])
-                    particle_label_tpc.append(particle_label[event][view_mask])
-                    physics_label_tpc.append(physics_label[event][view_mask])
-                    unique_topology_label_tpc.append(unique_topology_label[event][view_mask])
-                    unique_particle_label_tpc.append(unique_particle_label[event][view_mask])
-                    unique_physics_label_tpc.append(unique_physics_label[event][view_mask])
+                    if separate_unique:
+                        if unique_label == 'topology':
+                            unique_labels = unique_topology_label[event]
+                        elif unique_label == 'particle':
+                            unique_labels = unique_particle_label[event]
+                        elif unique_label == 'physics':
+                            unique_labels = unique_physics_label[event]
+                        else:
+                            self.logger.error(f'specified unique_label type {unique_label} not allowed!')
+                        for label in np.unique(unique_labels):
+                            unique_mask = view_mask & (unique_labels == label)
+                            edep_t_tpc.append(edep_t[event][unique_mask])
+                            edep_x_tpc.append(edep_x[event][unique_mask])
+                            edep_y_tpc.append(edep_y[event][unique_mask])
+                            edep_z_tpc.append(edep_z[event][unique_mask])
+                            edep_energy_tpc.append(edep_energy[event][unique_mask])
+                            edep_num_photons_tpc.append(edep_num_photons[event][unique_mask])
+                            edep_num_electrons_tpc.append(edep_num_electrons[event][unique_mask])
+                            source_label_tpc.append(source_label[event][unique_mask])
+
+                            # if we want to replace the topology label (temp solution for single gammas)
+                            if replace_topology_label != -1:
+                                topology_label[event][unique_mask] = replace_topology_label
+
+                            topology_label_tpc.append(topology_label[event][unique_mask])
+
+                            # if we want to replace the particle label (temp solution for single gammas)
+                            if replace_particle_label != -1:
+                                particle_label[event][unique_mask] = replace_particle_label
+
+                            particle_label_tpc.append(particle_label[event][unique_mask])
+
+                            # if we want to replace the physics label (temp solution for single gammas)
+                            if replace_physics_label != -1:
+                                physics_label[event][unique_mask] = replace_physics_label
+
+                            physics_label_tpc.append(physics_label[event][unique_mask])
+                            unique_topology_label_tpc.append(unique_topology_label[event][unique_mask])
+                            unique_particle_label_tpc.append(unique_particle_label[event][unique_mask])
+                            unique_physics_label_tpc.append(unique_physics_label[event][unique_mask])
+                    else:
+                        edep_t_tpc.append(edep_t[event][view_mask])
+                        edep_x_tpc.append(edep_x[event][view_mask])
+                        edep_y_tpc.append(edep_y[event][view_mask])
+                        edep_z_tpc.append(edep_z[event][view_mask])
+                        edep_energy_tpc.append(edep_energy[event][view_mask])
+                        edep_num_photons_tpc.append(edep_num_photons[event][view_mask])
+                        edep_num_electrons_tpc.append(edep_num_electrons[event][view_mask])
+                        source_label_tpc.append(source_label[event][view_mask])
+                        topology_label_tpc.append(topology_label[event][view_mask])
+                        particle_label_tpc.append(particle_label[event][view_mask])
+                        physics_label_tpc.append(physics_label[event][view_mask])
+                        unique_topology_label_tpc.append(unique_topology_label[event][view_mask])
+                        unique_particle_label_tpc.append(unique_particle_label[event][view_mask])
+                        unique_physics_label_tpc.append(unique_physics_label[event][view_mask])
+
+                if len(edep_t_tpc) >= max_events:
+                    self.logger.info(f'reached max_events: {max_events} for input file {input_file}; returning.')
+                    break
 
             edep_t_tpc = np.array(edep_t_tpc, dtype=object)
             edep_x_tpc = np.array(edep_x_tpc, dtype=object)
@@ -553,9 +651,17 @@ class Arrakis:
             self.energy_deposit_point_clouds[tpc]['edep_classes'] = classes
             self.energy_deposit_point_clouds[tpc]['edep_clusters'] = clusters
 
-    def generate_wire_plane_point_cloud(
+    def generate_larsoft_wire_plane_point_cloud(
         self,
-        input_file: str = ''
+        input_file:         str = '',
+        separate_unique:    bool = False,
+        unique_label:       str = 'topology',
+        replace_topology_label:  int = -1,
+        replace_particle_label:  int = -1,
+        replace_physics_label:  int = -1,
+        limit_tpcs:     list = [],
+        max_events:     int = 5000,
+        make_gifs:      bool = False,
     ):
         """
         We iterate over each view (wire plane) and collect all
@@ -591,6 +697,8 @@ class Arrakis:
 
         for tpc, tpc_ranges in self.tpc_wire_channels.items():
             self.wire_plane_point_cloud[tpc] = {}
+            if len(limit_tpcs) != 0 and tpc not in limit_tpcs:
+                continue
             for v, tpc_view in enumerate(tpc_ranges):
                 """
                 For each point cloud, we want to normalize adc against
@@ -614,34 +722,142 @@ class Arrakis:
                 hit_amplitude_view = []
                 hit_charge_view = []
 
+                gif_frames = []
+
                 for event in range(len(channel)):
                     view_mask = (
                         (channel[event] >= tpc_view[0]) &
                         (channel[event] < tpc_view[1]) &
                         # (source_label[event] >= 0) &        # we don't want 'undefined' points in our dataset.
-                        (topology_label[event] >= 0) &         # i.e., things with a label == -1
-                        (particle_label[event] >= 0)
+                        (topology_label[event] > 0) &         # i.e., things with a label == -1
+                        (particle_label[event] > 0)
                     )
                     if np.sum(view_mask) > 0:
-                        channel_view.append(channel[event][view_mask])
-                        tdc_view.append(tdc[event][view_mask])
-                        adc_view.append(adc[event][view_mask])
-                        energy_view.append(energy[event][view_mask])
-                        source_label_view.append(source_label[event][view_mask])
-                        topology_label_view.append(topology_label[event][view_mask])
-                        particle_label_view.append(particle_label[event][view_mask])
-                        physics_label_view.append(physics_label[event][view_mask])
-                        unique_topology_label_view.append(unique_topology_label[event][view_mask])
-                        unique_particle_label_view.append(unique_particle_label[event][view_mask])
-                        unique_physics_label_view.append(unique_physics_label[event][view_mask])
+                        # if we want to separate out unique instances of event types
+                        if separate_unique:
+                            if unique_label == 'topology':
+                                unique_labels = unique_topology_label[event]
+                            elif unique_label == 'particle':
+                                unique_labels = unique_particle_label[event]
+                            elif unique_label == 'physics':
+                                unique_labels = unique_physics_label[event]
+                            else:
+                                self.logger.error(f'specified unique_label type {unique_label} not allowed!')
+                            for label in np.unique(unique_labels):
+                                unique_mask = view_mask & (unique_labels == label)
+                                if label == -1:
+                                    continue
+                                if sum(unique_mask) < 3:
+                                    continue
+                                if np.sum(adc[event][unique_mask]) == 0:
+                                    continue
+                                channel_view.append(channel[event][unique_mask])
+                                tdc_view.append(tdc[event][unique_mask])
+                                adc_view.append(adc[event][unique_mask])
+                                energy_view.append(energy[event][unique_mask])
+                                source_label_view.append(source_label[event][unique_mask])
 
-                        hit_class = np.zeros_like(hit_mean[event][view_mask])
-                        hit_class[(hit_mean[event][view_mask] != -1)] = 1
-                        hit_class_view.append(hit_class)
-                        hit_mean_view.append(hit_mean[event][view_mask])
-                        hit_rms_view.append(hit_rms[event][view_mask])
-                        hit_amplitude_view.append(hit_amplitude[event][view_mask])
-                        hit_charge_view.append(hit_charge[event][view_mask])
+                                # if we want to replace the topology label (temp solution for single gammas)
+                                if replace_topology_label != -1:
+                                    topology_label[event][unique_mask] = replace_topology_label
+
+                                topology_label_view.append(topology_label[event][unique_mask])
+
+                                # if we want to replace the particle label (temp solution for single gammas)
+                                if replace_particle_label != -1:
+                                    particle_label[event][unique_mask] = replace_particle_label
+
+                                particle_label_view.append(particle_label[event][unique_mask])
+
+                                # if we want to replace the physics label (temp solution for single gammas)
+                                if replace_physics_label != -1:
+                                    physics_label[event][unique_mask] = replace_physics_label
+
+                                physics_label_view.append(physics_label[event][unique_mask])
+                                unique_topology_label_view.append(unique_topology_label[event][unique_mask])
+                                unique_particle_label_view.append(unique_particle_label[event][unique_mask])
+                                unique_physics_label_view.append(unique_physics_label[event][unique_mask])
+
+                                hit_class = np.zeros_like(hit_mean[event][unique_mask])
+                                hit_class[(hit_mean[event][unique_mask] != -1)] = 1
+                                hit_class_view.append(hit_class)
+                                hit_mean_view.append(hit_mean[event][unique_mask])
+                                hit_rms_view.append(hit_rms[event][unique_mask])
+                                hit_amplitude_view.append(hit_amplitude[event][unique_mask])
+                                hit_charge_view.append(hit_charge[event][unique_mask])
+
+                                print(channel[event][unique_mask])
+                                print(tdc[event][unique_mask])
+                                print(adc[event][unique_mask])
+                                print(unique_particle_label[event][unique_mask])
+                                print(unique_topology_label[event][unique_mask])
+                                print(particle_label[event][unique_mask])
+
+                                # create animated GIF of events
+                                if make_gifs:
+                                    pos = np.vstack((
+                                        channel[event][unique_mask],
+                                        tdc[event][unique_mask],
+                                        np.abs(adc[event][unique_mask])
+                                    )).astype(float)
+                                    summed_adc = np.sum(adc[event][unique_mask])
+                                    mins = np.min(pos, axis=1)
+                                    maxs = np.max(pos, axis=1)
+                                    for kk in range(len(pos)-1):
+                                        denom = (maxs[kk] - mins[kk])
+                                        if denom == 0:
+                                            pos[kk] = 0 * pos[kk]
+                                        else:
+                                            pos[kk] = 2 * (pos[kk] - mins[kk])/(denom) - 1
+
+                                    self.create_class_gif_frame(
+                                        pos,
+                                        'test',
+                                        summed_adc,
+                                        event,
+                                        [mins[1], maxs[1]],
+                                        [mins[0], maxs[0]]
+                                    )
+                                    gif_frames.append(
+                                        imageio.v2.imread(
+                                            f"/local_data/blip_plots/.img/img_{event}.png"
+                                        )
+                                    )
+
+                        # otherwise save the entire view
+                        else:
+                            channel_view.append(channel[event][view_mask])
+                            tdc_view.append(tdc[event][view_mask])
+                            adc_view.append(adc[event][view_mask])
+                            energy_view.append(energy[event][view_mask])
+                            source_label_view.append(source_label[event][view_mask])
+                            topology_label_view.append(topology_label[event][view_mask])
+                            particle_label_view.append(particle_label[event][view_mask])
+                            physics_label_view.append(physics_label[event][view_mask])
+                            unique_topology_label_view.append(unique_topology_label[event][view_mask])
+                            unique_particle_label_view.append(unique_particle_label[event][view_mask])
+                            unique_physics_label_view.append(unique_physics_label[event][view_mask])
+
+                            hit_class = np.zeros_like(hit_mean[event][view_mask])
+                            hit_class[(hit_mean[event][view_mask] != -1)] = 1
+                            hit_class_view.append(hit_class)
+                            hit_mean_view.append(hit_mean[event][view_mask])
+                            hit_rms_view.append(hit_rms[event][view_mask])
+                            hit_amplitude_view.append(hit_amplitude[event][view_mask])
+                            hit_charge_view.append(hit_charge[event][view_mask])
+
+                    if len(channel_view) >= max_events:
+                        self.logger.info(f'reached max_events: {max_events} for input file {input_file}; returning.')
+                        break
+
+                if make_gifs:
+                    if len(gif_frames) == 0:
+                        continue
+                    imageio.mimsave(
+                        "/local_data/blip_plots/singles_test.gif",
+                        gif_frames,
+                        duration=2000
+                    )
 
                 channel_view = np.array(channel_view, dtype=object)
                 tdc_view = np.array(tdc_view, dtype=object)
@@ -724,7 +940,13 @@ class Arrakis:
 
     def generate_larsoft_op_det_point_cloud(
         self,
-        input_file: str = ''
+        input_file:         str = '',
+        separate_unique:    bool = False,
+        unique_label:       str = 'topology',
+        replace_physics_label:  int = -1,
+        max_events:     int = 5000,
+        limit_tpcs:     list = [],
+        make_gifs:      bool = False
     ):
         """
         """
@@ -735,10 +957,161 @@ class Arrakis:
             f"generating 'op_det_point_cloud' training data from file: {input_file}"
         )
 
-    def generate_larsoft_singles(
+    def generate_larsoft_singles_training_data(
         self,
-        input_file: str = ''
+        input_file:     str = '',
+        unique_label:   str = 'topology',
+        replace_topology_label:  int = -1,
+        replace_particle_label:  int = -1,
+        replace_physics_label:  int = -1,
+        max_events:     int = 5000,
+        limit_tpcs:     list = [],
+        make_gifs:      bool = False
     ):
         """
         """
+        if make_gifs:
+            if not os.path.isdir("/local_data/blip_plots/"):
+                os.makedirs("/local_data/blip_plots/")
+            if not os.path.isdir("/local_data/blip_plots/.img"):
+                os.makedirs("/local_data/blip_plots/.img")
 
+        self.prep_larsoft_training_data()
+        for process in self.process_type:
+            if process == 'energy_deposit_point_cloud':
+                self.generate_larsoft_energy_deposit_point_cloud(
+                    self.simulation_folder + input_file,
+                    separate_unique=True,
+                    unique_label=unique_label,
+                    replace_topology_label=replace_topology_label,
+                    replace_particle_label=replace_particle_label,
+                    replace_physics_label=replace_physics_label,
+                    max_events=max_events,
+                    limit_tpcs=limit_tpcs,
+                    make_gifs=make_gifs
+                )
+            elif process == 'wire_plane_point_cloud':
+                self.generate_larsoft_wire_plane_point_cloud(
+                    self.simulation_folder + input_file,
+                    separate_unique=True,
+                    unique_label=unique_label,
+                    replace_topology_label=replace_topology_label,
+                    replace_particle_label=replace_particle_label,
+                    replace_physics_label=replace_physics_label,
+                    max_events=max_events,
+                    limit_tpcs=limit_tpcs,
+                    make_gifs=make_gifs
+                )
+            elif process == 'op_det_point_cloud':
+                self.generate_larsoft_op_det_point_cloud(
+                    self.simulation_folder + input_file,
+                    separate_unique=True,
+                    unique_label=unique_label,
+                    replace_topology_label=replace_topology_label,
+                    replace_particle_label=replace_particle_label,
+                    replace_physics_label=replace_physics_label,
+                    max_events=max_events,
+                    limit_tpcs=limit_tpcs,
+                    make_gifs=make_gifs
+                )
+            elif process == 'mc_maps':
+                self.generate_larsoft_mc_maps(
+                    self.simulation_folder + input_file
+                )
+            elif process == 'all':
+                self.generate_larsoft_energy_deposit_point_cloud(
+                    self.simulation_folder + input_file,
+                    separate_unique=True,
+                    unique_label=unique_label,
+                    replace_topology_label=replace_topology_label,
+                    replace_particle_label=replace_particle_label,
+                    replace_physics_label=replace_physics_label,
+                    max_events=max_events,
+                    limit_tpcs=limit_tpcs,
+                    make_gifs=make_gifs
+                )
+                self.generate_larsoft_wire_plane_point_cloud(
+                    self.simulation_folder + input_file,
+                    separate_unique=True,
+                    unique_label=unique_label,
+                    replace_topology_label=replace_topology_label,
+                    replace_particle_label=replace_particle_label,
+                    replace_physics_label=replace_physics_label,
+                    max_events=max_events,
+                    limit_tpcs=limit_tpcs,
+                    make_gifs=make_gifs
+                )
+                self.generate_larsoft_op_det_point_cloud(
+                    self.simulation_folder + input_file,
+                    separate_unique=True,
+                    unique_label=unique_label,
+                    replace_topology_label=replace_topology_label,
+                    replace_particle_label=replace_particle_label,
+                    replace_physics_label=replace_physics_label,
+                    max_events=max_events,
+                    limit_tpcs=limit_tpcs,
+                    make_gifs=make_gifs
+                )
+                self.generate_larsoft_mc_maps(
+                    self.simulation_folder + input_file
+                )
+            else:
+                self.logger.error(f'specified process type {process} not allowed!')
+
+        for tpc, tpc_ranges in self.tpc_positions.items():
+            if len(limit_tpcs) != 0 and tpc not in limit_tpcs:
+                continue
+            np.savez(
+                f"/local_data/{self.output_folders[input_file]}_singles/{tpc}.npz",
+                edep_features=self.energy_deposit_point_clouds[tpc]['edep_features'],
+                edep_classes=self.energy_deposit_point_clouds[tpc]['edep_classes'],
+                edep_clusters=self.energy_deposit_point_clouds[tpc]['edep_clusters'],
+                view_0_features=self.wire_plane_point_clouds[tpc]['view_0_features'],
+                view_0_classes=self.wire_plane_point_clouds[tpc]['view_0_classes'],
+                view_0_clusters=self.wire_plane_point_clouds[tpc]['view_0_clusters'],
+                view_0_hits=self.wire_plane_point_clouds[tpc]['view_0_hits'],
+                view_1_features=self.wire_plane_point_clouds[tpc]['view_1_features'],
+                view_1_classes=self.wire_plane_point_clouds[tpc]['view_1_classes'],
+                view_1_clusters=self.wire_plane_point_clouds[tpc]['view_1_clusters'],
+                view_1_hits=self.wire_plane_point_clouds[tpc]['view_1_hits'],
+                view_2_features=self.wire_plane_point_clouds[tpc]['view_2_features'],
+                view_2_classes=self.wire_plane_point_clouds[tpc]['view_2_classes'],
+                view_2_clusters=self.wire_plane_point_clouds[tpc]['view_2_clusters'],
+                view_2_hits=self.wire_plane_point_clouds[tpc]['view_2_hits'],
+                mc_maps=self.mc_maps[tpc],
+                meta=self.meta[tpc]
+            )
+
+    def create_class_gif_frame(
+        self,
+        pos,
+        class_label,
+        summed_adc,
+        image_number,
+        xlim:   list = [-1.0, 1.0],
+        ylim:   list = [-1.0, 1.0],
+    ):
+        # fix this later
+        pass
+        fig, axs = plt.subplots(figsize=(8, 8))
+        axs.scatter(
+            pos[0],   # channel
+            pos[1],   # tdc
+            marker='o',
+            s=pos[2],
+            c=pos[2],
+            label=r"$\Sigma$"+f" ADC: {summed_adc:.2f}"
+        )
+        axs.set_xlim(-1.2, 1.2)
+        axs.set_ylim(-1.2, 1.2)
+        axs.set_xlabel("Channel [id normalized]")
+        axs.set_ylabel("TDC (ns normalized)")
+        plt.title(f"Point cloud {image_number} for class {class_label}")
+        plt.legend(loc='upper right')
+        plt.tight_layout()
+        plt.savefig(
+            f"/local_data/blip_plots/.img/img_{image_number}.png",
+            transparent=False,
+            facecolor='white'
+        )
+        plt.close()
