@@ -188,11 +188,3 @@ class Logger:
         except Exception as e:
             self.logger.error(f"Unable to obtain system information: {e}.")
         return info
-
-
-# create global logger
-default_logger = Logger(
-    "default",
-    output="both",
-    file_mode="w"
-)
