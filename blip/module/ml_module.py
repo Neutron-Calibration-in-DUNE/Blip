@@ -86,8 +86,6 @@ class MachineLearningModule(GenericModule):
                 self.logger.warn('"callbacks" section not specified in config!')
             if "training" not in self.config.keys():
                 self.logger.error('"training" section not specified in config!')
-            if "linear_evaluation" not in self.config.keys():
-                self.logger.error("'linear_evaluation' section not specified in config!")
 
         if self.mode == "inference":
             if "inference" not in self.config.keys():

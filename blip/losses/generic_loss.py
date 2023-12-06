@@ -16,14 +16,15 @@ class GenericLoss:
         6. augmentations - specified whether augmentations are created for the dataset 
         7. meta - meta information from the module.
     """
-    def __init__(self,
-        name:           str='generic',
-        alpha:          float=0.0,
-        target_type:    str='classes',
-        targets:        list=[],
-        outputs:        list=[],
-        augmentations:  int=0,
-        meta:           dict={}
+    def __init__(
+        self,
+        name:           str = 'generic_loss',
+        alpha:          float = 0.0,
+        target_type:    str = 'classes',
+        targets:        list = [],
+        outputs:        list = [],
+        augmentations:  int = 0,
+        meta:           dict = {}
     ):
         self.name = name
         self.logger = Logger(self.name, output="both", file_mode="w")

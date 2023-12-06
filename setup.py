@@ -28,7 +28,7 @@ setup(
     url='https://github.com/Neutron-Calibration-in-DUNE/Blip',
 
     # requirements
-    install_reqs = [],
+    install_reqs=[],
 
     # packages
     # package_dir={'':'blip'},
@@ -37,9 +37,10 @@ setup(
         exclude=['tests'],
     ),
     include_package_data=True,
+    package_data={'': ['*.yaml']},
 
     # classifiers
-    classifiers = [
+    classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Experimental Physics',
         'License :: GNU',
@@ -55,6 +56,7 @@ setup(
             'arrakis = blip.programs.run_arrakis:run',
             'blip = blip.programs.run_blip:run',
             'blip_display = blip.programs.run_blip_server:run',
+            'create_ml_template = blip.programs.create_ml_template:run',
             'mssm = blip.programs.run_mssm:run'
         ],
     },

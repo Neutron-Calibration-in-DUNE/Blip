@@ -14,6 +14,7 @@ from blip.dataset.generic_dataset  import GenericDataset
 from blip.topology.merge_tree      import MergeTree
 from blip.dataset.common           import *
 
+wire_tpc_datasets = ['view', 'view_cluster', 'view_tree']
 
 blip_dataset_config = {
     "name":               "default",
@@ -55,7 +56,8 @@ blip_dataset_config = {
     "device":        "cpu",
 }
 
-class BlipDataset(InMemoryDataset, GenericDataset):
+
+class BlipDataset(GenericDataset):
     """
     Blip datasets are constructed with Data objects from torch geometric.
     Each example, or entry, in the dataset corresponds to a LArTPC event.
@@ -84,50 +86,23 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         'class_mask' - a list of classes to apply masks too
 
     """
-    def __init__(self, 
-        name:   str="",
-        config: dict=blip_dataset_config,
-        meta:   dict={}
+    def __init__(
+        self,
+        name:   str = "blip",
+        config: dict = blip_dataset_config,
+        meta:   dict = {}
     ):
-        self.name   = name + '_dataset'
-        self.config = config
-        self.meta   = meta
-        if "device" in self.meta: self.device = self.meta['device']
-        else:                     self.device = 'cpu'
-        if meta['verbose']: self.logger = Logger(self.name, output="both",   file_mode="w")
-        else:               self.logger = Logger(self.name, level='warning', file_mode="w")
-        self.logger.info(f"constructing blip dataset.")
+        GenericDataset.__init__(
+            self, name, config, meta
+        )
 
-        self.number_of_events = 0
-        self.root = meta['local_scratch']
-        self.skip_processing = self.config["skip_processing"]
-        if self.skip_processing:
-            if os.path.isdir('processed/'):
-                for path in os.listdir('processed/'):
-                    if os.path.isfile(os.path.join('processed/', path)):
-                        self.number_of_events += 1
-            self.logger.info(f'found {self.number_of_events} processed files.')
-        
-        self.wire_tpc_datasets = ['view', 'view_cluster', 'view_tree']
-        
-        self.meta = {
-            'verbose': meta['verbose']
-        }
+    def process_config(self):
         self.configure_dataset()
         self.configure_variables()
         self.configure_meta()
         self.configure_clustering()
         self.configure_weights()
         self.configure_transforms()
-
-        GenericDataset.__init__(self)
-        InMemoryDataset.__init__(self,
-            self.root, 
-            self.transform, 
-            self.pre_transform, 
-            self.pre_filter, 
-            log=False
-        )
 
     def configure_meta(self):
         # get meta dictionaries from files
@@ -140,7 +115,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             except:
                 self.logger.error(f'error reading file "{input_file}"!')
         try:
-            if (self.meta['dataset_type'] in self.wire_tpc_datasets):
+            if (self.meta['dataset_type'] in wire_tpc_datasets):
                 self.meta['view_features'] = temp_arrakis_meta[0]['view_features']
                 self.meta['edep_features'] = temp_arrakis_meta[0]['edep_features']
                 self.meta['features'] = {**self.meta['view_features'], **self.meta['edep_features']}
@@ -154,7 +129,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             
         except:
             self.logger.error(f'error collecting meta information from arrakis file {input_file}!')
-        if (self.meta['dataset_type'] in self.wire_tpc_datasets):
+        if (self.meta['dataset_type'] in wire_tpc_datasets):
             for point_label in [
                 'edep_source_points', 'edep_topology_points', 'edep_particle_points', 'edep_physics_points', 'edep_total_points',
                 'view_0_source_points', 'view_0_topology_points', 'view_0_particle_points', 'view_0_physics_points', 'view_0_total_points',
@@ -170,7 +145,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         
         # Check that meta info is consistent over the different files
         for ii in range(len(temp_arrakis_meta)-1):
-            if (self.meta['dataset_type'] in self.wire_tpc_datasets):
+            if (self.meta['dataset_type'] in wire_tpc_datasets):
                 if self.meta['view_features'] != temp_arrakis_meta[ii+1]['view_features']:
                     self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
                 if self.meta['edep_features'] != temp_arrakis_meta[ii+1]['edep_features']:
@@ -187,7 +162,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
             for classes in self.meta['classes'].keys():
                 if self.meta[f'{classes}_labels'] != temp_arrakis_meta[ii+1][f'{classes}_labels']:
                     self.logger.error(f'conflicting meta information found in file {self.dataset_files[0]} and {self.dataset_files[ii+1]}')
-            if (self.meta['dataset_type'] in self.wire_tpc_datasets and self.meta_consistency):
+            if (self.meta['dataset_type'] in wire_tpc_datasets and self.meta_consistency):
                 for point_label in [
                     'edep_source_points', 'edep_topology_points', 'edep_particle_points', 'edep_physics_points', 'edep_total_points',
                     'view_0_source_points', 'view_0_topology_points', 'view_0_particle_points', 'view_0_physics_points', 'view_0_total_points',
@@ -202,7 +177,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
                                 self.meta[point_label][key] += temp_arrakis_meta[ii+1][point_label][key]
 
         # arange dictionaries for label<->value<->index maps
-        if (self.meta['dataset_type'] in self.wire_tpc_datasets):
+        if (self.meta['dataset_type'] in wire_tpc_datasets):
             self.meta['edep_features_names'] = list(self.meta['edep_features'].keys())
             self.meta['edep_features_values'] = list(self.meta['edep_features'].values())
             self.meta['edep_features_names_by_value'] = {val: key for key, val in self.meta['edep_features'].items()}
@@ -715,7 +690,7 @@ class BlipDataset(InMemoryDataset, GenericDataset):
         }
 
         if self.skip_processing:
-            self.logger.info(f'skipping processing of data.')
+            self.logger.info('skipping processing of data.')
             return
         self.index = 0
         self.logger.info(f"processing {len(self.dataset_files)} files.")

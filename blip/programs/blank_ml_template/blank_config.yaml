@@ -1,0 +1,72 @@
+module:
+  module_name:  'place_holder_config'
+  module_type:  ['ml']
+  module_mode:  ['training']
+  gpu:          true
+  gpu_device:   0
+  verbose:      true
+
+dataset:
+  skip_processing:  false
+  transform:        null
+  pre_transform:    null
+  pre_filter:       null
+  dataset_type:   "place_holder"
+  dataset_folder: "/local_data/data/"
+  dataset_files:  [
+  ]
+
+loader:
+  loader_type:      "minkowski"
+  batch_size:       64
+  test_split:       0.1
+  test_seed:        42
+  validation_split: 0.3
+  validation_seed:  42
+  num_workers:      4
+
+training:
+  iterations:   1
+  epochs:       100
+  checkpoint:   25
+  progress_bar: "all"     # train, validation, test, all
+  rewrite_bar:      false # wether to leave bars after each epoch
+  save_predictions: false # wether to save network outputs in original file
+  no_timing:    true      # wether to keep timing/memory info in callback
+  skip_metrics: true      # wether to skip metrics except for testing sets
+  seed:         0
+
+model_analyzer:
+
+model:
+  PlaceHolderModel:
+
+criterion:
+  PlaceHolderLoss:
+    alpha:    1.0
+    target_type:  "classes"
+    targets:  [""]
+    outputs:  [""]  
+    augmentations:  0
+
+metrics: 
+  PlaceHolderMetric:
+    target_type:  "classes"
+    when_to_compute:  "test"
+    targets:  [""]
+    outputs:  [""]  
+    augmentations:  0
+
+callbacks:
+  LossCallback:
+  MetricCallback:
+    skip_metrics: true
+  PlaceHolderCallback:
+
+optimizer:
+  optimizer_type: "Adam"
+  learning_rate:  0.01
+  betas:          [0.9, 0.999]
+  epsilon:        1e-08
+  weight_decay:   0.001
+  momentum:       0.9
