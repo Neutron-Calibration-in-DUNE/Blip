@@ -6,6 +6,7 @@ from tqdm import tqdm
 
 from blip.module import GenericModule
 from blip.dataset.arrakis import Arrakis
+from blip.utils.utils import untar_file
 
 arrakis_config = {
     "process_simulation": True,
@@ -64,6 +65,7 @@ class ArrakisModule(GenericModule):
             self.config['arrakis'],
             self.meta
         )
+        self.download_files()
         if self.mode == 'larsoft':
             self.run_larsoft()
         elif self.mode == 'ndlar_flow':
@@ -72,8 +74,21 @@ class ArrakisModule(GenericModule):
             self.run_larsoft_singles()
         elif self.mode == 'ndlar_flow_singles':
             self.run_ndlar_flow_singles()
+        elif self.mode == 'download':
+            self.logger.info('only downloading datasets and not processing')
         else:
             self.logger.warning(f"current mode {self.mode} not an available type!")
+
+    def download_files(self):
+        if self.arrakis.config["download_data"]:
+            for ii, dataset in enumerate(self.arrakis.config["download_dataset"]):
+                self.logger.info(f'downloading file {dataset} from OSF')
+                with open(f'{self.config["arrakis"]["simulation_folder"]}/{dataset}.tar.gz', 'wb') as fp:
+                    self.arrakis.osf_files[dataset].write_to(fp)
+                untar_file(
+                    f'{self.config["arrakis"]["simulation_folder"]}/{dataset}.tar.gz',
+                    f'{self.config["arrakis"]["simulation_folder"]}'
+                )
 
     def run_larsoft(self):
         self.logger.info('running larsoft arrakis')

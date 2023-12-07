@@ -9,6 +9,7 @@ import shutil
 import numpy as np
 import pandas as pd
 import random
+import requests
 import tarfile
 from matplotlib import pyplot as plt
 from os import listdir
@@ -28,6 +29,11 @@ def tar_directory(
                 file_path = os.path.join(root, f)
                 arcname = os.path.relpath(file_path, path)
                 tarhandle.add(file_path, arcname=os.path.join(base_path, arcname))
+
+
+def untar_file(tar_file, output_dir):
+    with tarfile.open(tar_file, 'r:gz') as tar:
+        tar.extractall(output_dir)
 
 
 def index_positions(
@@ -340,6 +346,14 @@ def color_list(color):
         "end":     '\033[0m'
     }
     return colors[color]
+
+
+def download_osf_file(file_url, destination_path):
+    response = requests.get(file_url, stream=True)
+    with open(destination_path, 'wb') as f:
+        for chunk in response.iter_content(chunk_size=1024):
+            if chunk:
+                f.write(chunk)
 
 
 def print_colored(string, color, bold=False, end="\n"):

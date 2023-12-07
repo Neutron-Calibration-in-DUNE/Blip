@@ -10,8 +10,11 @@ import socket
 import numpy as np
 from datetime import datetime
 import h5py
+import numbers
 import imageio
+import requests
 from matplotlib import pyplot as plt
+from osfclient.api import OSF
 
 from blip.utils.logger import Logger
 from blip.utils.utils import get_files_with_extension
@@ -21,7 +24,7 @@ from blip.dataset.common import classification_labels
 class Arrakis:
     def __init__(
         self,
-        name:   str = "arrakis",
+        name:   str = "_arrakis",
         config: dict = {},
         meta:   dict = {}
     ):
@@ -33,9 +36,9 @@ class Arrakis:
         else:
             self.device = 'cpu'
         if meta['verbose']:
-            self.logger = Logger(name, output="both", file_mode="w")
+            self.logger = Logger(self.name, output="both", file_mode="w")
         else:
-            self.logger = Logger(name, level='warning', file_mode="w")
+            self.logger = Logger(self.name, level='warning', file_mode="w")
         self.logger.info("constructing arrakis dataset.")
 
         self.wire_experiments = ['protodune', 'microboone', 'icarus', 'sbnd', 'protodune_vd']
@@ -43,6 +46,26 @@ class Arrakis:
 
         self.wire_process_types = []
         self.larpix_process_types = []
+
+        # OSF Neutron-Calibration-in-DUNE
+        self.osf_project_id = '38ZCK'
+        # OSF API endpoints
+        self.osf_base_url = 'https://api.osf.io/v2/nodes/'
+        self.osf_project_url = os.path.join(self.osf_base_url, self.osf_project_id)
+        self.osf_client = OSF()
+        self.osf_project = self.osf_client.project(self.osf_project_id)
+        self.osf_files = {
+            'protodune_arrakis_blip_singles': None
+        }
+        for store in self.osf_project.storages:
+            for file_ in store.files:
+                path = file_.path
+                if path.startswith('/'):
+                    path = path[1:]
+
+                for file_name in self.osf_files.keys():
+                    if file_name in path:
+                        self.osf_files[file_name] = file_
 
         """
         ProtoDUNE channel mappings for different
@@ -153,6 +176,37 @@ class Arrakis:
 
         self.parse_config()
 
+    def _get_attribute(self, json, *keys, **kwargs):
+        # pick value out of a (nested) dictionary/JSON
+        # `keys` is a list of keys
+        # XXX what should happen if a key doesn't match half way down
+        # XXX traversing the list of keys?
+        value = json
+        try:
+            for key in keys:
+                value = value[key]
+
+        except KeyError:
+            default = kwargs.get('default')
+            if default is not None:
+                return default
+            else:
+                raise
+
+        return value
+
+    def _json(self, response, status_code):
+        """Extract JSON from response if `status_code` matches."""
+        if isinstance(status_code, numbers.Integral):
+            status_code = (status_code,)
+
+        if response.status_code in status_code:
+            return response.json()
+        else:
+            raise RuntimeError("Response has status "
+                               "code {} not {}".format(response.status_code,
+                                                       status_code))
+
     def parse_config(self):
         if "experiment" not in self.config.keys():
             self.logger.warn('no experiment specified in config! Setting to ProtoDUNE.')
@@ -228,6 +282,17 @@ class Arrakis:
             self.logger.warn('process_type not specified in config! Setting to "[all]".')
             self.config["process_type"] = ["all"]
         self.process_type = self.config["process_type"]
+
+        if "download_data" not in self.config.keys():
+            self.config["download_data"] = False
+        else:
+            if "download_dataset" not in self.config.keys():
+                self.logger.error('download_data set to true, but no dataset specified in "download_dataset"!')
+            if isinstance(self.config["download_dataset"], str):
+                self.config["download_dataset"] = [self.config["download_dataset"]]
+            for ii, dataset in enumerate(self.config["download_dataset"]):
+                if dataset not in self.osf_files.keys():
+                    self.logger.error(f'specified osf_dataset {dataset} not an available set from OSF!') 
 
     def load_root_arrays(
         self,
@@ -413,7 +478,7 @@ class Arrakis:
     def generate_larpix_training_data(
         self,
         input_file:   str = '',
-        limit_tpcs:   list = [], 
+        limit_tpcs:   list = [],
     ):
         pass
 
