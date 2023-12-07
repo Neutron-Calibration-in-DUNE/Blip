@@ -5,6 +5,7 @@ import torch
 
 from blip.utils.logger import Logger
 
+
 class GenericLoss:
     """
     Abstract base class for Blip losses.  The inputs are
@@ -13,7 +14,7 @@ class GenericLoss:
         3. target_type - specifies whether the targets are features/classes/clusters/hits/etc.
         4. targets - list of names for the targets.
         5. outputs - list of names of the associated outputs for each target.
-        6. augmentations - specified whether augmentations are created for the dataset 
+        6. augmentations - specified whether augmentations are created for the dataset
         7. meta - meta information from the module.
     """
     def __init__(
@@ -28,7 +29,7 @@ class GenericLoss:
     ):
         self.name = name
         self.logger = Logger(self.name, output="both", file_mode="w")
-        if type(alpha) != list:
+        if not isinstance(alpha, list):
             self.alpha = [alpha for ii in range(len(targets))]
         else:
             if len(alpha) != len(targets):
@@ -41,7 +42,7 @@ class GenericLoss:
         self.meta = meta
         if "device" in self.meta:
             self.device = self.meta['device']
-        
+
         if len(self.targets) != len(self.outputs):
             self.logger.error(f'number of targets {self.targets} does not match number of outputs {self.outputs}!')
 
@@ -59,7 +60,9 @@ class GenericLoss:
             ]
         elif target_type == 'classes':
             self.loss = self.classes_loss
-            self.number_of_target_labels = [len(self.meta['dataset'].meta['blip_labels_values'][target]) for target in self.targets]
+            self.number_of_target_labels = [
+                len(self.meta['dataset'].meta['blip_labels_values'][target]) for target in self.targets
+            ]
             self.target_indicies = [
                 self.meta['dataset'].meta['blip_classes_indices_by_name'][target] for target in self.targets
             ]
@@ -79,31 +82,34 @@ class GenericLoss:
             self.loss = self.augment_batch_loss
         else:
             self.logger.error(f'specified target_type "{target_type}" not allowed!')
-        
+
         # construct batch loss dictionaries
         self.batch_loss = {
-            key: torch.empty(size=(0,1), dtype=torch.float, device=self.device)
+            key: torch.empty(size=(0, 1), dtype=torch.float, device=self.device)
             for key in self.targets
         }
-    
-    def reset_batch(self):  
-        for key in self.batch_loss.keys():
-            self.batch_loss[key] = torch.empty(size=(0,1), dtype=torch.float, device=self.device)
 
-    def set_device(self,
+    def reset_batch(self):
+        for key in self.batch_loss.keys():
+            self.batch_loss[key] = torch.empty(size=(0, 1), dtype=torch.float, device=self.device)
+
+    def set_device(
+        self,
         device
-    ):  
+    ):
         self.device = device
         for key in self.batch_loss.keys():
-            self.batch_loss[key] = torch.empty(size=(0,1), dtype=torch.float, device=self.device)
+            self.batch_loss[key] = torch.empty(size=(0, 1), dtype=torch.float, device=self.device)
 
-    def _loss(self, 
+    def _loss(
+        self,
         target,
         outputs
     ):
-        self.logger.error(f'"_loss" not implemented in Loss!')
+        self.logger.error('"_loss" not implemented in Loss!')
 
-    def position_loss(self,
+    def position_loss(
+        self,
         outputs,
         data,
     ):
@@ -117,8 +123,9 @@ class GenericLoss:
                 for key in self.targets
             }
         return self._loss(target, outputs)
-    
-    def feature_loss(self,
+
+    def feature_loss(
+        self,
         outputs,
         data,
     ):
@@ -133,7 +140,8 @@ class GenericLoss:
             }
         return self._loss(target, outputs)
 
-    def classes_loss(self,
+    def classes_loss(
+        self,
         outputs,
         data,
     ):
@@ -148,7 +156,8 @@ class GenericLoss:
             }
         return self._loss(target, outputs)
 
-    def cluster_loss(self,
+    def cluster_loss(
+        self,
         outputs,
         data,
     ):
@@ -163,7 +172,8 @@ class GenericLoss:
             }
         return self._loss(target, outputs)
 
-    def hit_loss(self,
+    def hit_loss(
+        self,
         outputs,
         data,
     ):
@@ -178,7 +188,8 @@ class GenericLoss:
             }
         return self._loss(target, outputs)
 
-    def augment_batch_loss(self,
+    def augment_batch_loss(
+        self,
         outputs,
         data,
     ):
@@ -191,4 +202,3 @@ class GenericLoss:
             for ii, key in enumerate(self.outputs)
         }
         return self._loss(target, outputs)
-    

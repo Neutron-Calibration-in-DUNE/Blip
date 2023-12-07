@@ -3,10 +3,12 @@ Various utility functions
 """
 import os
 import torch
+import copy
 import inspect
 import shutil
 import numpy as np
 import pandas as pd
+import random
 import tarfile
 from matplotlib import pyplot as plt
 from os import listdir
@@ -352,3 +354,96 @@ def print_colored(string, color, bold=False, end="\n"):
         output = '\033[1m' + color + string + color_list("end")
 
     print(output, end=end)
+
+
+def update_nested_dictionary_value(
+    dictionary,
+    keys:   list = [],
+    new_value:  any = None
+):
+    """
+    Update the value at the endpoint of a nested dictionary using a list of keys.
+    """
+    current_dict = dictionary
+
+    # Traverse the dictionary up to the second-to-last level
+    for key in keys[:-1]:
+        if key in current_dict:
+            current_dict = current_dict[key]
+        else:
+            # Handle the case where the key is not present in the dictionary
+            return False
+
+    # Update the value at the endpoint with the new value
+    last_key = keys[-1]
+    if last_key in current_dict:
+        current_dict[last_key] = new_value
+        return True
+    else:
+        # Handle the case where the last key is not present in the dictionary
+        return False
+
+
+def traverse_nested_dictionary(
+    dictionary,
+    path:   list = None,
+    paths:  list = [],
+    values: list = []
+):
+    """
+    Traverse every path in a nested dictionary.
+
+    Parameters:
+    - d (dict): The nested dictionary to traverse.
+    - path (list): The current path being traversed. (Default is None)
+
+    Returns:
+    - None
+    """
+    if path is None:
+        path = []
+
+    for key, value in dictionary.items():
+        current_path = path + [key]
+
+        if isinstance(value, dict):
+            traverse_nested_dictionary(
+                value,
+                current_path,
+                paths,
+                values
+            )
+        else:
+            paths.append(current_path)
+            values.append(value)
+
+    return paths, values
+
+
+def generate_random_dictionaries(
+    dictionary,
+    num_configs:    int = 10,
+    sample_dictionary:  dict = None
+):
+    new_dicts = []
+
+    if sample_dictionary is not None:
+        paths, values = traverse_nested_dictionary(sample_dictionary)
+    else:
+        paths, values = traverse_nested_dictionary(dictionary)
+
+    num_possible_configs = sum([len(x) for x in values])
+    num_configs = min(num_possible_configs, num_configs)
+
+    while len(new_dicts) < num_configs:
+        sample_dict = copy.deepcopy(dictionary)
+        for jj, keys in enumerate(paths):
+            update_nested_dictionary_value(
+                sample_dict,
+                keys,
+                random.choice(values[jj])
+            )
+        if sample_dict not in new_dicts:
+            new_dicts.append(sample_dict)
+
+    return new_dicts

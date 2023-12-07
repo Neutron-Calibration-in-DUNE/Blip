@@ -170,20 +170,6 @@ class Loader:
         self.logger.info(f"num_workers: {self.num_workers}.")
         self.logger.info(f"sparse:      {self.sparse}.")
 
-        # determine if using sample weights
-        if self.meta['dataset'].use_sample_weights is True:
-            self.use_sample_weights = True
-        else:
-            self.use_sample_weights = False
-        self.logger.info(f"use_sample_weights: {self.use_sample_weights}.")
-
-        # determine if using class weights
-        if self.meta['dataset'].use_class_weights is True:
-            self.use_class_weights = True
-        else:
-            self.use_class_weights = False
-        self.logger.info(f"use_class_weights: {self.use_class_weights}.")
-
         # determine number of all batches
         self.num_all_batches = len(self.meta['dataset'])
         self.logger.info(f"number of total samples: {len(self.meta['dataset'])}.")

@@ -48,3 +48,11 @@ class ConfigParser:
         if 'load_config' in temp_data.keys():
             self.nested_config_files.append(temp_data['load_config'])
             self.collect_nested_configs(temp_data['load_config'])
+
+    def save_config(
+        self,
+        config_dictionary,
+        output_file
+    ):
+        with open(output_file, 'w') as file:
+            yaml.dump(config_dictionary, file)
