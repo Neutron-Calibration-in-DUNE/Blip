@@ -55,7 +55,8 @@ class Arrakis:
         self.osf_client = OSF()
         self.osf_project = self.osf_client.project(self.osf_project_id)
         self.osf_files = {
-            'protodune_arrakis_blip_singles': None
+            'protodune_arrakis_singles':        None,
+            'protodune_arrakis_blip_singles':   None,
         }
         for store in self.osf_project.storages:
             for file_ in store.files:

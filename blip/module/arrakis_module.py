@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from blip.module import GenericModule
 from blip.dataset.arrakis import Arrakis
-from blip.utils.utils import untar_file
+from blip.utils.utils import untar_file, unzip_file
 
 arrakis_config = {
     "process_simulation": True,
@@ -83,10 +83,10 @@ class ArrakisModule(GenericModule):
         if self.arrakis.config["download_data"]:
             for ii, dataset in enumerate(self.arrakis.config["download_dataset"]):
                 self.logger.info(f'downloading file {dataset} from OSF')
-                with open(f'{self.config["arrakis"]["simulation_folder"]}/{dataset}.tar.gz', 'wb') as fp:
+                with open(f'{self.config["arrakis"]["simulation_folder"]}/{dataset}.zip', 'wb') as fp:
                     self.arrakis.osf_files[dataset].write_to(fp)
-                untar_file(
-                    f'{self.config["arrakis"]["simulation_folder"]}/{dataset}.tar.gz',
+                unzip_file(
+                    f'{self.config["arrakis"]["simulation_folder"]}/{dataset}.zip',
                     f'{self.config["arrakis"]["simulation_folder"]}'
                 )
 
@@ -117,7 +117,7 @@ class ArrakisModule(GenericModule):
             self.arrakis.generate_larpix_training_data(simulation_file)
             simulation_file_loop.set_description(f"Running ndlar-flow Arrakis: File [{ii+1}/{len(self.arrakis.simulation_files)}]")
         self.logger.info('ndlar_flow arrakis finished')
-    
+
     def run_larsoft_singles(self):
         self.logger.info('running larsoft singles arrakis')
         simulation_file_loop = tqdm(

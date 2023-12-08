@@ -3,6 +3,7 @@ Various utility functions
 """
 import os
 import torch
+import zipfile
 import copy
 import inspect
 import shutil
@@ -18,22 +19,65 @@ from itertools import product
 from datetime import datetime
 
 
-def tar_directory(
-    path,
-    name
+def tar_single_file(
+    file_path,
+    tarfile_name
 ):
-    with tarfile.open(name, "w:gz") as tarhandle:
-        base_path = os.path.basename(path)
-        for root, dirs, files in os.walk(path):
+    with tarfile.open(tarfile_name, 'w') as tar:
+        # The arcname parameter is used to specify the name inside the tar file
+        tar.add(file_path, arcname='')
+
+
+def tar_directory(
+    directory_path,
+    tarfile_name
+):
+    with tarfile.open(tarfile_name, "w:gz") as tarhandle:
+        base_path = os.path.basename(directory_path)
+        for root, _, files in os.walk(directory_path):
             for f in files:
                 file_path = os.path.join(root, f)
-                arcname = os.path.relpath(file_path, path)
+                # The arcname parameter is used to store the directory structure inside the tar file
+                arcname = os.path.relpath(file_path, directory_path)
                 tarhandle.add(file_path, arcname=os.path.join(base_path, arcname))
 
 
-def untar_file(tar_file, output_dir):
+def untar_file(
+    tar_file,
+    output_directory
+):
     with tarfile.open(tar_file, 'r:gz') as tar:
-        tar.extractall(output_dir)
+        tar.extractall(output_directory)
+
+
+def zip_single_file(
+    file_path,
+    zipfile_name
+):
+    with zipfile.ZipFile(zipfile_name, 'w') as zipf:
+        # The arcname parameter is used to specify the name inside the zip file
+        zipf.write(file_path, arcname=os.path.basename(file_path))
+
+
+def zip_directory(
+    directory_path,
+    zipfile_name
+):
+    with zipfile.ZipFile(zipfile_name, 'w') as zipf:
+        for root, _, files in os.walk(directory_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                # The arcname parameter is used to store the directory structure inside the zip file
+                arcname = os.path.relpath(file_path, directory_path)
+                zipf.write(file_path, arcname=arcname)
+
+
+def unzip_file(
+    zip_file,
+    output_directory
+):
+    with zipfile.ZipFile(zip_file, 'r') as zipf:
+        zipf.extractall(output_directory)
 
 
 def index_positions(
