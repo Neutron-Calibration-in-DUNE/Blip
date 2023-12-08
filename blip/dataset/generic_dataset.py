@@ -129,11 +129,11 @@ class GenericDataset(InMemoryDataset):
                     os.makedirs(self.config['root'])
                 except:
                     self.logger.warn(
-                        f'attempt at making directory {self.config["root"]} failed.  setting root to /local_scratch/'
+                        f'attempt at making directory {self.config["root"]} failed.  setting root to /local_data/'
                     )
-                    self.root = self.meta['local_scratch']
+                    self.root = self.meta['local_data']
         else:
-            self.root = self.meta['local_scratch']
+            self.root = self.meta['local_data']
         self.logger.info('set "root" directory to {self.root}')
 
     def process_skip_processing(self):
