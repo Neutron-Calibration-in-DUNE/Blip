@@ -113,7 +113,10 @@ class ModuleHandler:
             if ('dataset' in self.config.keys()) and ('loader' in self.config.keys()):
                 self.logger.info("no DatasetModule specified in config; adding it based on 'dataset' and 'loader' sections.")
                 self.config['module']['module_type'].insert(0, 'dataset')
-                self.config['module']['module_mode'].insert(0, 'blip_dataset')
+                if "dataset_params" in self.config['dataset']:
+                    self.config['module']['module_mode'].insert(0, 'dataset_load')
+                else:
+                    self.config['module']['module_mode'].insert(0, 'dataset_prep')
         self.module_type = self.config["module"]["module_type"]
         self.module_mode = self.config["module"]["module_mode"]
         if len(self.module_type) != len(self.module_mode):

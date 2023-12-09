@@ -3,18 +3,13 @@
 import torch
 import os.path as osp
 import numpy   as np
+from tqdm import tqdm
 
 from torch_geometric.data import Data
 
 from blip.dataset.generic_dataset  import GenericDataset
 from blip.topology.merge_tree      import MergeTree
 from blip.dataset.common           import *
-
-tpc_datasets = [
-    'wire_view', 'wire_view_cluster', 'wire_view_tree',
-    'wire_views', 'edep', 'edep_cluster', 'edep_tree',
-    'tpc', 'segment', 'segment_cluster', 'segment_tree'
-]
 
 blip_dataset_config = {
     "name":             "default",
@@ -173,7 +168,14 @@ class BlipDataset(GenericDataset):
         self.index = 0
         self.logger.info(f"processing {len(self.dataset_files)} files.")
 
-        for jj, raw_path in enumerate(self.dataset_files):
+        dataset_file_loop = tqdm(
+            enumerate(self.dataset_files, 0),
+            total=len(self.dataset_files),
+            leave=False,
+            position=0,
+            colour='blue'
+        )
+        for jj, raw_path in dataset_file_loop:
             data = np.load(raw_path, allow_pickle=True)
             if self.meta['dataset_type'] == 'wire_view':
                 features = data[f'view_{self.meta["view"]}_features']
@@ -239,8 +241,10 @@ class BlipDataset(GenericDataset):
                 pass
             elif self.meta['dataset_type'] == 'segment_cluster':
                 pass
-        self.number_of_events = self.index
-        self.logger.info(f"processed {self.number_of_events} events.")
+            dataset_file_loop.set_description("Processing BlipDataset")
+            dataset_file_loop.set_postfix_str(f"file={raw_path}")
+        self.meta['number_of_events'] = self.index
+        self.logger.info(f"processed {self.meta['number_of_events']} events.")
 
     def process_view_cluster(
         self,

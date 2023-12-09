@@ -1,6 +1,7 @@
 import os
 import glob
 import torch
+import pickle
 import numpy as np
 from sklearn.cluster import DBSCAN
 from torch_geometric.data import InMemoryDataset
@@ -9,13 +10,13 @@ from blip.utils.logger import Logger
 
 generic_config = {
     "name":             "default",
-    "root":             ".",
+    "dataset_params":   None,
+    "root":             "/local_data/",
     "transform":        None,
     "pre_transform":    None,
     "pre_filter":       None,
-    "dataset_folder":   "data/",
+    "dataset_folder":   "/local_data/",
     "dataset_files":    [""],
-    "view":             2,
     "variables": {
         "positions":    [],
         "features":     [],
@@ -87,10 +88,19 @@ class GenericDataset(InMemoryDataset):
         else:
             self.logger = Logger(self.name, level='warning', file_mode="w")
 
-        self.number_of_events = 0
+        self.meta['number_of_events'] = 0
+
+        if "dataset_params" in self.config.keys():
+            if self.config["dataset_params"] is not None:
+                if os.path.isfile(self.config['dataset_params']):
+                    self.logger.info(f'loading dataset_params from file {self.config["dataset_params"]}')
+                    self.load_params(self.config['dataset_params'])
+                else:
+                    self.logger.error(f'problem loading dataset_params from file {self.config["dataset_params"]}!')
 
         self.process_generic_config()
         self.process_config()
+        self.save_params()
 
         InMemoryDataset.__init__(
             self,
@@ -100,6 +110,19 @@ class GenericDataset(InMemoryDataset):
             self.pre_filter,
             log=False
         )
+
+    def save_params(self):
+        with open(self.root + '/processed/dataset.params', 'wb') as file:
+            pickle.dump(self.config, file)
+
+    def load_params(
+        self,
+        params_file
+    ):
+        with open(params_file, 'rb') as file:
+            old_config = pickle.load(file)
+            old_config.update(self.config)
+            self.config = old_config
 
     def process_generic_config(self):
         self.process_root()
@@ -134,7 +157,7 @@ class GenericDataset(InMemoryDataset):
                     self.root = self.meta['local_data']
         else:
             self.root = self.meta['local_data']
-        self.logger.info('set "root" directory to {self.root}')
+        self.logger.info(f'set "root" directory to {self.root}')
 
     def process_skip_processing(self):
         # set skip_processing
@@ -147,9 +170,9 @@ class GenericDataset(InMemoryDataset):
         if self.skip_processing:
             if os.path.isdir(self.root + '/processed/'):
                 for path in os.listdir(self.root + '/processed/'):
-                    if os.path.isfile(os.path.join('processed/', path)):
-                        self.number_of_events += 1
-            self.logger.info(f'found {self.number_of_events} processed files.')
+                    if 'data' in path and '.pt' in path:
+                        self.meta['number_of_events'] += 1
+            self.logger.info(f"found {self.meta['number_of_events']} processed files.")
 
     def process_transform(self):
         # set transform
@@ -622,7 +645,7 @@ class GenericDataset(InMemoryDataset):
 
     @property
     def processed_file_names(self):
-        return [f'data_{ii}.pt' for ii in range(self.number_of_events)]
+        return [f'data_{ii}.pt' for ii in range(self.meta['number_of_events'])]
         ...
 
     def len(self):

@@ -146,6 +146,11 @@ class Loader:
         else:
             if self.config["loader_type"] == "sparse" or self.config["loader_type"] == "minkowski":
                 self.config['sparse'] = True
+            else:
+                self.logger.warn(
+                    f'specified loader type {self.config["loader_type"]} not allowed! setting "sparse" to False!'
+                )
+                self.config['sparse'] = False
 
         # assign parameters
         self.batch_size = self.config["batch_size"]
@@ -264,6 +269,13 @@ class Loader:
             num_workers=self.num_workers,
             collate_fn=self.collate_fn
         )
+        self.total_train_loader = DataLoader(
+            self.total_train,
+            batch_size=self.batch_size,
+            pin_memory=True,
+            num_workers=self.num_workers,
+            collate_fn=self.collate_fn
+        )
         self.test_loader = DataLoader(
             self.test,
             batch_size=self.batch_size,
@@ -273,7 +285,7 @@ class Loader:
         )
         self.all_loader = DataLoader(
             self.meta['dataset'],
-            batch_size=1,
+            batch_size=self.batch_size,
             pin_memory=True,
             num_workers=self.num_workers,
             collate_fn=self.collate_fn

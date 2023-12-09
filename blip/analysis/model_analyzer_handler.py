@@ -10,7 +10,7 @@ import sys
 import inspect
 
 from blip.analysis.generic_model_analyzer import GenericModelAnalyzer
-from blip.dataset.blip import BlipDataset
+from blip.dataset.blip_dataset import BlipDataset
 from blip.utils.logger import Logger
 
 from blip.utils.utils import get_method_arguments

@@ -190,24 +190,44 @@ class BlipRunner:
 def parse_command_line_config(
     params
 ):
-    # set up local scratch and local blip
+    # set up local scratch directory
     if params.local_scratch is not None:
         if not os.path.isdir(params.local_scratch):
-            params.local_scratch = './'
+            if "LOCAL_SCRATCH" in os.environ:
+                params.local_scratch = os.environ["LOCAL_SCRATCH"]
+            else:
+                params.local_scratch = './'
     else:
-        params.local_scratch = './'
+        if "LOCAL_SCRATCH" in os.environ:
+            params.local_scratch = os.environ["LOCAL_SCRATCH"]
+        else:
+            params.local_scratch = './'
+
+    # set up local blip directory
     if params.local_blip is not None:
         if not os.path.isdir(params.local_blip):
-            params.local_blip = './'
+            if "LOCAL_BLIP" in os.environ:
+                params.local_blip = os.environ["LOCAL_BLIP"]
+            else:
+                params.local_blip = './'
     else:
-        params.local_blip = './'
+        if "LOCAL_BLIP" in os.environ:
+            params.local_blip = os.environ["LOCAL_BLIP"]
+        else:
+            params.local_blip = './'
 
-    # set up local data
+    # set up local data directory
     if params.local_data is not None:
         if not os.path.isdir(params.local_data):
-            params.local_data = './'
+            if "LOCAL_DATA" in os.environ:
+                params.local_data = os.environ["LOCAL_DATA"]
+            else:
+                params.local_data = './'
     else:
-        params.local_data = './'
+        if "LOCAL_DATA" in os.environ:
+            params.local_data = os.environ["LOCAL_DATA"]
+        else:
+            params.local_data = './'
 
     blip_runner = BlipRunner(
         params.config_file,
