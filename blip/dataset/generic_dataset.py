@@ -112,7 +112,7 @@ class GenericDataset(InMemoryDataset):
         )
 
     def save_params(self):
-        with open(self.root + '/processed/dataset.params', 'wb') as file:
+        with open(self.root + '/dataset.params', 'wb') as file:
             pickle.dump(self.config, file)
 
     def load_params(
