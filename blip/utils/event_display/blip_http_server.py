@@ -3,15 +3,12 @@ To run the bokeh server from a terminal + browser,
 run the command:
     > bokeh server --show blip_http_server.py
 """
-from bokeh.io                            import curdoc, output_notebook, show
-from bokeh.layouts                       import column
-from bokeh.models                        import ColumnDataSource
-from bokeh.plotting                      import figure
-from bokeh.server.server                 import Server
-from bokeh.application                   import Application
-from bokeh.application.handlers.function import FunctionHandler
+from bokeh.io                            import curdoc
+from blip.utils.event_display import BlipDisplay, PanelDisplay
 
-from blip.utils.event_display import BlipDisplay
+# OLD BLIP DISPLAY BOKEH BASED:
+# blip_display = BlipDisplay()
+# curdoc().add_root(blip_display.layout)
 
-blip_display = BlipDisplay()
-curdoc().add_root(blip_display.layout)
+# NEW BLIP DISPLAY PLOTLY BASED:
+blip_display = PanelDisplay()
