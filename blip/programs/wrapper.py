@@ -1,245 +1,235 @@
+"""
+"""
+from blip.utils.logger import Logger
+from blip.utils.config import ConfigParser
+from blip.utils.utils import get_datetime
+
+from blip.module import ModuleHandler
+
 import torch
 import os
-import csv
-import getpass
-from torch import nn
-import torch.nn.functional as F
-from time import time
-from datetime import datetime
-import argparse
+import shutil
 os.environ["TQDM_NOTEBOOK"] = "false"
 
-from blip.utils.logger import Logger, default_logger
-from blip.utils.config import ConfigParser
 
-from blip.dataset.arrakis import Arrakis
-from blip.dataset.arrakis_nd import ArrakisND
-from blip.dataset.mssm import MSSM
-from blip.dataset.blip import BlipDataset
-from blip.dataset.vanilla import VanillaDataset
-from blip.utils.loader import Loader
-from blip.module import ModuleHandler
-from blip.module.common import module_types
+class BlipRunner:
+    """
+    """
+    def __init__(
+        self,
+        config_file:    str,
+        run_name:       str = None,
+        local_scratch:  str = './',
+        local_blip:     str = './',
+        local_data:     str = './',
+        anomaly:        bool = False
+    ):
+        # set up directories
+        self.config_file = config_file
+        self.run_name = run_name
+        self.local_scratch = local_scratch
+        self.local_blip = local_blip
+        self.local_data = local_data
+        self.anomaly = anomaly
 
-def wrangle_data(
-    config_file:    str,
-    run_name:       str='default',
-    local_scratch:  str='./',
-    local_blip:     str='./',
-    local_data:     str='./',
-    anomaly:        bool=False      
-):
-    # set up directories
-    if not os.path.isdir(local_scratch):
-        local_scratch = './'
-    if not os.path.isdir(local_blip):
-        local_blip = './'
-    if not os.path.isdir(local_data):
-        local_data = './'
-    local_blip_files = [
-        local_blip + '/' + file 
-        for file in os.listdir(path=os.path.dirname(local_blip))
-    ]
-    local_data_files = [
-        local_data + '/' + file 
-        for file in os.listdir(path=os.path.dirname(local_data))
-    ]
-    os.environ['LOCAL_SCRATCH'] = local_scratch
-    os.environ['LOCAL_BLIP'] = local_blip
-    os.environ['LOCAL_DATA'] = local_data
+        if not os.path.isdir(self.local_scratch):
+            self.local_scratch = './'
+        if not os.path.isdir(self.local_blip):
+            self.local_blip = './'
+        if not os.path.isdir(self.local_data):
+            self.local_data = './'
+        self.local_blip_files = [
+            self.local_blip + '/' + file
+            for file in os.listdir(path=os.path.dirname(self.local_blip))
+        ]
+        self.local_data_files = [
+            self.local_data + '/' + file
+            for file in os.listdir(path=os.path.dirname(self.local_data))
+        ]
+        os.environ['LOCAL_SCRATCH'] = self.local_scratch
+        os.environ['LOCAL_BLIP'] = self.local_blip
+        os.environ['LOCAL_DATA'] = self.local_data
 
-    logger = Logger('data_wrangler', output="both", file_mode="w")
-    logger.info("configuring data...")
+        self.logger = Logger('blip_runner', output="both", file_mode="w")
 
-    # begin parsing configuration file
-    if config_file is None:
-        logger.error(f'no config_file specified in parameters!')
+        # begin parsing configuration file
+        if self.config_file is None:
+            self.logger.error('no config_file specified in parameters!')
 
-    config = ConfigParser(config_file).data
+        self.config = ConfigParser(self.config_file).data
 
-    if anomaly:
-        logger.info(f'setting anomaly detection to {anomaly}')
-        torch.autograd.set_detect_anomaly(bool(anomaly))
+        if self.anomaly:
+            self.logger.info(f'setting anomaly detection to {self.anomaly}')
+            torch.autograd.set_detect_anomaly(bool(self.anomaly))
 
-    if "module" not in config.keys():
-        logger.error(f'"module" section not specified in config!')
-    if "dataset" not in config.keys():
-        logger.error(f'"dataset" section not specified in config!')
-    if "loader" not in config.keys():
-        logger.error(f'"loader" section not specified in config!')
-    system_info = logger.get_system_info()
-    for key, value in system_info.items():
-        logger.info(f"system_info - {key}: {value}")
-    
-    meta = {
-        'config_file':      config_file,
-        'local_scratch':    local_scratch,
-        'local_blip':       local_blip,
-        'local_data':       local_data,
-        'local_blip_files': local_blip_files,
-        'local_data_files': local_data_files
-    }
-    logger.info(f'"local_scratch" directory set to: {local_scratch}.')
-    logger.info(f'"local_blip" directory set to: {local_blip}.')
-    logger.info(f'"local_data" directory set to: {local_data}.')
-    
-    # set verbosity of logger
-    if "verbose" in config["module"]:
-        if not isinstance(config["module"]["verbose"], bool):
-            logger.error(f'"module:verbose" must be of type bool, but got {type(config["module"]["verbose"])}!')
-        meta["verbose"] = config["module"]["verbose"]
-    else:
-        meta["verbose"] = False
-    
-    # Eventually we will want to check that the order of the modules makes sense,
-    # and that the data products are compatible and available for the different modes.
+        if "module" not in self.config.keys():
+            self.logger.error('"module" section not specified in config!')
 
-    # check for devices
-    if "gpu" not in config["module"].keys():
-        logger.warn(f'"module:gpu" not specified in config!')
-        gpu = None
-    else:
-        gpu = config["module"]["gpu"]
-    if "gpu_device" not in config["module"].keys():
-        logger.warn(f'"module:gpu_device" not specified in config!')
-        gpu_device = None
-    else:
-        gpu_device = config["module"]["gpu_device"]
-    
-    if torch.cuda.is_available():
-        logger.info(f"CUDA is available with devices:")
-        for ii in range(torch.cuda.device_count()):
-            device_properties = torch.cuda.get_device_properties(ii)
-            cuda_stats = f"name: {device_properties.name}, "
-            cuda_stats += f"compute: {device_properties.major}.{device_properties.minor}, "
-            cuda_stats += f"memory: {device_properties.total_memory}"
-            logger.info(f" -- device: {ii} - " + cuda_stats)
+        self.set_up_directories()
+        self.set_up_meta()
+        self.set_up_devices()
+        self.set_up_modules()
 
-    # set gpu settings
-    if gpu:
+    def set_up_directories(self):
+        # create .tmp and .backup directories
+        if not os.path.isdir(f"{self.local_scratch}/.backup"):
+            os.makedirs(f"{self.local_scratch}/.backup")
+        if os.path.isdir(f"{self.local_scratch}/.backup/.tmp"):
+            shutil.rmtree(f"{self.local_scratch}/.backup/.tmp")
+        if os.path.isdir(f"{self.local_scratch}/.tmp"):
+            shutil.move(
+                f"{self.local_scratch}/.tmp/",
+                f"{self.local_scratch}/.backup/"
+            )
+            self.logger.info("copied old .tmp to .backup in local_scratch directory.")
+        os.makedirs(f"{self.local_scratch}/.tmp")
+
+    def set_up_meta(self):
+        self.logger.info("configuring meta...")
+
+        system_info = self.logger.get_system_info()
+        for key, value in system_info.items():
+            self.logger.info(f"system_info - {key}: {value}")
+
+        # get run_name
+        if self.run_name is None:
+            self.run_name = self.config['module']['module_name']
+
+        # add unique datetime
+        now = get_datetime()
+        self.run_name += f"_{now}"
+        self.local_run = self.local_scratch + '/' + self.run_name
+
+        # create run directory
+        if not os.path.isdir(self.local_run):
+            os.makedirs(self.local_run)
+
+        self.meta = {
+            'system_info':      system_info,
+            'now':              now,
+            'run_name':         self.run_name,
+            'config_file':      self.config_file,
+            'run_directory':    self.local_run,
+            'local_scratch':    self.local_scratch,
+            'local_blip':       self.local_blip,
+            'local_data':       self.local_data,
+            'local_blip_files': self.local_blip_files,
+            'local_data_files': self.local_data_files
+        }
+        self.logger.info(f'"now" set to: {now}')
+        self.logger.info(f'"run_name" set to: {self.run_name}')
+        self.logger.info(f'"run_directory" set to: {self.local_run}.')
+        self.logger.info(f'"local_scratch" directory set to: {self.local_scratch}.')
+        self.logger.info(f'"local_blip" directory set to: {self.local_blip}.')
+        self.logger.info(f'"local_data" directory set to: {self.local_data}.')
+
+        # set verbosity of self.logger
+        if "verbose" in self.config["module"]:
+            if not isinstance(self.config["module"]["verbose"], bool):
+                self.logger.error(f'"module:verbose" must be of type bool, but got {type(self.config["module"]["verbose"])}!')
+            self.meta["verbose"] = self.config["module"]["verbose"]
+        else:
+            self.meta["verbose"] = False
+
+    def set_up_devices(self):
+        # check for devices
+        if "gpu" not in self.config["module"].keys():
+            self.logger.warn('"module:gpu" not specified in config!')
+            gpu = None
+        else:
+            gpu = self.config["module"]["gpu"]
+        if "gpu_device" not in self.config["module"].keys():
+            self.logger.warn('"module:gpu_device" not specified in config!')
+            gpu_device = None
+        else:
+            gpu_device = self.config["module"]["gpu_device"]
+
         if torch.cuda.is_available():
-            if gpu_device >= torch.cuda.device_count() or gpu_device < 0:
-                logger.warn(f"desired gpu_device '{gpu_device}' not available, using device '0'")
-                gpu_device = 0
-            meta['device'] = torch.device(f"cuda:{gpu_device}")
-            logger.info(
-                f"CUDA is available, using device {gpu_device}" + 
-                f": {torch.cuda.get_device_name(gpu_device)}"
-            )
+            self.logger.info("CUDA is available with devices:")
+            for ii in range(torch.cuda.device_count()):
+                device_properties = torch.cuda.get_device_properties(ii)
+                cuda_stats = f"name: {device_properties.name}, "
+                cuda_stats += f"compute: {device_properties.major}.{device_properties.minor}, "
+                cuda_stats += f"memory: {device_properties.total_memory}"
+                self.logger.info(f" -- device: {ii} - " + cuda_stats)
+
+        # set gpu settings
+        if gpu:
+            if torch.cuda.is_available():
+                if gpu_device >= torch.cuda.device_count() or gpu_device < 0:
+                    self.logger.warn(f"desired gpu_device '{gpu_device}' not available, using device '0'")
+                    gpu_device = 0
+                self.meta['device'] = torch.device(f"cuda:{gpu_device}")
+                self.logger.info(
+                    f"CUDA is available, using device {gpu_device}" +
+                    f": {torch.cuda.get_device_name(gpu_device)}"
+                )
+            else:
+                gpu = False
+                self.logger.warn("CUDA not available! Using the cpu")
+                self.meta['device'] = torch.device("cpu")
         else:
-            gpu == False
-            logger.warn(f"CUDA not available! Using the cpu")
-            meta['device'] = torch.device("cpu")
-    else:
-        logger.info(f"using cpu as device")
-        meta['device'] = torch.device("cpu")
-    meta['gpu'] = gpu
-    
-    # Configure the dataset
-    logger.info("configuring dataset.")
-    dataset_config = config['dataset']
-    dataset_config["device"] = meta['device']
-    dataset_config["verbose"] = meta["verbose"]
+            self.logger.info("using cpu as device")
+            self.meta['device'] = torch.device("cpu")
+        self.meta['gpu'] = gpu
 
-    # default to what's in the configuration file. May decide to deprecate in the future
-    if ("simulation_folder" in dataset_config):
-        simulation_folder = dataset_config["simulation_folder"]
-        logger.info(
-            f"Set simulation file folder from configuration. " +
-            f" simulation_folder : {simulation_folder}"
+    def set_up_modules(self):
+        # Configure the module handler
+        self.logger.info("configuring modules.")
+        module_config = self.config
+        self.module_handler = ModuleHandler(
+            self.run_name,
+            module_config,
+            meta=self.meta
         )
-    elif ('BLIP_SIMULATION_PATH' in os.environ ):
-        logger.debug(f'Found BLIP_SIMULATION_PATH in environment')
-        simulation_folder = os.environ['BLIP_SIMULATION_PATH']
-        logger.info(
-            f"Setting simulation path from Enviroment." +
-            f" BLIP_SIMULATION_PATH = {simulation_folder}"
-        )
-    else:
-        logger.error(f'No dataset_folder specified in environment or configuration file!')
 
-    # check for processing simulation files
-    if "simulation_files" in dataset_config and dataset_config["process_simulation"]:
-        if 'simulation_type' not in dataset_config.keys():
-            logger.error(f'simulation_type not specified in dataset config!')
-        if dataset_config["simulation_type"] == "LArSoft":
-            arrakis_dataset = Arrakis(
-                run_name,
-                dataset_config,
-                meta
-            )
-        elif dataset_config["simulation_type"] == "larnd-sim":
-            arrakis_dataset = ArrakisND(
-                run_name,
-                dataset_config,
-                meta
-            )
-        elif dataset_config["simulation_type"] == "MSSM":
-            mssm_dataset = MSSM(
-                run_name,
-                dataset_config,
-                meta
-            )
-        else:
-            logger.error(f'specified "dataset:simulation_type" "{dataset_config["simulation_type"]}" not an allowed type!')
+    def get_products(self):
+        return self.meta, self.module_handler
 
-    logger.info("configuring dataset.")
-    dataset = BlipDataset(
-        run_name,
-        dataset_config,
-        meta
-    )
-    meta['dataset'] = dataset
-
-    # Configure the loader
-    logger.info("configuring loader.")
-    loader_config = config['loader']
-    loader = Loader(
-        run_name,
-        loader_config,
-        meta
-    )
-    meta['loader'] = loader
-
-    # Configure the module handler
-    logger.info("configuring modules.")
-    module_config = config
-    module_handler = ModuleHandler(
-        run_name,
-        module_config,
-        meta=meta
-    )
-    return meta, module_handler
 
 def parse_command_line_config(
     params
 ):
-    # set up parameters
-    if params.name is not None:
-        run_name = params.name
-    else:
-        run_name = 'default'
-    
-    # set up local scratch and local blip
+    # set up local scratch directory
     if params.local_scratch is not None:
         if not os.path.isdir(params.local_scratch):
-            params.local_scratch = './'
+            if "LOCAL_SCRATCH" in os.environ:
+                params.local_scratch = os.environ["LOCAL_SCRATCH"]
+            else:
+                params.local_scratch = './'
     else:
-        params.local_scratch = './'
+        if "LOCAL_SCRATCH" in os.environ:
+            params.local_scratch = os.environ["LOCAL_SCRATCH"]
+        else:
+            params.local_scratch = './'
+
+    # set up local blip directory
     if params.local_blip is not None:
         if not os.path.isdir(params.local_blip):
-            params.local_blip = './'
+            if "LOCAL_BLIP" in os.environ:
+                params.local_blip = os.environ["LOCAL_BLIP"]
+            else:
+                params.local_blip = './'
     else:
-        params.local_blip = './'
+        if "LOCAL_BLIP" in os.environ:
+            params.local_blip = os.environ["LOCAL_BLIP"]
+        else:
+            params.local_blip = './'
 
-    # set up local data
+    # set up local data directory
     if params.local_data is not None:
         if not os.path.isdir(params.local_data):
-            params.local_data = './'
+            if "LOCAL_DATA" in os.environ:
+                params.local_data = os.environ["LOCAL_DATA"]
+            else:
+                params.local_data = './'
     else:
-        params.local_data = './'
+        if "LOCAL_DATA" in os.environ:
+            params.local_data = os.environ["LOCAL_DATA"]
+        else:
+            params.local_data = './'
 
-    return wrangle_data(
+    blip_runner = BlipRunner(
         params.config_file,
         params.name,
         params.local_scratch,
@@ -247,4 +237,4 @@ def parse_command_line_config(
         params.local_data,
         params.anomaly
     )
-    
+    return blip_runner.get_products()

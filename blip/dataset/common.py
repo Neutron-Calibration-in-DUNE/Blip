@@ -3,12 +3,24 @@
 from enum import Enum
 import numpy as np
 
+blip_datasets = [
+    'wire_view', 'wire_view_cluster', 'wire_view_tree',
+    'wire_views', 'edep', 'edep_cluster', 'edep_tree',
+    'tpc', 'segment', 'segment_cluster', 'segment_tree'
+]
+
+mssm_datasets = [
+    'cmssm', 'pmssm'
+]
+
+
 class TopologyLabel(Enum):
     Undefined = -1
     Noise = 0
     Blip = 1
     Track = 2
     Shower = 3
+
 
 class ParticleLabel(Enum):
     Undefined = -1
@@ -39,6 +51,7 @@ class ParticleLabel(Enum):
     Deuteron = 1000010020,
     Triton = 1000010030,
     Alpha = 1000020040
+
 
 class PhysicsLabel(Enum):
     Undefined = -1,

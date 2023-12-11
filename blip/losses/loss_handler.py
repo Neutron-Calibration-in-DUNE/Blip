@@ -176,6 +176,16 @@ class LossHandler:
                 f' be used by the LossHandler in BLIP.'
             )
 
+    def remove_loss(
+        self,
+        loss:   str
+    ):
+        if loss in self.losses.keys():
+            self.losses.pop(loss)
+            self.logger.info(f'removed {loss} from losses.')
+        if loss in self.batch_loss.keys():
+            self.batch_loss.pop(loss)
+
     def loss(self,
         outputs,
         data,

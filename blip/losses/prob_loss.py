@@ -17,8 +17,8 @@ class MultiClassProbabilityLoss(GenericLoss):
         class_weights:  dict={},
         meta:   dict={}
     ):
-        super(MultiClassProbabilityLoss, self).__init__(name, meta)
-        self.alpha = alpha
+        super(MultiClassProbabilityLoss, self).__init__(
+            name, alpha, meta)
         self.reduction = reduction
         self.classes = classes
         self.class_weights = class_weights

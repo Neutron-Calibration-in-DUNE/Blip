@@ -22,7 +22,7 @@ mssm_dataset_config = {
     "name":               "default",
 }
 
-class MSSM:
+class MSSMDataset:
     """
     """
     def __init__(self, 

@@ -34,7 +34,7 @@ vanilla_dataset_config = {
     "device":           "cpu",
 }
 
-class VanillaDataset(Dataset, GenericDataset):
+class VanillaDataset(GenericDataset):
     """
     Datasets are stored as numpy arrays with two main branches,
     'features' and 'classes'.  'meta' stores information about 
@@ -74,7 +74,7 @@ class VanillaDataset(Dataset, GenericDataset):
             self.logger = Logger(name, output="both", file_mode="w")
         else:
             self.logger = Logger(name, level='warning', file_mode="w")
-        self.logger.info(f"constructing vanilla dataset.")
+        self.logger.info("constructing vanilla dataset.")
 
         self.number_of_events = 0
         self.meta = {}

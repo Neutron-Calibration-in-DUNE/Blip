@@ -10,7 +10,7 @@ import sys
 import inspect
 
 from blip.analysis.generic_model_analyzer import GenericModelAnalyzer
-from blip.dataset.blip import BlipDataset
+from blip.dataset.blip_dataset import BlipDataset
 from blip.utils.logger import Logger
 
 from blip.utils.utils import get_method_arguments
@@ -188,6 +188,5 @@ class ModelAnalyzerHandler:
                 for key in predictions.keys():
                     predictions[key] = np.array(np.concatenate(predictions[key]))
                 self.model_analyzers[analyzer].analyze(
-                    input, predictions, 
-                    plot_directory=f'{self.meta["local_scratch"]}/plots/{model.name}/'
+                    input, predictions
                 )

@@ -91,7 +91,7 @@ class MetricCallback(GenericCallback):
             for name in self.test_target_metrics.keys():
                 self.test_target_metrics[name].cpu().numpy()
             np.savez(
-                f"{self.meta['local_scratch']}/metrics.npz",
+                f"{self.meta['local_scratch']}/.tmp/metrics.npz",
                 metric_names=self.metric_names,
                 training_metric=self.training_metrics.cpu().numpy(),
                 validation_metric=self.validation_metrics.cpu().numpy(),
@@ -104,7 +104,7 @@ class MetricCallback(GenericCallback):
             for name in self.test_target_metrics.keys():
                 self.test_target_metrics[name].cpu().numpy()
             np.savez(
-                f"{self.meta['local_scratch']}/metrics.npz",
+                f"{self.meta['local_scratch']}/.tmp/metrics.npz",
                 metric_names=self.metric_names,
                 test_metric=self.test_metrics.cpu().numpy(),
                 test_target_metric=self.test_target_metrics
@@ -295,7 +295,7 @@ class MetricCallback(GenericCallback):
             plt.title("metric vs. epoch (training)")
             plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
             plt.tight_layout()
-            plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_training_metrics.png")
+            plt.savefig(f"{self.meta['local_scratch']}/.tmp/plots/epoch_training_metrics.png")
         
         if len(self.validation_metrics) != 0:
             fig, axs = plt.subplots(figsize=(15, 10))
@@ -319,7 +319,7 @@ class MetricCallback(GenericCallback):
             plt.title("metric vs. epoch (validation)")
             plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
             plt.tight_layout()
-            plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_validation_metrics.png")
+            plt.savefig(f"{self.meta['local_scratch']}/.tmp/plots/epoch_validation_metrics.png")
 
         if len(self.training_metrics) != 0 and len(self.validation_metrics) != 0:
             fig, axs = plt.subplots(figsize=(15, 10))
@@ -373,7 +373,7 @@ class MetricCallback(GenericCallback):
             plt.title("metric vs. epoch")
             plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
             plt.tight_layout()
-            plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_metrics.png")
+            plt.savefig(f"{self.meta['local_scratch']}/.tmp/plots/epoch_metrics.png")
 
         ########### Plots for each metric with target contributions ##########
         for name, metric in self.metrics_handler.metrics.items():
@@ -399,7 +399,7 @@ class MetricCallback(GenericCallback):
                 plt.title(f"{name} - metric vs. epoch")
                 plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
                 plt.tight_layout()
-                plt.savefig(f"{self.meta['local_scratch']}/plots/epoch_metric_{name}.png")
+                plt.savefig(f"{self.meta['local_scratch']}/.tmp/plots/epoch_metric_{name}.png")
         # save metrics to npz
         self.save_metrics()
 

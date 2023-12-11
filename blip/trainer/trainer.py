@@ -5,7 +5,6 @@ import torch
 import numpy as np
 import os
 from tqdm import tqdm
-from blip.dataset.blip import BlipDataset
 from blip.utils.logger import Logger
 from blip.losses import LossHandler
 from blip.models import ModelChecker, GenericModel
@@ -15,31 +14,32 @@ from blip.utils.timing import Timers
 from blip.utils.memory import MemoryTrackers
 from blip.utils.callbacks import CallbackHandler
 from blip.utils.callbacks import TimingCallback, MemoryTrackerCallback
-import blip.utils.utils as utils
+
 
 class Trainer:
     """
     This class is an attempt to reduce code rewriting by putting together
-    a set of functions that do everything that we could need with 
+    a set of functions that do everything that we could need with
     respect to training.  There are a few objects which must be passed
     to the trainer, which include:
         (a) model     - an object which inherits from nn.Module
         (b) criterion - an object which has a defined function called "loss"
         (c) optimizer - some choice of optimizer, e.g. Adam
         (d) metrics   - (optional) an object which has certain defined functions
-        (e) callbacks - (optional) an object which has certain defined functions 
+        (e) callbacks - (optional) an object which has certain defined functions
     """
-    def __init__(self,
-        name:       str='default',
-        model:      GenericModel=None,
-        criterion:  LossHandler=None,
-        optimizer:  Optimizer=None,
-        metrics:    MetricHandler=None,
-        callbacks:  CallbackHandler=None,
-        meta:   dict={},
-        seed:   int=0,
-    ): 
-        self.name = name + '_trainer'       
+    def __init__(
+        self,
+        name:       str = 'default',
+        model:      GenericModel = None,
+        criterion:  LossHandler = None,
+        optimizer:  Optimizer = None,
+        metrics:    MetricHandler = None,
+        callbacks:  CallbackHandler = None,
+        meta:   dict = {},
+        seed:   int = 0,
+    ):
+        self.name = name + '_trainer'
         self.meta = meta
         if "device" in self.meta:
             self.device = self.meta['device']
@@ -49,15 +49,15 @@ class Trainer:
             self.logger = Logger(self.name, output="both", file_mode="w")
         else:
             self.logger = Logger(self.name, level='warning', file_mode="w")
-        self.logger.info(f"constructing model trainer.")
+        self.logger.info("constructing model trainer.")
         # Check for compatability with parameters
 
         # define directories
         self.predictions_dir = f'{self.meta["local_scratch"]}/predictions/{model.name}/'
-        self.manifold_dir    = f'{self.meta["local_scratch"]}/plots/{model.name}/manifold/'
-        self.features_dir    = f'{self.meta["local_scratch"]}/plots/{model.name}/features/'
-        self.timing_dir    = f'{self.meta["local_scratch"]}/plots/{model.name}/timing/'
-        self.memory_dir    = f'{self.meta["local_scratch"]}/plots/{model.name}/memory/'
+        self.manifold_dir = f'{self.meta["local_scratch"]}/plots/{model.name}/manifold/'
+        self.features_dir = f'{self.meta["local_scratch"]}/plots/{model.name}/features/'
+        self.timing_dir = f'{self.meta["local_scratch"]}/plots/{model.name}/timing/'
+        self.memory_dir = f'{self.meta["local_scratch"]}/plots/{model.name}/memory/'
 
         # create directories
         if not os.path.isdir(self.predictions_dir):
@@ -79,13 +79,13 @@ class Trainer:
         # check for devices
         self.gpu = self.meta['gpu']
         self.seed = seed
-        
+
         # assign objects
         self.model = model
         self.optimizer = optimizer
         self.criterion = criterion
         self.metrics = metrics
-        if callbacks == None:
+        if callbacks is None:
             # add generic callbacks
             self.callbacks = CallbackHandler(
                 name="default"
@@ -97,7 +97,7 @@ class Trainer:
         # send other objects to the device
         self.model.set_device(self.device)
         self.criterion.set_device(self.device)
-        if self.metrics != None:
+        if self.metrics is not None:
             self.metrics.set_device(self.device)
 
         # add timing info
@@ -117,7 +117,7 @@ class Trainer:
         self.callbacks.add_callback(self.memory_callback)
 
         # run consistency check
-        self.logger.info(f"running consistency check...")
+        self.logger.info("running consistency check...")
         self.shapes = self.model_checker.run_consistency_check(
             dataset_loader=self.meta['loader'],
             model=self.model,
@@ -125,14 +125,26 @@ class Trainer:
             metrics=self.metrics
         )
 
-    def train(self,
-        epochs:     int=100,        # number of epochs to train
-        checkpoint: int=10,         # epochs inbetween weight saving
-        progress_bar:   str='all',  # progress bar from tqdm
-        rewrite_bar:    bool=False, # wether to leave the bars after each epoch
-        save_predictions:bool=True, # wether to save network outputs for all events to original file
-        no_timing:      bool=False, # wether to keep the bare minimum timing info as a callback
-        skip_metrics:   bool=False, # wether to skip metrics except for testing sets
+    def save_checkpoint(
+        self,
+        epoch:  int = 99999
+    ):
+        if not os.path.exists(f"{self.meta['local_scratch']}/.checkpoints/"):
+            os.makedirs(f"{self.meta['local_scratch']}/.checkpoints/")
+        torch.save(
+            self.model.state_dict(),
+            f"{self.meta['local_scratch']}/.checkpoints/checkpoint_{epoch}.ckpt"
+        )
+
+    def train(
+        self,
+        epochs:     int = 100,          # number of epochs to train
+        checkpoint: int = 10,           # epochs inbetween weight saving
+        progress_bar:   str = 'all',    # progress bar from tqdm
+        rewrite_bar:    bool = False,   # wether to leave the bars after each epoch
+        save_predictions: bool = True,  # wether to save network outputs for all events to original file
+        no_timing:      bool = False,   # wether to keep the bare minimum timing info as a callback
+        skip_metrics:   bool = False,   # wether to skip metrics except for testing sets
     ):
         """
         Main training loop.  First, we see if the user wants to omit timing information.
@@ -141,7 +153,7 @@ class Trainer:
             self.logger.error(f"device: '{self.device}' and model device: '{self.model.device}' are different!")
         if (self.criterion.device != self.device):
             self.logger.error(f"device: '{self.device}' and model device: '{self.criterion.device}' are different!")
-        
+
         self.model.save_model(flag='init')
         # setting values in callbacks
         self.callbacks.set_device(self.device)
@@ -175,13 +187,14 @@ class Trainer:
                 skip_metrics
             )
 
-    def __train_with_timing(self,
-        epochs:     int=100,        # number of epochs to train
-        checkpoint: int=10,         # epochs inbetween weight saving
-        progress_bar:   str='all',  # progress bar from tqdm
-        rewrite_bar:    bool=False, # wether to leave the bars after each epoch
-        save_predictions:bool=True, # wether to save network outputs for all events to original file
-        skip_metrics:   bool=False, # wether to skip metrics except for testing sets.
+    def __train_with_timing(
+        self,
+        epochs:     int = 100,          # number of epochs to train
+        checkpoint: int = 10,           # epochs inbetween weight saving
+        progress_bar:   str = 'all',    # progress bar from tqdm
+        rewrite_bar:    bool = False,   # wether to leave the bars after each epoch
+        save_predictions: bool = True,  # wether to save network outputs for all events to original file
+        skip_metrics:   bool = False,   # wether to skip metrics except for testing sets.
     ):
         """
         Training usually consists of the following steps:
@@ -200,8 +213,8 @@ class Trainer:
             """
             if (progress_bar == 'all' or progress_bar == 'train'):
                 training_loop = tqdm(
-                    enumerate(self.meta['loader'].train_loader, 0), 
-                    total=len(self.meta['loader'].train_loader), 
+                    enumerate(self.meta['loader'].train_loader, 0),
+                    total=len(self.meta['loader'].train_loader),
                     leave=rewrite_bar,
                     position=0,
                     colour='green'
@@ -211,7 +224,7 @@ class Trainer:
 
             # make sure to set model to train() during training!
             self.model.train()
-            """            
+            """
             Setup timing/memory information for epoch.
             """
             self.timers.timers['epoch_training'].start()
@@ -280,7 +293,7 @@ class Trainer:
                     training_loop.set_postfix_str(f"loss={loss.item():.2e}")
                 self.memory_trackers.memory_trackers['training_progress'].end()
                 self.timers.timers['training_progress'].end()
-                
+
                 self.timers.timers['training_data'].start()
                 self.memory_trackers.memory_trackers['training_data'].start()
             # update timing info
@@ -293,11 +306,11 @@ class Trainer:
                     Run through a metric loop if there are any metrics
                     defined.
                     """
-                    if self.metrics != None:
+                    if self.metrics is not None:
                         if (progress_bar == 'all' or progress_bar == 'train'):
                             metrics_training_loop = tqdm(
-                                enumerate(self.meta['loader'].train_loader, 0), 
-                                total=len(self.meta['loader'].train_loader), 
+                                enumerate(self.meta['loader'].train_loader, 0),
+                                total=len(self.meta['loader'].train_loader),
                                 leave=rewrite_bar,
                                 position=0,
                                 colour='green'
@@ -315,7 +328,7 @@ class Trainer:
                             self.timers.timers['training_metrics'].end()
                             if (progress_bar == 'all' or progress_bar == 'train'):
                                 metrics_training_loop.set_description(f"Training Metrics: Epoch [{epoch+1}/{epochs}]")
-                
+
             # evaluate callbacks
             self.timers.timers['training_callbacks'].start()
             self.memory_trackers.memory_trackers['training_callbacks'].start()
@@ -329,8 +342,8 @@ class Trainer:
             """
             if (progress_bar == 'all' or progress_bar == 'validation'):
                 validation_loop = tqdm(
-                    enumerate(self.meta['loader'].validation_loader, 0), 
-                    total=len(self.meta['loader'].validation_loader), 
+                    enumerate(self.meta['loader'].validation_loader, 0),
+                    total=len(self.meta['loader'].validation_loader),
                     leave=rewrite_bar,
                     position=0,
                     colour='blue'
@@ -383,11 +396,11 @@ class Trainer:
                 defined.
                 """
                 if not skip_metrics:
-                    if self.metrics != None:
+                    if self.metrics is not None:
                         if (progress_bar == 'all' or progress_bar == 'validation'):
                             metrics_validation_loop = tqdm(
-                                enumerate(self.meta['loader'].validation_loader, 0), 
-                                total=len(self.meta['loader'].validation_loader), 
+                                enumerate(self.meta['loader'].validation_loader, 0),
+                                total=len(self.meta['loader'].validation_loader),
                                 leave=rewrite_bar,
                                 position=0,
                                 colour='blue'
@@ -415,17 +428,12 @@ class Trainer:
 
             # save weights if at checkpoint step
             if epoch % checkpoint == 0:
-                if not os.path.exists(f"{self.meta['local_scratch']}/.checkpoints/"):
-                    os.makedirs(f"{self.meta['local_scratch']}/.checkpoints/")
-                torch.save(
-                    self.model.state_dict(), 
-                    f"{self.meta['local_scratch']}/.checkpoints/checkpoint_{epoch}.ckpt"
-                )
+                self.save_checkpoint(epoch)
             # free up gpu resources
             torch.cuda.empty_cache()
         # evaluate epoch callbacks
         self.callbacks.evaluate_training()
-        self.logger.info(f"training finished.")
+        self.logger.info("training finished.")
         """
         Testing stage.
         Setup the progress bar for the testing loop.
@@ -435,8 +443,8 @@ class Trainer:
         """
         if (progress_bar == 'all' or progress_bar == 'test'):
             test_loop = tqdm(
-                enumerate(self.meta['loader'].test_loader, 0), 
-                total=len(self.meta['loader'].test_loader), 
+                enumerate(self.meta['loader'].test_loader, 0),
+                total=len(self.meta['loader'].test_loader),
                 leave=rewrite_bar,
                 position=0,
                 colour='red'
@@ -445,7 +453,7 @@ class Trainer:
             test_loop = enumerate(self.meta['loader'].test_loader, 0)
         # make sure to set model to eval() during validation!
         self.model.eval()
-        if self.metrics != None:
+        if self.metrics is not None:
             self.metrics.reset_batch()
         with torch.no_grad():
             for ii, data in test_loop:
@@ -456,7 +464,7 @@ class Trainer:
                 loss = self.criterion.loss(outputs, data)
 
                 # update metrics
-                if self.metrics != None:
+                if self.metrics is not None:
                     self.metrics.update(outputs, data, train_type="test")
 
                 # update progress bar
@@ -472,7 +480,7 @@ class Trainer:
 
         # see if predictions should be saved
         if save_predictions:
-            self.logger.info(f"Running inference to save predictions.")
+            self.logger.info("running inference to save predictions.")
             return self.inference(
                 dataset_type='all',
                 outputs=[output for output in self.shapes["output"].keys()],
@@ -480,24 +488,25 @@ class Trainer:
                 rewrite_bar=rewrite_bar,
                 save_predictions=True,
             )
-    
-    def __train_no_timing(self,
-        epochs:     int=100,        # number of epochs to train
-        checkpoint: int=10,         # epochs inbetween weight saving
-        progress_bar:   str='all',  # progress bar from tqdm
-        rewrite_bar:    bool=False, # wether to leave the bars after each epoch
-        save_predictions:bool=True, # wether to save network outputs for all events to original file
-        skip_metrics:   bool=False, # wether to skip metrics except for testing sets.
+
+    def __train_no_timing(
+        self,
+        epochs:     int = 100,          # number of epochs to train
+        checkpoint: int = 10,           # epochs inbetween weight saving
+        progress_bar:   str = 'all',    # progress bar from tqdm
+        rewrite_bar:    bool = False,   # wether to leave the bars after each epoch
+        save_predictions: bool = True,  # wether to save network outputs for all events to original file
+        skip_metrics:   bool = False,   # wether to skip metrics except for testing sets.
     ):
         """
-        No comments here since the code is identical to the __train_with_timing function 
+        No comments here since the code is identical to the __train_with_timing function
         except for the lack of calls to timers.
         """
         for epoch in range(epochs):
             if (progress_bar == 'all' or progress_bar == 'train'):
                 training_loop = tqdm(
-                    enumerate(self.meta['loader'].train_loader, 0), 
-                    total=len(self.meta['loader'].train_loader), 
+                    enumerate(self.meta['loader'].train_loader, 0),
+                    total=len(self.meta['loader'].train_loader),
                     leave=rewrite_bar,
                     position=0,
                     colour='green'
@@ -517,11 +526,11 @@ class Trainer:
                     training_loop.set_postfix_str(f"loss={loss.item():.2e}")
             self.model.eval()
             if not skip_metrics:
-                if self.metrics != None:
+                if self.metrics is not None:
                     if (progress_bar == 'all' or progress_bar == 'train'):
                         metrics_training_loop = tqdm(
-                            enumerate(self.meta['loader'].train_loader, 0), 
-                            total=len(self.meta['loader'].train_loader), 
+                            enumerate(self.meta['loader'].train_loader, 0),
+                            total=len(self.meta['loader'].train_loader),
                             leave=rewrite_bar,
                             position=0,
                             colour='green'
@@ -537,8 +546,8 @@ class Trainer:
             self.callbacks.evaluate_epoch(train_type='train')
             if (progress_bar == 'all' or progress_bar == 'validation'):
                 validation_loop = tqdm(
-                    enumerate(self.meta['loader'].validation_loader, 0), 
-                    total=len(self.meta['loader'].validation_loader), 
+                    enumerate(self.meta['loader'].validation_loader, 0),
+                    total=len(self.meta['loader'].validation_loader),
                     leave=rewrite_bar,
                     position=0,
                     colour='blue'
@@ -554,11 +563,11 @@ class Trainer:
                         validation_loop.set_description(f"Validation: Epoch [{epoch+1}/{epochs}]")
                         validation_loop.set_postfix_str(f"loss={loss.item():.2e}")
                 if not skip_metrics:
-                    if self.metrics != None:
+                    if self.metrics is not None:
                         if (progress_bar == 'all' or progress_bar == 'validation'):
                             metrics_validation_loop = tqdm(
-                                enumerate(self.meta['loader'].validation_loader, 0), 
-                                total=len(self.meta['loader'].validation_loader), 
+                                enumerate(self.meta['loader'].validation_loader, 0),
+                                total=len(self.meta['loader'].validation_loader),
                                 leave=rewrite_bar,
                                 position=0,
                                 colour='blue'
@@ -573,18 +582,13 @@ class Trainer:
                                 metrics_validation_loop.set_description(f"Validation Metrics: Epoch [{epoch+1}/{epochs}]")
             self.callbacks.evaluate_epoch(train_type='validation')
             if epoch % checkpoint == 0:
-                if not os.path.exists(f"{self.meta['local_scratch']}/.checkpoints/"):
-                    os.makedirs(f"{self.meta['local_scratch']}/.checkpoints/")
-                torch.save(
-                    self.model.state_dict(), 
-                    f"{self.meta['local_scratch']}/.checkpoints/checkpoint_{epoch}.ckpt"
-                )
+                self.save_checkpoint(epoch)
         self.callbacks.evaluate_training()
-        self.logger.info(f"training finished.")
+        self.logger.info("training finished.")
         if (progress_bar == 'all' or progress_bar == 'test'):
             test_loop = tqdm(
-                enumerate(self.meta['loader'].test_loader, 0), 
-                total=len(self.meta['loader'].test_loader), 
+                enumerate(self.meta['loader'].test_loader, 0),
+                total=len(self.meta['loader'].test_loader),
                 leave=rewrite_bar,
                 position=0,
                 colour='red'
@@ -596,7 +600,7 @@ class Trainer:
             for ii, data in test_loop:
                 outputs = self.model(data)
                 loss = self.criterion.loss(outputs, data)
-                if self.metrics != None:
+                if self.metrics is not None:
                     self.metrics.reset_batch()
                     self.metrics.update(outputs, data, train_type="test")
                 if (progress_bar == 'all' or progress_bar == 'test'):
@@ -606,7 +610,7 @@ class Trainer:
         self.callbacks.evaluate_testing()
         self.model.save_model(flag='trained')
         if save_predictions:
-            self.logger.info(f"Running inference to save predictions.")
+            self.logger.info("running inference to save predictions.")
             return self.inference(
                 dataset_type='all',
                 outputs=[output for output in self.shapes["output"].keys()],
@@ -615,14 +619,15 @@ class Trainer:
                 save_predictions=True,
             )
 
-    def inference(self,
-        dataset_type:   str='all',  # which dataset to use for inference
-        layers:         list=[],    # which forward views to save
-        outputs:        list=[],    # which outputs to save
-        save_predictions:bool=True, # wether to save the predictions
-        progress_bar:   bool=True,  # progress bar from tqdm
-        rewrite_bar:    bool=True,  # wether to leave the bars after each epoch
-        skip_metrics:   bool=False, # wether to skip metrics except for testing sets
+    def inference(
+        self,
+        dataset_type:   str = 'all',    # which dataset to use for inference
+        layers:         list = [],      # which forward views to save
+        outputs:        list = [],      # which outputs to save
+        save_predictions: bool = True,  # wether to save the predictions
+        progress_bar:   bool = True,    # progress bar from tqdm
+        rewrite_bar:    bool = True,    # wether to leave the bars after each epoch
+        skip_metrics:   bool = False,   # wether to skip metrics except for testing sets
     ):
         """
         Here we just do inference on a particular part
@@ -656,20 +661,20 @@ class Trainer:
         """
         Set up progress bar.
         """
-        if (progress_bar == True):
+        if (progress_bar is True):
             inference_loop = tqdm(
-                enumerate(inference_loader, 0), 
-                total=len(list(inference_indices)), 
+                enumerate(inference_loader, 0),
+                total=len(list(inference_indices)),
                 leave=rewrite_bar,
                 position=0,
                 colour='magenta'
             )
         else:
             inference_loop = enumerate(inference_loader, 0)
-        
+
         # set up array for predictions
         predictions = {
-            layer: [] 
+            layer: []
             for layer in layers
         }
         for output in outputs:
@@ -679,7 +684,7 @@ class Trainer:
         # make sure to set model to eval() during validation!
         self.model.eval()
         with torch.no_grad():
-            if self.metrics != None:
+            if self.metrics is not None:
                 self.metrics.reset_batch()
             for ii, data in inference_loop:
                 # get the network output
@@ -691,16 +696,16 @@ class Trainer:
                     if key in predictions.keys():
                         predictions[key].append([self.model.forward_views[key].cpu().numpy()])
                 # compute loss
-                if self.criterion != None:
+                if self.criterion is not None:
                     loss = self.criterion.loss(model_output, data)
 
                 # update metrics
                 if not skip_metrics:
-                    if self.metrics != None:
+                    if self.metrics is not None:
                         self.metrics.update(model_output, data, train_type="inference")
 
                 # update progress bar
-                if (progress_bar == True):
+                if (progress_bar is True):
                     inference_loop.set_description(f"Inference: Batch [{ii+1}/{num_batches}]")
                     inference_loop.set_postfix_str(f"loss={loss.item():.2e}")
         for key in predictions.keys():
@@ -713,5 +718,5 @@ class Trainer:
                 np.array(inference_indices, dtype=object)
             )
         self.callbacks.evaluate_inference()
-        self.logger.info(f"returning predictions.")
+        self.logger.info("returning predictions.")
         return predictions

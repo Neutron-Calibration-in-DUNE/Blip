@@ -89,17 +89,16 @@ class GenericModel(nn.Module):
     def forward(self, x):
         self.logger.error(f'"forward" not implemented in Model!')
 
-    def save_model(self,
-        flag:   str=''
+    def save_model(
+        self,
+        flag:   str = ''
     ):
         # save meta information
-        if not os.path.isdir(f"{self.meta['local_scratch']}/models/{self.name}/"):
-            os.makedirs(f"{self.meta['local_scratch']}/models/{self.name}/")
-        output = f"{self.meta['local_scratch']}/models/{self.name}/" + self.name
+        if not os.path.isdir(f"{self.meta['local_scratch']}/.tmp/models/{self.name}/"):
+            os.makedirs(f"{self.meta['local_scratch']}/.tmp/models/{self.name}/")
+        output = f"{self.meta['local_scratch']}/.tmp/models/{self.name}/" + self.name
         if flag != '':
             output += "_" + flag
-        if not os.path.exists(f"{self.meta['local_scratch']}/models/"):
-            os.makedirs(f"{self.meta['local_scratch']}/models/")
         meta_info = {
             'name':     self.name,
             'date':     datetime.now().strftime("%m/%d/%Y %H:%M:%S"),
@@ -115,23 +114,23 @@ class GenericModel(nn.Module):
         meta_info['state_dict'] = self.state_dict()
         # save config
         config = [[item, self.config[item]] for item in self.config]
-        with open(output+".config", "w") as file:
+        with open(output + ".config", "w") as file:
             writer = csv.writer(file, delimiter=",")
             writer.writerows(config)
         np.savez(
-            f'{output} + _meta_info.npz',
+            f'{output}_meta_info.npz',
             meta_info=meta_info
         )
         # save parameters
         torch.save(
             {
-            'model_state_dict': self.state_dict(), 
-            'model_config':     self.config,
-            'meta_info':        meta_info,
-            }, 
+                'model_state_dict': self.state_dict(),
+                'model_config':     self.config,
+                'meta_info':        meta_info,
+            },
             output + "_params.ckpt"
         )
-    
+
     def total_parameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 

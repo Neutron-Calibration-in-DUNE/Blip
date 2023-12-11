@@ -22,7 +22,6 @@ class L2Loss(GenericLoss):
         super(L2Loss, self).__init__(
             name, alpha, target_type, targets, outputs, augmentations, meta
         )
-        self.alpha = alpha
         self.reduction = reduction
         self.l2_loss = {
             key: nn.MSELoss(reduction=reduction)
