@@ -33,7 +33,6 @@ from bokeh.document                      import Document
 
 from blip.utils.logger                   import Logger
 from blip.utils.event_display.panel_tpc  import TPCPanelDisplay
-# from blip.utils.event_display.panel_merge  import MergePanelDisplay #work on progress
 
 class PanelDisplay:
 
@@ -55,7 +54,6 @@ class PanelDisplay:
         self.construct_tpc_display(document)
         self.construct_semantic_widgets(document)
         self.construct_point_net_embedding_widgets(document)
-        # self.construct_merge_tree_widgets(document)
 
         self.logo_img = "data/neutrino.png"
         self.tabs     = pn.Tabs(
@@ -63,7 +61,6 @@ class PanelDisplay:
             ("LArTPC Display",     pn.Row(pn.pane.Markdown("Content for LArTPC Display"),     self.tpc_display.wire_plane_layout)),
             ("Semantic Model",     pn.Row(pn.pane.Markdown("Content for Semantic Model"),     self.semantic_model_layout)),
             ("PointNet Embedding", pn.Row(pn.pane.Markdown("Content for PointNet Embedding"), self.point_net_embedding_layout)),
-            # ("PointNet Embedding", pn.Row(pn.pane.Markdown("Content for Merge Tree Display"), self.merge_display.merge_tree_layout)),
             active = 1,
         )
         self.tabs.param.trigger('active')
@@ -92,8 +89,5 @@ class PanelDisplay:
 
     def construct_point_net_embedding_widgets(self, document):
         self.point_net_embedding_layout = row()
-
-    # def construct_merge_tree_widgets(self, document):
-    #     self.merge_display = MergePanelDisplay(document)
 
 display = PanelDisplay()
