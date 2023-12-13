@@ -55,7 +55,7 @@ class PanelDisplay:
         self.construct_semantic_widgets(document)
         self.construct_point_net_embedding_widgets(document)
 
-        self.logo_img = "data/neutrino.png"
+        self.logo_img = "/workspace/Blip/data/neutrino.png"
         self.tabs     = pn.Tabs(
             ("Blip Runner",        pn.Row(pn.pane.Markdown("Content for Blip Runner"),        self.blip_layout)),
             ("LArTPC Display",     pn.Row(pn.pane.Markdown("Content for LArTPC Display"),     self.tpc_display.wire_plane_layout)),

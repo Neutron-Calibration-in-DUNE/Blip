@@ -1,15 +1,14 @@
 """
 Tools for displaying events
 """
-import random, os, imageio
+import random, torch
+import os.path              as osp
 import numpy                as np
 import pandas               as pd
 import panel                as pn
 import plotly.graph_objects as go
 import networkx             as nx
 from pathlib         import Path
-from matplotlib      import pyplot as plt
-from plotly.subplots import make_subplots
 
 from panel.layout                        import Row, Column
 from panel.widgets                       import Checkbox, RadioButtonGroup
@@ -23,7 +22,6 @@ from bokeh.models                        import Toggle
 from bokeh.models                        import PreText
 
 from blip.utils.logger        import Logger
-from blip.topology.merge_tree import MergeTree
 
 class TPCPanelDisplay:
     '''
@@ -84,9 +82,11 @@ class TPCPanelDisplay:
         self.view_0_features = {0:0}
         self.view_1_features = {0:0}
         self.view_2_features = {0:0}
+        self.merge_features  = {0:0}
         self.view_0_classes  = {0:0}
         self.view_1_classes  = {0:0}
         self.view_2_classes  = {0:0}
+        self.merge_classes   = {0:0}
         self.view_0_clusters = {0:0}
         self.view_1_clusters = {0:0}
         self.view_2_clusters = {0:0}
@@ -99,15 +99,15 @@ class TPCPanelDisplay:
         self.edeps           = []
         self.predictions     = {}
 
-        self.plot_types           = [ "Wire Plane", 
+        self.plot_types           = ["Wire Plane", 
                                      "Wire Channel", 
                                      "TPC", 
-                                     "MergeTree" ]
+                                     "Merge Tree" ]
         self.plot_options         = ["Truth", "Predictions"]
         self.wire_plane_options   = ["View 0", "View 1", "View 2"]
         self.wire_channel_options = []
         self.tpc_options          = []
-        self.merge_tree_options   = ['subplot']
+        self.merge_tree_options   = ["View 0", "View 1", "View 2"]
 
         # parameters for wire_plane plots
         self.available_wire_plane_truth_labels = [
@@ -125,7 +125,7 @@ class TPCPanelDisplay:
             'cluster_topology', 'cluster_particle', 'cluster_physics',
         ]
         self.available_edep_prediction_labels         = ["None"]
-        self.available_merge_tree_truth_labels        = ['all']
+        self.available_merge_tree_truth_labels        = ['cluster_particle','MergeTree']
         self.available_merge_tree_prediction_labels   = ["None"]
 
         self.first_figure_label     = 'adc'
@@ -532,8 +532,8 @@ class TPCPanelDisplay:
                     self.first_figure_color_select.value = self.available_edep_prediction_labels[0]
                     self.first_figure_label = self.available_edep_prediction_labels[0]
         
-        elif self.first_figure_radio_group.value == "MergeTree":
-            self.first_figure_plot_type = "MergeTree"
+        elif self.first_figure_radio_group.value == "Merge Tree":
+            self.first_figure_plot_type = "Merge Tree"
             self.first_figure_plot_type_options.options = self.merge_tree_options
             if self.first_figure_plot_options.value == "Truth":
                 self.first_figure_plot_option = "Truth"
@@ -553,7 +553,9 @@ class TPCPanelDisplay:
 
     def update_first_figure_plot_type_options(self, new):
         self.first_figure_plot_type_option = self.first_figure_plot_type_options.value
-        if self.first_figure_plot_type == "Wire Plane":
+        
+        if (self.first_figure_plot_type == "Wire Plane") or (self.first_figure_plot_type == "Merge Tree" and self.first_figure_label == "cluster_particle"):
+            self.first_figure_plot_type == "Wire Plane"
             if self.first_figure_plot_type_option == "View 0":
                 self.first_figure_event_features = self.view_0_features[self.event]
                 self.first_figure_event_classes  = self.view_0_classes [self.event]
@@ -569,13 +571,14 @@ class TPCPanelDisplay:
                 self.first_figure_event_classes  = self.view_2_classes [self.event]
                 self.first_figure_event_clusters = self.view_2_clusters[self.event]
                 self.first_figure_event_hits     = self.view_2_hits    [self.event]
+        
         elif self.first_figure_plot_type == "TPC":
             self.first_figure_event_features = self.edep_features[self.event]
             self.first_figure_event_classes  = self.edep_classes [self.event]
             self.first_figure_event_clusters = self.edep_clusters[self.event]
             self.first_figure_event_hits     = []
 
-        elif self.first_figure_plot_type == "MergeTree":
+        elif self.first_figure_plot_type == "Merge Tree":
             self.first_figure_event_features = []
             self.first_figure_event_classes  = []
             self.first_figure_event_clusters = []
@@ -630,8 +633,8 @@ class TPCPanelDisplay:
                     self.second_figure_color_select.value = self.available_edep_prediction_labels[0]
                     self.second_figure_label = self.available_edep_prediction_labels[0]
 
-        if self.second_figure_radio_group.value == "MergeTree":
-            self.second_figure_plot_type = "MergeTree"
+        if self.second_figure_radio_group.value == "Merge Tree":
+            self.second_figure_plot_type = "Merge Tree"
             self.second_figure_plot_type_options.options = self.merge_tree_options
             if self.second_figure_plot_options.value == "Truth":
                 self.second_figure_plot_option = "Truth"
@@ -651,7 +654,9 @@ class TPCPanelDisplay:
 
     def update_second_figure_plot_type_options(self, new):
         self.second_figure_plot_type_option = self.second_figure_plot_type_options.value
-        if self.second_figure_plot_type == "Wire Plane":
+
+        if (self.second_figure_plot_type == "Wire Plane") or (self.second_figure_plot_type == "Merge Tree" and self.second_figure_label == "cluster_particle"):
+            self.second_figure_plot_type == "Wire Plane"
             if self.second_figure_plot_type_option == "View 0":
                 self.second_figure_event_features = self.view_0_features[self.event]
                 self.second_figure_event_classes  = self.view_0_classes [self.event]
@@ -667,17 +672,18 @@ class TPCPanelDisplay:
                 self.second_figure_event_classes  = self.view_2_classes [self.event]
                 self.second_figure_event_clusters = self.view_2_clusters[self.event]
                 self.second_figure_event_hits     = self.view_2_hits    [self.event]
+        
         elif self.second_figure_plot_type == "TPC":
             self.second_figure_event_features = self.edep_features[self.event]
             self.second_figure_event_classes  = self.edep_classes [self.event]
             self.second_figure_event_clusters = self.edep_clusters[self.event]
             self.second_figure_event_hits     = []
 
-        elif self.first_figure_plot_type == "MergeTree":
-            self.first_figure_event_features = []
-            self.first_figure_event_classes  = []
-            self.first_figure_event_clusters = []
-            self.first_figure_event_hits     = []
+        elif self.second_figure_plot_type == "Merge Tree":
+            self.second_figure_event_features = []
+            self.second_figure_event_classes  = []
+            self.second_figure_event_clusters = []
+            self.second_figure_event_hits     = []
 
     def load_input_file(self, event):
         '''
@@ -714,6 +720,8 @@ class TPCPanelDisplay:
         if 'view_2_classes'  in input_file.files: self.view_2_classes  = input_file['view_2_classes']
         if 'view_2_clusters' in input_file.files: self.view_2_clusters = input_file['view_2_clusters']
         if 'view_2_hits'     in input_file.files: self.view_2_hits     = input_file['view_2_hits']
+        if 'merge_features'  in input_file.files: self.merge_features  = input_file['merge_features']
+        if 'merge_classes'   in input_file.files: self.merge_classes   = input_file['merge_classes']
         if 'mc_maps'   in self.tpc_meta.keys():   self.mc_maps         = self.tpc_meta['mc_maps']
 
         if 'source' in input_file.files:
@@ -766,6 +774,63 @@ class TPCPanelDisplay:
     
     def plot_first_event(self, event):
         if self.first_figure_label == 'adc': print("Plotting adc (in progress)"); pass
+        if self.first_figure_label == 'MergeTree': 
+            print("Plotting MergeTree computed")
+            # Load the saved data
+            try:
+                event = torch.load(osp.join(self.processed_dir, 'data_0.pt'))  # Replace 'data_0.pt' with your filename
+                print("MergeTree loaded")
+            except FileNotFoundError:
+                print("MergeTree not found")
+
+            merge_tree_data = event.merge_tree
+            G = nx.Graph(merge_tree_data)
+            pos = nx.spring_layout(G)
+            edge_trace = go.Scatter(
+                x=[],
+                y=[],
+                line=dict(width=0.5, color='#888'),
+                hoverinfo='none',
+                mode='lines')
+
+            for edge in G.edges():
+                x0, y0 = pos[edge[0]]
+                x1, y1 = pos[edge[1]]
+                edge_trace['x'] += tuple([x0, x1, None])
+                edge_trace['y'] += tuple([y0, y1, None])
+
+            # Create a trace for the nodes
+            node_trace = go.Scatter(
+                x=[],
+                y=[],
+                text=[],
+                mode='markers',
+                hoverinfo='text',
+                marker=dict(
+                    showscale=True,
+                    colorscale='YlGnBu',
+                    reversescale=True,
+                    color=[],
+                    size=10,
+                    colorbar=dict(
+                        thickness=15,
+                        title='Node Connections',
+                        xanchor='left',
+                        titleside='right'
+                    ),
+                    line=dict(width=2)))
+
+            for node in G.nodes():
+                x, y = pos[node]
+                node_trace['x'] += tuple([x])
+                node_trace['y'] += tuple([y])
+
+            # Create a Figure and add the traces
+            plotly_figure = go.Figure(data=[edge_trace, node_trace])
+            title = f"Plot I [Merge Tree]:"
+            xaxis = dict(title="Nodes")
+            yaxis = dict(title="Height")
+
         else:
             if 'cluster' in self.first_figure_label:
                 label_index = self.tpc_meta['clusters'][self.first_figure_label.replace('cluster_','')]
@@ -887,19 +952,80 @@ class TPCPanelDisplay:
                             name=str(val)
                         )
 
-        plotly_figure = go.Figure(data=list(self.first_scatter.values()))
+            plotly_figure = go.Figure(data=list(self.first_scatter.values()))
+            title = f"Plot I [{self.first_figure_plot_type} {self.first_figure_plot_option}]:"
+            xaxis = dict(title="Channel [n]")
+            yaxis = dict(title="TDC [10ns]")
+        
         self.first_figure = plotly_figure.to_dict()
         self.first_figure['layout'].update(
             template="presentation",
-            title="Plot I",
-            xaxis=dict(title="Channel [n]"),
-            yaxis=dict(title="TDC [10ns]"),
+            title=title,
+            xaxis=xaxis,
+            yaxis=yaxis,
             showlegend=True
         )
         self.first_figure_pane.object = self.first_figure
 
     def plot_second_event(self, event):
         if self.second_figure_label == 'adc': pass
+        if self.second_figure_label == 'MergeTree': 
+            print("Plotting MergeTree computed")
+            # Load the saved data
+            try:
+                event = torch.load(osp.join(self.processed_dir, 'data_0.pt'))  # Replace 'data_0.pt' with your filename
+                print("MergeTree loaded")
+            except FileNotFoundError:
+                print("MergeTree not found")
+
+            merge_tree_data = event.merge_tree
+            G = nx.Graph(merge_tree_data)
+            pos = nx.spring_layout(G)
+            edge_trace = go.Scatter(
+                x=[],
+                y=[],
+                line=dict(width=0.5, color='#888'),
+                hoverinfo='none',
+                mode='lines')
+
+            for edge in G.edges():
+                x0, y0 = pos[edge[0]]
+                x1, y1 = pos[edge[1]]
+                edge_trace['x'] += tuple([x0, x1, None])
+                edge_trace['y'] += tuple([y0, y1, None])
+
+            # Create a trace for the nodes
+            node_trace = go.Scatter(
+                x=[],
+                y=[],
+                text=[],
+                mode='markers',
+                hoverinfo='text',
+                marker=dict(
+                    showscale=True,
+                    colorscale='YlGnBu',
+                    reversescale=True,
+                    color=[],
+                    size=10,
+                    colorbar=dict(
+                        thickness=15,
+                        title='Node Connections',
+                        xanchor='left',
+                        titleside='right'
+                    ),
+                    line=dict(width=2)))
+
+            for node in G.nodes():
+                x, y = pos[node]
+                node_trace['x'] += tuple([x])
+                node_trace['y'] += tuple([y])
+
+            # Create a Figure and add the traces
+            plotly_figure = go.Figure(data=[edge_trace, node_trace])
+            title = f"Plot I [Merge Tree]:"
+            xaxis = dict(title="Nodes")
+            yaxis = dict(title="Height")
+
         else:
             if 'cluster' in self.second_figure_label:
                 label_index = self.tpc_meta['clusters'][self.second_figure_label.replace('cluster_','')]
@@ -1018,13 +1144,17 @@ class TPCPanelDisplay:
                             name=str(val)
                         ) 
 
-        plotly_figure = go.Figure(data=list(self.second_scatter.values()))
+            plotly_figure = go.Figure(data=list(self.second_scatter.values()))
+            title = f"Plot II [{self.second_figure_plot_type} {self.second_figure_plot_option}]:"
+            xaxis = dict(title="Channel [n]")
+            yaxis = dict(title="TDC [10ns]")
+
         self.second_figure = plotly_figure.to_dict()
         self.second_figure['layout'].update(
             template="presentation",
-            title="Plot II",
-            xaxis=dict(title="Channel [n]"),
-            yaxis=dict(title="TDC [10ns]"),
+            title=title,
+            xaxis=xaxis,
+            yaxis=yaxis,
             showlegend=True
         )
         self.second_figure_pane.object = self.second_figure

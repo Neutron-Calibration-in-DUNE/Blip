@@ -387,10 +387,8 @@ class BlipDataset(GenericDataset):
             category=torch.tensor(event_classes).type(self.meta['class_type']),
             merge_tree=merge_tree_data,
         )
-        if self.pre_filter is not None:
-            event = self.pre_filter(event)
-        if self.pre_transform is not None:
-            event = self.pre_transform(event)
+        if self.pre_filter is not None:    event = self.pre_filter(event)
+        if self.pre_transform is not None: event = self.pre_transform(event)
 
         torch.save(event, osp.join(self.processed_dir, f'data_{self.index}.pt'))
         self.meta['input_events'][raw_path].append([self.index])
