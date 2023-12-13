@@ -11,14 +11,14 @@ from collections import OrderedDict
 import torch_geometric.transforms as T
 from torch.nn import Linear
 from torch_geometric.nn import (
-    MLP, 
-    DynamicEdgeConv, 
-    PointNetConv, 
+    MLP,
+    DynamicEdgeConv,
+    PointNetConv,
     PointTransformerConv
 )
 from torch_geometric.nn import (
-    global_add_pool, 
-    global_mean_pool, 
+    global_add_pool,
+    global_mean_pool,
     global_max_pool
 )
 from torch_geometric.nn import fps, radius
