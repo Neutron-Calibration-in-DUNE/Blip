@@ -75,7 +75,7 @@ def run():
         random_config['model'][model_name] = model_dicts[ii]
         if not os.path.isdir(f'{hyper_parameter_location}/hyper_parameter_iteration_{ii}'):
             os.makedirs(f'{hyper_parameter_location}/hyper_parameter_iteration_{ii}')
-            hyper_parameter_folders.append(f'{hyper_parameter_location}/hyper_parameter_iteration_{ii}')
+        hyper_parameter_folders.append(f'{hyper_parameter_location}/hyper_parameter_iteration_{ii}')
         config_parser.save_config(
             random_config, f'{hyper_parameter_location}/hyper_parameter_iteration_{ii}/hyper_parameter_config.yaml'
         )
