@@ -104,11 +104,12 @@ class DoubleConv(ME.MinkowskiNetwork):
         identity = self.residual(x)
         for layer in self.first_conv_dict.keys():
             x = self.first_conv_dict[layer](x)
-        x = self.activation_fn(x)
+        # x = self.activation_fn(x)
         for layer in self.second_conv_dict.keys():
             x = self.second_conv_dict[layer](x)
         x = x + identity
         x = self.activation_fn(x)
+        
         return x
 
 """ 

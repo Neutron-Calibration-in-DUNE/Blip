@@ -215,6 +215,8 @@ class GenericDataset(InMemoryDataset):
             )
         else:
             self.logger.error('No dataset_folder specified in environment or configuration file!')
+        if not os.path.isdir(self.dataset_folder):
+            self.logger.error(f'Specified dataset folder "{self.dataset_folder}" does not exist!')
 
     def process_dataset_files(self):
         if "dataset_files" not in self.config.keys():
