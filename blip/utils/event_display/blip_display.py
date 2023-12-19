@@ -5,6 +5,7 @@ from bokeh.io import curdoc
 
 from blip.utils.event_display.tpc import TPCDisplay
 
+
 class BlipDisplay:
     """
     """

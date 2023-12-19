@@ -27,7 +27,7 @@ def create_class_gif(self,
     maxs = np.max(np.concatenate(pos[:num_events]),axis=0)
 
     gif_frames = []
-    for ii in range(min(num_events,len(pos))):
+    for ii in range(min(num_events, len(pos))):
         self._create_class_gif_frame(
             pos[ii],
             class_label,
