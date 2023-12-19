@@ -14,7 +14,7 @@ import argparse
 from blip.utils.logger import Logger, default_logger
 from blip.utils.config import ConfigParser
 
-from blip.dataset.mssm import MSSM
+from Blip.blip.dataset.mssm_dataset import MSSM
 
 def run():
     """

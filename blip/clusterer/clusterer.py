@@ -4,7 +4,7 @@ Class for a generic clusterer.
 import torch, os
 import numpy as np
 from tqdm                       import tqdm
-from blip.dataset.blip          import BlipDataset
+from Blip.blip.dataset.blip_dataset          import BlipDataset
 from blip.clustering_algorithms import ClusteringAlgorithmHandler
 from blip.utils.logger          import Logger
 from blip.utils.timing          import Timers

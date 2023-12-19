@@ -14,9 +14,9 @@ from blip.utils.config import ConfigParser
 
 from blip.dataset.arrakis import Arrakis
 from blip.dataset.arrakis_nd import ArrakisND
-from blip.dataset.mssm import MSSM
-from blip.dataset.blip import BlipDataset
-from blip.dataset.vanilla import VanillaDataset
+from Blip.blip.dataset.mssm_dataset import MSSM
+from Blip.blip.dataset.blip_dataset import BlipDataset
+from Blip.blip.dataset.vanilla_dataset import VanillaDataset
 from blip.utils.loader import Loader
 from blip.module import ModuleHandler
 from blip.module.common import module_types

@@ -5,9 +5,9 @@ and running them through the running coupling code
 import csv
 import os
 from matplotlib import pyplot as plt
-from blip.dataset.mssm import cMSSMDataset
-from blip.dataset.mssm import pMSSMDataset
-from blip.dataset.vanilla import VanillaDataset
+from Blip.blip.dataset.mssm_dataset import cMSSMDataset
+from Blip.blip.dataset.mssm_dataset import pMSSMDataset
+from Blip.blip.dataset.vanilla_dataset import VanillaDataset
 from blip.utils.loader import Loader
 from blip.utils.logger import Logger
 from blip.utils.mssm import MSSMGenerator

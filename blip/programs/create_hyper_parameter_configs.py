@@ -24,8 +24,8 @@ def run():
         help='config file specification for a BLIP module.'
     )
     parser.add_argument(
-        '-hyper_parameter_location', dest='hyper_parameter_location', default='/local_scratch',
-        help='location for the local scratch directory.'
+        '-hyper_parameter_location', dest='hyper_parameter_location', default='/local_blip',
+        help='location for the local blip directory.'
     )
 
     logger = Logger('hyper_parameter_generator', output="both", file_mode="w")
@@ -73,13 +73,13 @@ def run():
     for ii in range(len(model_dicts)):
         random_config = config.copy()
         random_config['model'][model_name] = model_dicts[ii]
-        if not os.path.isdir(f'{hyper_parameter_location}/hyper_parameter_iteration_{ii}'):
-            os.makedirs(f'{hyper_parameter_location}/hyper_parameter_iteration_{ii}')
-        hyper_parameter_folders.append([f'{hyper_parameter_location}/hyper_parameter_iteration_{ii}'])
+        if not os.path.isdir(f'{os.path.abspath(hyper_parameter_location)}/hyper_parameter_iteration_{ii}'):
+            os.makedirs(f'{os.path.abspath(hyper_parameter_location)}/hyper_parameter_iteration_{ii}')
+        hyper_parameter_folders.append([f'{os.path.abspath(hyper_parameter_location)}/hyper_parameter_iteration_{ii}'])
         config_parser.save_config(
-            random_config, f'{hyper_parameter_location}/hyper_parameter_iteration_{ii}/hyper_parameter_config.yaml'
+            random_config, f'{os.path.abspath(hyper_parameter_location)}/hyper_parameter_iteration_{ii}/hyper_parameter_config.yaml'
         )
-    with open(f'{hyper_parameter_location}/hyper_parameter_data.csv', "w") as file:
+    with open(f'{os.path.abspath(hyper_parameter_location)}/hyper_parameter_data.csv', "w") as file:
         writer = csv.writer(file, delimiter=",")
         writer.writerows(hyper_parameter_folders)
 

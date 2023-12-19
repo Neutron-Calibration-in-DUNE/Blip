@@ -19,7 +19,8 @@ class BlipDisplay:
 
         self.construct_widgets(self.document)
 
-    def construct_widgets(self,
+    def construct_widgets(
+        self,
         document
     ):
         self.construct_header_widgets(document)
