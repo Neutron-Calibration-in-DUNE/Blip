@@ -364,7 +364,7 @@ class WireLArTPCPanelDisplay:
             name="Plot event", button_type="primary", width_policy="fixed", width=100
         )
         self.first_figure_plot_button.on_click(self.plot_first_event)
-        self.first_figure_pane = pn.pane.Plotly(self.first_figure)
+        self.first_figure_pane = pn.pane.Plotly(self.first_figure, config={"responsive": True})
 
         # Second plot column
     def construct_second_figure_column(self):
@@ -448,7 +448,7 @@ class WireLArTPCPanelDisplay:
             name="Plot event", button_type="primary", width_policy="fixed", width=100
         )
         self.second_figure_plot_button.on_click(self.plot_second_event)
-        self.second_figure_pane = pn.pane.Plotly(self.second_figure)
+        self.second_figure_pane = pn.pane.Plotly(self.second_figure, config={"responsive": True})
 
     def construct_layout(self):
         # construct the wire plane layout
@@ -468,8 +468,7 @@ class WireLArTPCPanelDisplay:
                 Row(
                     self.first_figure_adc_slider_option,
                     self.first_figure_slider,
-                    width_policy="fixed",
-                    width=600,
+                    sizing_mode="stretch_width",
                 ),
                 Row(
                     Column(
@@ -480,22 +479,17 @@ class WireLArTPCPanelDisplay:
                         self.first_figure_color_select,
                         self.first_figure_plot_type_options,
                         self.first_figure_plot_button,
-                        width_policy="fixed",
-                        width=300,
+                        sizing_mode="stretch_width",
                     ),
                 ),
-                width_policy="fixed",
-                width=600,
-                height_policy="fixed",
-                height=1000,
+                sizing_mode="stretch_width",
             ),
             Column(
                 self.second_figure_pane,
                 Row(
                     self.second_figure_adc_slider_option,
                     self.second_figure_slider,
-                    width_policy="fixed",
-                    width=600,
+                    sizing_mode="stretch_width",
                 ),
                 Row(
                     Column(
@@ -506,14 +500,10 @@ class WireLArTPCPanelDisplay:
                         self.second_figure_color_select,
                         self.second_figure_plot_type_options,
                         self.second_figure_plot_button,
-                        width_policy="fixed",
-                        width=300,
+                        sizing_mode="stretch_width",
                     ),
                 ),
-                width_policy="fixed",
-                width=600,
-                height_policy="fixed",
-                height=1000,
+                sizing_mode="stretch_width",
             ),
         )
 
@@ -1211,6 +1201,7 @@ class WireLArTPCPanelDisplay:
             xaxis=xaxis,
             yaxis=yaxis,
             showlegend=True,
+            autosize = True,
         )
         self.first_figure_pane.object = self.first_figure
 
@@ -1423,5 +1414,6 @@ class WireLArTPCPanelDisplay:
             xaxis=xaxis,
             yaxis=yaxis,
             showlegend=True,
+            autosize = True,
         )
         self.second_figure_pane.object = self.second_figure
