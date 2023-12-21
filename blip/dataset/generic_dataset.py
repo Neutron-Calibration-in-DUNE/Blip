@@ -27,6 +27,7 @@ generic_config = {
         "features_normalization":   [],
         "class_mask":   [""],
         "label_mask":   [[""]],
+        "voxelization": []
     },
     "weights": {
         "class_weights":    [],
@@ -138,6 +139,7 @@ class GenericDataset(InMemoryDataset):
         self.process_maps()
         self.process_clustering()
         self.process_weights()
+        self.process_voxelization()
 
     def process_root(self):
         # set up "root" directory.  this is mainly for processed data.
@@ -280,7 +282,7 @@ class GenericDataset(InMemoryDataset):
                                     )
 
         # arange dictionaries for label<->value<->index maps
-        for data_type in ["edep_features", "view_features", "features", "clusters", "hits"]:
+        for data_type in ["edep_features", "view_features", "det_features", "mc_features", "features", "clusters", "hits"]:
             if (f"{data_type}" in self.meta.keys()):
                 self.meta[f'{data_type}_names'] = list(self.meta[f'{data_type}'].keys())
                 self.meta[f'{data_type}_values'] = list(self.meta[f'{data_type}'].values())
@@ -302,12 +304,12 @@ class GenericDataset(InMemoryDataset):
                 self.meta['features_names_by_value'] = {
                     **self.meta['edep_features_names_by_value']
                 }
-            else:
-                self.meta['features'] = self.meta['view_features']
-                self.meta['features_names'] = self.meta['view_features_names']
-                self.meta['features_values'] = self.meta['view_features_values']
+            elif "det_features" in self.meta.keys():
+                self.meta['features'] = self.meta['det_features']
+                self.meta['features_names'] = self.meta['det_features_names']
+                self.meta['features_values'] = self.meta['det_features_values']
                 self.meta['features_names_by_value'] = {
-                    **self.meta['view_features_names_by_value']
+                    **self.meta['det_features_names_by_value']
                 }
         self.meta['classes_names'] = list(self.meta['classes'].keys())
         self.meta['classes_values'] = list(self.meta['classes'].values())
@@ -631,6 +633,17 @@ class GenericDataset(InMemoryDataset):
                     if val != 0:
                         self.meta['class_weights'][key][ii] = self.meta['class_weight_totals'][key] / float(len(value) * val)
         self.logger.info(f"setting 'class_weights': {self.meta['class_weights']}.")
+
+    def process_voxelization(self):
+        if "voxelization" not in self.config["variables"]:
+            return
+        self.meta['voxelization'] = self.config["variables"]['voxelization']
+        if len(self.meta['voxelization']) != len(self.meta['blip_positions']):
+            self.logger.error(
+                f'specified voxelization {self.meta["voxelization"]} not ' +
+                f'equal number of positions {self.meta["blip_positions"]}'
+            )
+        self.meta['voxelized_duplicates'] = []
 
     def consolidate_class(
         self,

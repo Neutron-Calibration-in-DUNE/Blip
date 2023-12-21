@@ -11,6 +11,7 @@ from blip.dataset.generic_dataset  import GenericDataset
 from blip.topology.merge_tree      import MergeTree
 from blip.dataset.common           import *
 
+
 blip_dataset_config = {
     "name":             "default",
     "root":             ".",
@@ -31,6 +32,7 @@ blip_dataset_config = {
         "features_normalization":   [],
         "class_mask":   [""],
         "label_mask":   [[""]],
+        "voxelization": [],
     },
     "weights": {
         "class_weights":    [],
@@ -87,6 +89,8 @@ class BlipDataset(GenericDataset):
                 self.config['view'] = 2
             self.meta['view'] = self.config['view']
             self.meta['position_type'] = torch.float
+        elif self.meta['dataset_type'] == 'tpc':
+            self.meta['position_type'] = torch.int
         else:
             self.meta['position_type'] = torch.float
 
@@ -98,12 +102,12 @@ class BlipDataset(GenericDataset):
         self.logger.info(f'setting feature_type to {self.meta["feature_type"]}')
         self.logger.info(f'setting class_type to {self.meta["class_type"]}')
 
-    def apply_view_event_masks(
+    def apply_event_masks(
         self,
         event_features,
         event_classes,
         event_clusters,
-        event_hits
+        event_hits=None
     ):
         mask = np.array([True for ii in range(len(event_features))])
         if "classes_mask" in self.config:
@@ -116,12 +120,13 @@ class BlipDataset(GenericDataset):
                 class_index = self.meta["classes"][classes]
                 for jj, label_value in enumerate(self.meta['blip_labels_values'][classes]):
                     mask |= (event_classes[:, class_index] == label_value)
-
+        print(mask)
         # Apply masks
         event_features = event_features[mask].astype(np.float)
         event_classes = event_classes[mask].astype(np.int64)
         event_clusters = event_clusters[mask].astype(np.int64)
-        event_hits = event_hits[mask].astype(np.float)
+        if event_hits is not None:
+            event_hits = event_hits[mask].astype(np.float)
 
         # Separate positions and features
         event_positions = event_features[:, self.meta['blip_position_indices']]
@@ -138,10 +143,32 @@ class BlipDataset(GenericDataset):
                 event_classes[temp_mask, class_index] = val
         event_classes = event_classes[:, self.meta['blip_classes_indices']]
         event_clusters = event_clusters[:, self.meta['blip_clusters_indices']]
-        event_hits = event_hits[:, self.meta['blip_hits_indices']]
+        if event_hits is not None:
+            event_hits = event_hits[:, self.meta['blip_hits_indices']]
 
         # Grab indices of interest
         return event_positions, event_features, event_classes, event_clusters, event_hits, mask
+
+    def apply_voxelization(
+        self,
+        event_positions,
+        event_features,
+        event_classes,
+        event_clusters,
+    ):      
+        voxelized_positions = np.round(event_positions * 10 / self.meta['voxelization'])
+        unique_elements, inverse_indices = np.unique(voxelized_positions, return_inverse=True, axis=1)
+        unique_counts = np.bincount(inverse_indices)
+        duplicate_indices = np.where(unique_counts > 1)[0]
+
+        duplicates = []
+        for idx in duplicate_indices:
+            indices = np.where(inverse_indices == idx)[0]
+            duplicates.append(indices.tolist())
+            max_feature_index = np.argmax(event_features[indices])
+
+        self.meta['voxelized_duplicates'].append(duplicates)
+        return voxelized_positions, voxelized_features, voxelized_classes, voxelized_clusters
 
     def process(self):
         # Read data into huge `Data` list.
@@ -234,7 +261,21 @@ class BlipDataset(GenericDataset):
             elif self.meta['dataset_type'] == 'edep_cluster':
                 pass
             elif self.meta['dataset_type'] == 'tpc':
-                pass
+                features = data['det_features']
+                classes = data['classes']
+                clusters = data['clusters']
+                # Iterate over all events in this file
+                for ii in range(len(features)):
+                    # gather event features and classes
+                    event_features = features[ii]
+                    event_classes = classes[ii]
+                    event_clusters = clusters[ii]
+                    self.process_tpc(
+                        event_features,
+                        event_classes,
+                        event_clusters,
+                        raw_path
+                    )
             elif self.meta['dataset_type'] == 'segment':
                 pass
             elif self.meta['dataset_type'] == 'segment_tree':
@@ -254,7 +295,7 @@ class BlipDataset(GenericDataset):
         event_hits,
         raw_path
     ):
-        event_positions, event_features, event_classes, event_clusters, event_hits, mask = self.apply_view_event_masks(
+        event_positions, event_features, event_classes, event_clusters, event_hits, mask = self.apply_event_masks(
             event_features, event_classes, event_clusters, event_hits
         )
         # # check if classes need to be consolidated
@@ -333,7 +374,7 @@ class BlipDataset(GenericDataset):
         event_hits,
         raw_path
     ):
-        event_positions, event_features, event_classes, event_clusters, event_hits, mask = self.apply_view_event_masks(
+        event_positions, event_features, event_classes, event_clusters, event_hits, mask = self.apply_event_masks(
             event_features, event_classes, event_clusters, event_hits
         )
         self.meta['event_mask'][raw_path].append(mask)
@@ -366,7 +407,7 @@ class BlipDataset(GenericDataset):
         event_hits,
         raw_path
     ):
-        event_positions, event_features, event_classes, event_clusters, event_hits, mask = self.apply_view_event_masks(
+        event_positions, event_features, event_classes, event_clusters, event_hits, mask = self.apply_event_masks(
             event_features, event_classes, event_clusters, event_hits
         )
         # # check if classes need to be consolidated
@@ -387,8 +428,47 @@ class BlipDataset(GenericDataset):
             category=torch.tensor(event_classes).type(self.meta['class_type']),
             merge_tree=merge_tree_data,
         )
-        if self.pre_filter is not None:    event = self.pre_filter(event)
-        if self.pre_transform is not None: event = self.pre_transform(event)
+        if self.pre_filter is not None:
+            event = self.pre_filter(event)
+        if self.pre_transform is not None:
+            event = self.pre_transform(event)
+
+        torch.save(event, osp.join(self.processed_dir, f'data_{self.index}.pt'))
+        self.meta['input_events'][raw_path].append([self.index])
+        self.index += 1
+
+    def process_tpc(
+        self,
+        event_features,
+        event_classes,
+        event_clusters,
+        raw_path
+    ):
+        event_positions, event_features, event_classes, event_clusters, _, mask = self.apply_event_masks(
+            event_features, event_classes, event_clusters
+        )
+        self.meta['event_mask'][raw_path].append(mask)
+        if "voxelization" in self.meta.keys():
+            event_positions = np.round(event_positions * 10 / self.meta['voxelization'])
+            # event_positions, event_features, event_classes, event_clusters = self.apply_voxelization(
+            #     event_positions, event_features, event_classes, event_clusters
+            # )
+
+        # # check if classes need to be consolidated
+        # if self.meta['consolidate_classes'] is not None:
+        #     event_classes = self.consolidate_class(classes[ii])
+        # else:
+        #     event_classes = classes[ii]
+        event = Data(
+            pos=torch.tensor(event_positions).type(self.meta['position_type']),
+            x=torch.tensor(event_features).type(self.meta['feature_type']),
+            category=torch.tensor(event_classes).type(self.meta['class_type']),
+            clusters=torch.tensor(event_clusters).type(self.meta['cluster_type']),
+        )
+        if self.pre_filter is not None:
+            event = self.pre_filter(event)
+        if self.pre_transform is not None:
+            event = self.pre_transform(event)
 
         torch.save(event, osp.join(self.processed_dir, f'data_{self.index}.pt'))
         self.meta['input_events'][raw_path].append([self.index])
