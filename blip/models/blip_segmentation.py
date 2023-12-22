@@ -9,9 +9,15 @@ import MinkowskiEngine as ME
 from collections import OrderedDict
 
 from blip.models import GenericModel
-from blip.models.common import Identity, activations, sparse_activations
+#import common dict, lists, and functions from common.py
+from blip.models.common import Identity, activations, sparse_activations  
 
 
+#sparse tensor: tensor with a lot of zeros storaged in a good way?
+#ME is a library with the functions for sparse tensors 
+#activation are the functions to be added to the NN: relu, softmax, etc
+# get_activation takes as input one of those functions. If it's available
+#on sparse_activations dictionary returns the value
 def get_activation(
     activation: str,
 ):
@@ -22,6 +28,7 @@ def get_activation(
 class SparseConv(ME.MinkowskiNetwork):
     """
     """
+    #initialize the model parameteres to be used.
     def __init__(
         self,
         name,
@@ -51,13 +58,17 @@ class SparseConv(ME.MinkowskiNetwork):
         self.dropout = dropout
         self.num_of_convs = num_of_convs
         self.residual = residual
-
+        
+        #bias is the additive parameter in the conv, batch_norm requires bias false
+        #otherwise, both true would slow down the training by having to cancel the bias first       
         if self.batch_norm:
             self.bias = False
         else:
             self.bias = True
         self.activation = activation
-        self.activation_fn = get_activation(self.activation)
+        #get common activation functions, ex get_activation(Relu)
+        self.activation_fn = get_activation(self.activation)  
+        #calls the model function
         self.construct_model()
 
     def construct_model(self):
@@ -67,16 +78,22 @@ class SparseConv(ME.MinkowskiNetwork):
         _conv_dict = OrderedDict()
         _dropout_dict = OrderedDict()
         _residual_dict = OrderedDict()
-
+        
+        #linear layer to resize the output? 
+        #if input != than output then there is residual? **ask nick 
         if self.in_channels != self.out_channels:
             _residual_dict['residual'] = ME.MinkowskiLinear(
                 self.in_channels, self.out_channels, bias=self.bias
             )
+        #identity mapping if same size    
         else:
             _residual_dict['residual'] = Identity()
 
         # create conv layer
+          #make a variable in_channels initially equal to the inchannels,
+        # update it later so the next conv gets as input the output size
         in_channels = self.in_channels
+        #num_of_conv is 2 by default, iterate over it to fill the conv dictionary
         for i in range(1, self.num_of_convs):
             _conv_dict[f'{self.name}_conv[i]'] = ME.MinkowskiConvolution(
                 in_channels=in_channels,
@@ -87,18 +104,35 @@ class SparseConv(ME.MinkowskiNetwork):
                 bias=self.bias,
                 dimension=self.dimension
             )
+            #update size of input to the prev output
             in_channels = self.out_channels
-
+            
+        #batch norm and dropout are regularization methods, help to improve the trainning
+        #and avoid overfit 
+        
+            #if batch_norm is set True, add the normalization layer with num_features = outchannels? 
+            #normalize each parameter of the conv kernel, channels, stride, dilatation, etc. 
+            # ** ask nick
             if self.batch_norm:
                 _conv_dict[f'{self.name}_batch_norm_{i}'] = ME.MinkowskiBatchNorm(self.out_channels)
-
+ 
+        #Dropout simulate having different network architectures by randomly dropping out nodes
+        #some output layers are randomly dropped out
+        #dropout rate 1.0 no dropout, 0.0 means no outputs.
+        #if there are outputs (>0.0), then do the MinkowskiDropout
+        # ask nick: what is it taking as output here
         if self.dropout > 0.0:
             _dropout_dict['dropout'] = ME.MinkowskiDropout(p=self.dropout)
 
+        
+        #make the regular orderedict a moduleDict
+        #moduleDict properly register the modules   
         self.conv_dict = nn.ModuleDict(_conv_dict)
         self.dropout_dict = nn.ModuleDict(_dropout_dict)
         self.residual_dict = nn.ModuleDict(_residual_dict)
-
+    
+   
+   #subclasses of ME.Minkowski need to go to the forward, residual, conv and drop
     def forward(
         self,
         x
@@ -108,6 +142,7 @@ class SparseConv(ME.MinkowskiNetwork):
         """
         if self.residual:
             identity = self.residual_dict['residual'](x)
+        #pass all    the layers of the conv to the forward 
         for layer in self.conv_dict.keys():
             x = self.conv_dict[layer](x)
         if self.residual:
@@ -156,6 +191,7 @@ blip_segmentation_params = {
 class BlipSegmentation(GenericModel):
     """
     """
+    #initialize parameters of the class
     def __init__(
         self,
         name:   str = 'blip_segmentation',      # name of the model
@@ -166,11 +202,13 @@ class BlipSegmentation(GenericModel):
         self.name = name
         self.config = config
         # check config
+        #check that all the parameters were specified *ask nick  how can it be different?
         self.logger.info(f"checking BlipSegmentation architecture using config: {self.config}")
         for item in blip_segmentation_params.keys():
             if item not in self.config:
                 self.logger.error(f"parameter {item} was not specified in config file {self.config}")
                 raise AttributeError
+        #check the dim of conv transp and max pooling match, if not, raise an error    
         if (
             (self.config["sparse_conv_params"]["dimension"] != self.config["conv_transpose_params"]["dimension"]) or
             (self.config["sparse_conv_params"]["dimension"] != self.config["max_pooling_params"]["dimension"])
@@ -196,10 +234,12 @@ class BlipSegmentation(GenericModel):
         _classification_dict = OrderedDict()
 
         # iterate over the down part
-        in_channels = self.config['in_channels']
-        for filter in self.config['filtrations']:
-            _down_dict[f'down_filter_double_conv{filter}'] = SparseConv(
-                name=f'down_{filter}',
+        in_channels = self.config['in_channels'] 
+        for filter in self.config['filtrations']: #iterate over each layer, 
+            #each downsample calls the variable conv function
+            #fills a dictionary for the downsamplings
+            _down_dict[f'down_filter_double_conv{filter}'] = SparseConv( 
+                name=f'down_{filter}',   #set the parameters for each filter
                 in_channels=in_channels,
                 out_channels=filter,
                 kernel_size=self.config['sparse_conv_params']['kernel_size'],
@@ -216,7 +256,8 @@ class BlipSegmentation(GenericModel):
             in_channels = filter
 
         # iterate over the up part
-        for filter in reversed(self.config['filtrations']):
+        for filter in reversed(self.config['filtrations']): #covers the filtrations reversed order
+            #upconvolution uses minkowskiconvtranspose
             _up_dict[f'up_filter_transpose{filter}'] = ME.MinkowskiConvolutionTranspose(
                 in_channels=2*filter,   # adding the skip connection, so the input doubles
                 out_channels=filter,
@@ -225,6 +266,7 @@ class BlipSegmentation(GenericModel):
                 dilation=self.config['conv_transpose_params']['dilation'],
                 dimension=self.config['conv_transpose_params']['dimension']
             )
+            #apply the variable convolution per layer
             _up_dict[f'up_filter_double_conv{filter}'] = SparseConv(
                 name=f'up_{filter}',
                 in_channels=2*filter,
@@ -322,3 +364,4 @@ class BlipSegmentation(GenericModel):
             classifications: self.classification_dict[classifications](x).features
             for classifications in self.classification_dict.keys()
         }
+
