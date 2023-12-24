@@ -296,8 +296,8 @@ class BlipSegmentation(GenericModel):
                 (data.batch.unsqueeze(1), data.pos),
                 dim=1
             ).int(),
-            quantization_mode=ME.SparseTensorQuantizationMode.RANDOM_SUBSAMPLE,
-            minkowski_algorithm=ME.MinkowskiAlgorithm.SPEED_OPTIMIZED,
+            # quantization_mode=ME.SparseTensorQuantizationMode.RANDOM_SUBSAMPLE,
+            # minkowski_algorithm=ME.MinkowskiAlgorithm.SPEED_OPTIMIZED,
             device=self.device
         )
         # record the skip connections
