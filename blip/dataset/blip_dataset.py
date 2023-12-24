@@ -120,7 +120,7 @@ class BlipDataset(GenericDataset):
                 class_index = self.meta["classes"][classes]
                 for jj, label_value in enumerate(self.meta['blip_labels_values'][classes]):
                     mask |= (event_classes[:, class_index] == label_value)
-        print(mask)
+        
         # Apply masks
         event_features = event_features[mask].astype(np.float)
         event_classes = event_classes[mask].astype(np.int64)
@@ -157,17 +157,33 @@ class BlipDataset(GenericDataset):
         event_clusters,
     ):      
         voxelized_positions = np.round(event_positions * 10 / self.meta['voxelization'])
-        unique_elements, inverse_indices = np.unique(voxelized_positions, return_inverse=True, axis=1)
+        unique_elements, inverse_indices = np.unique(voxelized_positions, return_inverse=True, axis=0)
         unique_counts = np.bincount(inverse_indices)
         duplicate_indices = np.where(unique_counts > 1)[0]
-
         duplicates = []
+        elements_to_remove = []
         for idx in duplicate_indices:
             indices = np.where(inverse_indices == idx)[0]
             duplicates.append(indices.tolist())
+            elements_to_remove.append(indices[1:])
             max_feature_index = np.argmax(event_features[indices])
+            event_features[indices[0]] = event_features[max_feature_index]
+            event_classes[indices[0]] = event_classes[max_feature_index]
+            event_clusters[indices[0]] = event_clusters[max_feature_index]
 
         self.meta['voxelized_duplicates'].append(duplicates)
+        if len(duplicates) > 0:
+            elements_to_remove = np.concatenate(elements_to_remove)
+            mask = np.ones(len(event_positions), dtype=bool)
+            mask[elements_to_remove] = False
+            voxelized_positions = voxelized_positions[mask]
+            voxelized_features = event_features[mask]
+            voxelized_classes = event_classes[mask]
+            voxelized_clusters = event_clusters[mask]
+        else:
+            voxelized_features = event_features
+            voxelized_classes = event_classes
+            voxelized_clusters = event_clusters
         return voxelized_positions, voxelized_features, voxelized_classes, voxelized_clusters
 
     def process(self):
@@ -449,10 +465,9 @@ class BlipDataset(GenericDataset):
         )
         self.meta['event_mask'][raw_path].append(mask)
         if "voxelization" in self.meta.keys():
-            event_positions = np.round(event_positions * 10 / self.meta['voxelization'])
-            # event_positions, event_features, event_classes, event_clusters = self.apply_voxelization(
-            #     event_positions, event_features, event_classes, event_clusters
-            # )
+            event_positions, event_features, event_classes, event_clusters = self.apply_voxelization(
+                event_positions, event_features, event_classes, event_clusters
+            )
 
         # # check if classes need to be consolidated
         # if self.meta['consolidate_classes'] is not None:

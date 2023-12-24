@@ -27,6 +27,8 @@ generic_config = {
         "features_normalization":   [],
         "class_mask":   [""],
         "label_mask":   [[""]],
+        # default 2.6 us dt per hit.
+        # ~4 mm, different pixel pitches.
         "voxelization": []
     },
     "weights": {

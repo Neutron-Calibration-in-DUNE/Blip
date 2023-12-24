@@ -7,6 +7,7 @@ import torch.nn as nn
 import torchvision.transforms.functional as F
 import MinkowskiEngine as ME
 from collections import OrderedDict
+import time
 
 from blip.models import GenericModel
 from blip.models.common import Identity, activations, sparse_activations
@@ -295,7 +296,8 @@ class BlipSegmentation(GenericModel):
                 (data.batch.unsqueeze(1), data.pos),
                 dim=1
             ).int(),
-            quantization_mode=ME.SparseTensorQuantizationMode.UNWEIGHTED_SUM,
+            quantization_mode=ME.SparseTensorQuantizationMode.RANDOM_SUBSAMPLE,
+            minkowski_algorithm=ME.MinkowskiAlgorithm.SPEED_OPTIMIZED,
             device=self.device
         )
         # record the skip connections
@@ -314,7 +316,6 @@ class BlipSegmentation(GenericModel):
             # check for compatibility
             if x.shape != skip_connection.shape:
                 x = F.resize(x, size=skip_connection.shape[2:])
-
             concat_skip = ME.cat(skip_connection, x)
             x = self.module_up_dict[f'up_filter_double_conv{filter}'](concat_skip)
 
