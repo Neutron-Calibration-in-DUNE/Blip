@@ -2,25 +2,26 @@
 Wrapper for Dice loss
 """
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 
 from blip.losses import GenericLoss
 
+
 class DiceLoss(GenericLoss):
     """
     """
-    def __init__(self,
-        name:           str='dice_loss',
-        alpha:          float=0.0,
-        target_type:    str='classes',
-        targets:        list=[],
-        outputs:        list=[],
-        augmentations:  int=0,
-        reduction:      str='mean',
-        sigmoid:        bool=False,
-        smooth:         float=1e-6,
-        meta:           dict={}
+    def __init__(
+        self,
+        name:           str = 'dice_loss',
+        alpha:          float = 0.0,
+        target_type:    str = 'classes',
+        targets:        list = [],
+        outputs:        list = [],
+        augmentations:  int = 0,
+        reduction:      str = 'mean',
+        sigmoid:        bool = False,
+        smooth:         float = 1e-6,
+        meta:           dict = {}
     ):
         super(DiceLoss, self).__init__(
             name, alpha, target_type, targets, outputs, augmentations, meta
@@ -38,15 +39,17 @@ class DiceLoss(GenericLoss):
                 key: self.non_sigmoid_dice
                 for key in self.targets
             }
-        
-    def sigmoid_dice(self,
+
+    def sigmoid_dice(
+        self,
         output,
         target
     ):
         output = F.sigmoid(output)
-        return self.non_sigmoid_dice(output, target)   
+        return self.non_sigmoid_dice(output, target)
 
-    def non_sigmoid_dice(self,
+    def non_sigmoid_dice(
+        self,
         output,
         target
     ):
@@ -54,7 +57,8 @@ class DiceLoss(GenericLoss):
         dice = (2.0 * intersection + self.smooth) / (torch.sum(output) + torch.sum(target) + self.smooth)
         return 1.0 - dice
 
-    def _loss(self,
+    def _loss(
+        self,
         target,
         outputs,
     ):
@@ -62,7 +66,7 @@ class DiceLoss(GenericLoss):
         loss = 0
         for ii, output in enumerate(self.outputs):
             temp_loss = self.alpha[ii] * self.dice_loss[self.targets[ii]](
-                outputs[output].to(self.device), 
+                outputs[output].to(self.device),
                 F.one_hot(target[self.targets[ii]], num_classes=self.number_of_target_labels[ii]).to(self.device)
             )
             loss += temp_loss

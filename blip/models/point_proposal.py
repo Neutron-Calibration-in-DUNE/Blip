@@ -2,13 +2,7 @@
 """
 Generic model code.
 """
-import torch
-import os
-import csv
-import getpass
 from torch import nn
-from time import time
-from datetime import datetime
 from collections import OrderedDict
 
 import MinkowskiEngine as ME
@@ -16,14 +10,16 @@ import MinkowskiEngine as ME
 from blip.models import GenericModel
 from blip.models.common import Identity, sparse_activations
 
+
 def get_activation(
     activation: str,
 ):
     if activation in sparse_activations.keys():
         return sparse_activations[activation]
-    
+
+
 point_proposal_config = {
-    'proposal_type':                'fcos', # fixed, centernet, fcos
+    'proposal_type':                'fcos',  # fixed, centernet, fcos
     'apply_non_max_suppression':    True,
     'dimension':            3,
     # shared convolution section
@@ -44,13 +40,15 @@ point_proposal_config = {
     'regression_kernel_size':   1,
 }
 
-class PointProposalNetwork(ME.MinkowskiNetwork):
+
+class PointProposalNetwork(ME.MinkowskiNetwork, GenericModel):
     """
     """
-    def __init__(self,
-        name, 
-        config: dict=point_proposal_config,
-        meta:   dict={} 
+    def __init__(
+        self,
+        name,
+        config: dict = point_proposal_config,
+        meta:   dict = {}
     ):
         """
         """
@@ -81,7 +79,7 @@ class PointProposalNetwork(ME.MinkowskiNetwork):
             )
         else:
             self.residual = Identity()
-        
+
         _convolution_layers = OrderedDict()
         _regression_layers = OrderedDict()
         _classification_layers = OrderedDict()
@@ -128,7 +126,8 @@ class PointProposalNetwork(ME.MinkowskiNetwork):
         self.regression_dict = nn.ModuleDict(_regression_layers)
         self.classification_dict = nn.ModuleDict(_classification_layers)
 
-    def forward(self, 
+    def forward(
+        self,
         x
     ):
         """

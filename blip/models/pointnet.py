@@ -1,19 +1,16 @@
 """
 Implementation of the blip model using pytorch
 """
-import numpy as np
 import torch
 import torch.nn as nn
 from collections import OrderedDict
 import torch_geometric.transforms as T
 from torch.nn import Linear
-import torch.nn.functional as F
 from torch_geometric.nn import MLP, DynamicEdgeConv
 from torch_geometric.nn import global_add_pool, global_mean_pool, global_max_pool
 
-
-from blip.models.common import activations, normalizations
 from blip.models import GenericModel
+
 
 pointnet_config = {
     "input_dimension":      3,
@@ -46,22 +43,20 @@ pointnet_config = {
     },
 }
 
+
 class PointNet(GenericModel):
     """
     """
-    def __init__(self,
-        name:   str='pointnet',
-        config: dict=pointnet_config,
-        meta:   dict={}
+    def __init__(
+        self,
+        name:   str = 'pointnet',
+        config: dict = pointnet_config,
+        meta:   dict = {}
     ):
         super(PointNet, self).__init__(
             name, config, meta
         )
         self.config = config
-
-        # construct the model
-        self.forward_views      = {}
-        self.forward_view_map   = {}
 
         # construct augmentations
         self.construct_augmentations()
@@ -127,13 +122,13 @@ class PointNet(GenericModel):
 
         _input_dimension = self.config['input_dimension']
         _num_embedding_outputs = 0
-        
+
         # iterate over embeddings
         embedding_config = self.config['embedding']
         for ii in range(embedding_config['number_of_embeddings']):
             if embedding_config['embedding_type'] == 'dynamic_edge_conv':
                 _embedding_dict[f'embedding_{ii}'] = DynamicEdgeConv(
-                    MLP([2 * _input_dimension] + embedding_config['embedding_mlp_layers'][ii]), 
+                    MLP([2 * _input_dimension] + embedding_config['embedding_mlp_layers'][ii]),
                     embedding_config['number_of_neighbors'][ii],
                     embedding_config['aggregation'][ii]
                 )
@@ -147,7 +142,7 @@ class PointNet(GenericModel):
         reduction_config = self.config['reduction']
         # add linear layer Encoder head
         _reduction_dict['linear_layer'] = Linear(
-            _num_embedding_outputs, 
+            _num_embedding_outputs,
             reduction_config['linear_output']
         )
         if reduction_config['reduction_type'] == 'add_pool':
@@ -170,13 +165,8 @@ class PointNet(GenericModel):
         self.classification_dict = nn.ModuleDict(_classification_dict)
         self.softmax = nn.Softmax(dim=1)
 
-        # record the info
-        self.logger.info(
-            f"Constructed PointNet with dictionaries:"
-        )
-
-    
-    def forward(self,
+    def forward(
+        self,
         data
     ):
         """
@@ -232,7 +222,7 @@ class PointNet(GenericModel):
             # Pass through reduction dictionary
             linear_output = self.reduction_dict['linear_layer'](linear_input)
             linear_pool = self.reduction_dict['pooling_layer'](linear_output, batch)
-            
+
             if self.config["add_summed_adc"]:
                 linear_pool = torch.cat([linear_pool, summed_adc.unsqueeze(1)], dim=1)
             outputs = {

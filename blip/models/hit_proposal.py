@@ -1,31 +1,28 @@
 """
 HitProposal implementation using MinkowskiEngine
 """
-import numpy as np
 import torch
 import torch.nn as nn
 import torchvision.transforms.functional as F
 import MinkowskiEngine as ME
 from collections import OrderedDict
-from datetime import datetime
-import getpass
-import sys
-import os
-import csv
 
 from blip.models import GenericModel
-from blip.models.common import Identity, sparse_activations
-from blip.models import SparseUResNet, PointProposalNetwork
+from blip.models.common import sparse_activations
+from blip.models import PointProposalNetwork
 from blip.models.sparse_uresnet import DoubleConv
+
 
 def get_activation(
     activation: str,
 ):
     if activation in sparse_activations.keys():
         return sparse_activations[activation]
-""" 
-    Here are a set of standard UNet parameters, which must be 
-    adjusted by the user for each application
+
+
+"""
+Here are a set of standard UNet parameters, which must be
+adjusted by the user for each application
 """
 hit_proposal_params = {
     'uresnet_in_channels':  1,
@@ -49,7 +46,7 @@ hit_proposal_params = {
         'kernel':   2,
         'stride':   2,
         'dilation': 1,
-        'dimension':3,
+        'dimension': 3,
     },
     # point proposal part
     'shared_convolutions':  [256, 512],
@@ -66,13 +63,15 @@ hit_proposal_params = {
     'regression_kernel_size':   1,
 }
 
+
 class HitProposalNetwork(GenericModel):
     """
     """
-    def __init__(self,
-        name:   str='my_unet',      # name of the model
-        config: dict=hit_proposal_params,
-        meta:   dict={}# configuration parameters
+    def __init__(
+        self,
+        name:   str = 'my_unet',
+        config: dict = hit_proposal_params,
+        meta:   dict = {}
     ):
         super(HitProposalNetwork, self).__init__(name, config, meta)
         # check config
@@ -81,14 +80,14 @@ class HitProposalNetwork(GenericModel):
             if item not in self.config:
                 self.logger.error(f"parameter {item} was not specified in config file {self.config}")
                 raise AttributeError
-        if ((self.config["uresnet_double_conv_params"]["dimension"] != 
-             self.config["uresnet_conv_transpose_params"]["dimension"]) or 
+        if ((self.config["uresnet_double_conv_params"]["dimension"] !=
+             self.config["uresnet_conv_transpose_params"]["dimension"]) or
             (self.config["uresnet_double_conv_params"]["dimension"] !=
              self.config["uresnet_max_pooling_params"]["dimension"])):
             self.logger.error(
-                "dimensions for 'uresnet_double_conv_params', 'uresnet_conv_transpose_params' and" +  
+                "dimensions for 'uresnet_double_conv_params', 'uresnet_conv_transpose_params' and" +
                 f"'uresnet_max_pooling_params' (with values {self.config['uresnet_double_conv_params']['dimension']}" +
-                f", {self.config['uresnet_conv_transpose_params']['dimension']} and " + 
+                f", {self.config['uresnet_conv_transpose_params']['dimension']} and " +
                 f"{self.config['uresnet_max_pooling_params']['dimension']}) do not match!"
             )
             raise AttributeError
@@ -102,7 +101,7 @@ class HitProposalNetwork(GenericModel):
         """
         """
         self.logger.info(f"Attempting to build UNet architecture using config: {self.config}")
-        
+
         _down_dict = OrderedDict()
         _up_dict = OrderedDict()
         _classification_dict = OrderedDict()
@@ -132,7 +131,7 @@ class HitProposalNetwork(GenericModel):
                 kernel_size=self.config['uresnet_conv_transpose_params']['kernel_size'],
                 stride=self.config['uresnet_conv_transpose_params']['stride'],
                 dilation=self.config['uresnet_conv_transpose_params']['dilation'],
-                dimension=self.config['uresnet_conv_transpose_params']['dimension']    
+                dimension=self.config['uresnet_conv_transpose_params']['dimension']
             )
             _up_dict[f'up_filter_double_conv{filter}'] = DoubleConv(
                 name=f'up_{filter}',
@@ -184,25 +183,22 @@ class HitProposalNetwork(GenericModel):
 
         # create the point proposal network
         self.point_proposal = PointProposalNetwork(f"{self.name}_ppn", self.config, self.meta)
-        
-        # record the info
-        self.logger.info(f"Constructed UNet with down: {self.module_down_dict} and up: {self.module_up_dict}.")
-        self.logger.info(f"Bottleneck layer: {self.bottleneck}, output layer: {self.classification_dict} and max pooling: {self.max_pooling}.")
 
-    def forward(self, 
+    def forward(
+        self,
         data
     ):
         """
-        Convert input, which should be a tuple a Data 
+        Convert input, which should be a tuple a Data
         object to a ME.SparseTensor(feats, coords).
         Iterate over the module dictionary.
-        """ 
+        """
         x = ME.SparseTensor(
-            features=data.x, 
+            features=data.x,
             coordinates=torch.cat(
                 (data.batch.unsqueeze(1), data.pos),
                 dim=1
-            ).int(), 
+            ).int(),
             device=self.device
         )
         # record the skip connections

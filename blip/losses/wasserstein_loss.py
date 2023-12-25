@@ -5,28 +5,33 @@ import numpy as np
 import torch
 
 from blip.losses import GenericLoss
-from blip.utils.distributions import *
+from blip.utils.distributions import generate_gaussian
+from blip.utils.distributions import generate_concentric_spheres
+from blip.utils.distributions import generate_sphere
+from blip.utils.distributions import generate_uniform_annulus
+
 
 class WassersteinLoss(GenericLoss):
     """
     """
-    def __init__(self,
-        name:           str='wasserstein_loss',
-        alpha:          float=0.0,
-        target_type:    str='classes',
-        targets:        list=[],
-        outputs:        list=[],
-        augmentations:  int=0,
-        reduction:      str='mean',
-        distribution_type:      str='gaussian',
-        distribution_params:    dict={
+    def __init__(
+        self,
+        name:           str = 'wasserstein_loss',
+        alpha:          float = 0.0,
+        target_type:    str = 'classes',
+        targets:        list = [],
+        outputs:        list = [],
+        augmentations:  int = 0,
+        reduction:      str = 'mean',
+        distribution_type:      str = 'gaussian',
+        distribution_params:    dict = {
             'number_of_samples':    1e6,
             'dimension':            5,
             'mean':                 0.0,
             'sigma':                1.0,
         },
-        num_projections:    int=100,
-        meta:           dict={}
+        num_projections:    int = 100,
+        meta:           dict = {}
     ):
         super(WassersteinLoss, self).__init__(
             name, alpha, target_type, targets, outputs, augmentations, meta
@@ -44,21 +49,22 @@ class WassersteinLoss(GenericLoss):
             self.logger.error(f'specified distribution type {self.distribution_type} not allowed!')
         self.num_projections = num_projections
         self.wasserstein_loss = {
-            key: wasserstein_loss
+            key: self.wasserstein_loss
             for key in self.targets
         }
 
-    def wasserstein_loss(self,
+    def wasserstein_loss(
+        self,
         target,
         output
     ):
         """
             We project our distribution onto a sphere and compute the Wasserstein
-            distance between the distribution (target) and our expected 
+            distance between the distribution (target) and our expected
             distribution (distribution_samples).
         """
         distribution_samples = self.distribution[
-            torch.randint(high = self.distribution.size(0), size =(target.size(0),))
+            torch.randint(high=self.distribution.size(0), size=(target.size(0),))
         ].to(self.device)
 
         # first, generate a random sample on a sphere
@@ -82,7 +88,8 @@ class WassersteinLoss(GenericLoss):
 
         return wasserstein_mean.mean()
 
-    def _loss(self,
+    def _loss(
+        self,
         target,
         outputs,
     ):
@@ -90,7 +97,7 @@ class WassersteinLoss(GenericLoss):
         loss = 0
         for ii, output in enumerate(self.outputs):
             temp_loss = self.alpha[ii] * self.angular_loss[self.targets[ii]](
-                outputs[output].to(self.device), 
+                outputs[output].to(self.device),
                 target[self.targets[ii]].to(self.device)
             )
             loss += temp_loss

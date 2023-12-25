@@ -6,11 +6,13 @@ from torch_geometric.data.batch import Batch
 from blip.utils.logger import Logger
 from blip.utils.utils import get_method_arguments
 
+
 class ModelChecker:
     """
     """
-    def __init__(self,
-        name:   str='default'
+    def __init__(
+        self,
+        name:   str = 'default'
     ):
         self.name = name + "_model_checker"
         self.logger = Logger(self.name, output="both", file_mode='w')
@@ -21,7 +23,8 @@ class ModelChecker:
         }
         self.device = 'None'
     
-    def run_consistency_check(self,
+    def run_consistency_check(
+        self,
         dataset_loader,
         model,
         criterion,
@@ -35,7 +38,7 @@ class ModelChecker:
         The information we need to grab:
             dataset:    feature_shape, class_shape
             model:      input_shape, output_shape
-            dataset_loader: num_***_batches, 
+            dataset_loader: num_***_batches,
         """
         # check dataset from dataset_loader
         try:
@@ -66,43 +69,43 @@ class ModelChecker:
                 loss_value = loss.loss(output, data)
             except Exception as e:
                 self.logger.error(
-                    f"loss function '{loss}' evaluation failed with inputs:"
-                    +f"\noutput={output}\ndata={data}\n{e}"
+                    f"loss function '{loss}' evaluation failed with inputs:" +
+                    f"\noutput={output}\ndata={data}\n{e}"
                 )
-        
+
         # confirm shapes and behavior with metrics
         """
         """
-        # # create empty tensors
-        # if metrics != None:
-        #     # first generic shapes are tested
-        #     if self.num_output_elements == 1:
-        #         try:
-        #             test_output = torch.empty(
-        #                 size=(0,*self.input_shape), 
-        #                 dtype=torch.float, device=self.device
-        #             )
-        #         except Exception as e:
-        #             self.logger.error(f"problem creating tensor with output shape '{output.shape}'.")
-        #     else:
-        #         for key, value in self.input_shape.items():
-        #             try:
-        #                 test_output = torch.empty(
-        #                     size=(0,*value), 
-        #                     dtype=torch.float, device=self.device
-        #                 )
-        #             except Exception as e:
-        #                 self.logger.error(f"problem creating tensor with output shape '{value}'.")
-        #     try:
-        #         test_target = torch.empty(
-        #             size=(0,*target[0].shape), 
-        #             dtype=torch.float, device=self.device
-        #         )
-        #     except Exception as e:
-        #         self.logger.error(f"problem creating tensor with target shape '{target.shape}'.")
-        #     if isinstance(metrics, MetricHandler):
-        #         metrics.set_shapes(self.input_shape)
-        #     metrics.reset()
+        # create empty tensors
+        if metrics is not None:
+            # first generic shapes are tested
+            if self.num_output_elements == 1:
+                try:
+                    test_output = torch.empty(
+                        size=(0,*self.input_shape), 
+                        dtype=torch.float, device=self.device
+                    )
+                except Exception as exception:
+                    self.logger.error(f"problem creating tensor with output shape '{output.shape}'.")
+            else:
+                for key, value in self.input_shape.items():
+                    try:
+                        test_output = torch.empty(
+                            size=(0,*value), 
+                            dtype=torch.float, device=self.device
+                        )
+                    except Exception as exception:
+                        self.logger.error(f"problem creating tensor with output shape '{value}'.")
+            try:
+                test_target = torch.empty(
+                    size=(0,*target[0].shape), 
+                    dtype=torch.float, device=self.device
+                )
+            except Exception as exception:
+                self.logger.error(f"problem creating tensor with target shape '{target.shape}'.")
+            if isinstance(metrics, MetricHandler):
+                metrics.set_shapes(self.input_shape)
+            metrics.reset()
         # confirm shapes and behavior with callbacks
         criterion.reset_batch()
         self.logger.info("passed consistency check.")

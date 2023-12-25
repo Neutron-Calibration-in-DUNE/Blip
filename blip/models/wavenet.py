@@ -1,22 +1,13 @@
 """
 Implementation of the WaveNet model using pytorch
 """
-import numpy as np
 import torch
 import copy
 import torch.nn as nn
 from collections import OrderedDict
-import torch_geometric.transforms as T
-from torch.nn import Linear
-import torch.nn.functional as F
-from torch_geometric.nn import MLP, DynamicEdgeConv, PointNetConv, PointTransformerConv
-from torch_geometric.nn import global_add_pool, global_mean_pool, global_max_pool
-import MinkowskiEngine as ME
 
-from blip.models.common import activations, normalizations
 from blip.models import GenericModel
 from blip.models.causal_dilated_conv1d_model import CausalDilatedConv1D
-from blip.models.residual_block import ResidualBlock
 from blip.models.residual_block_stack import ResidualBlockStack
 
 wavenet_config = {
@@ -30,22 +21,20 @@ wavenet_config = {
     "layer_size":   0
 }
 
+
 class Wavenet(GenericModel):
     """
     """
-    def __init__(self,
-        name:   str='wavenet',
-        config: dict=wavenet_config,
-        meta:   dict={}
+    def __init__(
+        self,
+        name:   str = 'wavenet',
+        config: dict = wavenet_config,
+        meta:   dict = {}
     ):
         super(Wavenet, self).__init__(
             name, config, meta
         )
         self.config = config
-
-        # construct the model
-        self.forward_views      = {}
-        self.forward_view_map   = {}
 
         # construct the model
         self.construct_model()
@@ -56,10 +45,8 @@ class Wavenet(GenericModel):
         """
         The current methodology is to create an ordered
         dictionary and fill it with individual modules.
-
-        
         """
-        self.logger.info(f"Attempting to build Wavenet architecture using config: {self.config}")
+        self.logger.info(f"attempting to build Wavenet architecture using config: {self.config}")
 
         _model_dict = OrderedDict()
         causal_conv1d_dict = copy.deepcopy(self.config)
@@ -87,13 +74,8 @@ class Wavenet(GenericModel):
         _model_dict[f'{self.name}_dense_softmax'] = nn.SoftMax(dim=1)
         self.model_dict = nn.ModuleDict(_model_dict)
 
-        # record the info
-        self.logger.info(
-            f"Constructed Wavenet with dictionaries:"
-        )
-
-    
-    def forward(self,
+    def forward(
+        self,
         data
     ):
         """

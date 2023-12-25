@@ -9,58 +9,60 @@ from blip.losses.loss_handler import LossHandler
 from blip.metrics.metric_handler import MetricHandler
 from blip.utils.callbacks import GenericCallback
 
+
 class LossCallback(GenericCallback):
     """
     """
-    def __init__(self,
-        name:               str='loss_callback',
-        criterion_handler:  LossHandler=None,
-        metrics_handler:    MetricHandler=None,
-        meta:               dict={}
+    def __init__(
+        self,
+        name:               str = 'loss_callback',
+        criterion_handler:  LossHandler = None,
+        metrics_handler:    MetricHandler = None,
+        meta:               dict = {}
     ):
         super(LossCallback, self).__init__(
             name, criterion_handler, metrics_handler, meta
         )
-        if self.criterion_handler != None:
+        if self.criterion_handler is not None:
             self.loss_names = [
                 loss.name for name, loss in self.criterion_handler.losses.items()
             ]
 
             # containers for training loss
             self.training_loss = torch.empty(
-                size=(0,len(self.loss_names)), 
+                size=(0, len(self.loss_names)),
                 dtype=torch.float, device=self.device
             )
             self.validation_loss = torch.empty(
-                size=(0,len(self.loss_names)), 
+                size=(0, len(self.loss_names)),
                 dtype=torch.float, device=self.device
             )
             self.test_loss = torch.empty(
-                size=(0,len(self.loss_names)), 
+                size=(0, len(self.loss_names)),
                 dtype=torch.float, device=self.device
             )
             self.training_target_loss = {
                 name: torch.empty(
-                    size=(0,len(loss.targets)),
+                    size=(0, len(loss.targets)),
                     dtype=torch.float, device=self.device
                 )
                 for name, loss in self.criterion_handler.losses.items()
             }
             self.validation_target_loss = {
                 name: torch.empty(
-                    size=(0,len(loss.targets)),
+                    size=(0, len(loss.targets)),
                     dtype=torch.float, device=self.device
                 )
                 for name, loss in self.criterion_handler.losses.items()
             }
             self.test_target_loss = {
                 name: torch.empty(
-                    size=(0,len(loss.targets)),
+                    size=(0, len(loss.targets)),
                     dtype=torch.float, device=self.device
                 )
                 for name, loss in self.criterion_handler.losses.items()
             }
-        
+
     def save_losses(self):
         for name in self.training_target_loss.keys():
             self.training_target_loss[name].cpu().numpy()
@@ -78,47 +80,48 @@ class LossCallback(GenericCallback):
             validation_target_loss=self.validation_target_loss,
             test_target_loss=self.test_target_loss
         )
-    
+
     def reset_batch(self):
         self.training_loss = torch.empty(
-            size=(0,len(self.loss_names)), 
+            size=(0, len(self.loss_names)),
             dtype=torch.float, device=self.device
         )
         self.validation_loss = torch.empty(
-            size=(0,len(self.loss_names)), 
+            size=(0, len(self.loss_names)),
             dtype=torch.float, device=self.device
         )
         self.test_loss = torch.empty(
-            size=(0,len(self.loss_names)), 
+            size=(0, len(self.loss_names)),
             dtype=torch.float, device=self.device
         )
         self.training_target_loss = {
             name: torch.empty(
-                size=(0,len(loss.targets)),
+                size=(0, len(loss.targets)),
                 dtype=torch.float, device=self.device
             )
             for name, loss in self.criterion_handler.losses.items()
         }
         self.validation_target_loss = {
             name: torch.empty(
-                size=(0,len(loss.targets)),
+                size=(0, len(loss.targets)),
                 dtype=torch.float, device=self.device
             )
             for name, loss in self.criterion_handler.losses.items()
         }
         self.test_target_loss = {
             name: torch.empty(
-                size=(0,len(loss.targets)),
+                size=(0, len(loss.targets)),
                 dtype=torch.float, device=self.device
             )
             for name, loss in self.criterion_handler.losses.items()
         }
 
-    def evaluate_epoch(self,
+    def evaluate_epoch(
+        self,
         train_type='train'
-    ):  
+    ):
         temp_losses = torch.empty(
-            size=(1,0), 
+            size=(1, 0),
             dtype=torch.float, device=self.device
         )
         # run through criteria
@@ -126,7 +129,7 @@ class LossCallback(GenericCallback):
             for name, loss in self.criterion_handler.batch_loss.items():
                 temp_loss = loss.sum()/self.num_training_batches
                 temp_losses = torch.cat(
-                    (temp_losses,torch.tensor([[temp_loss]], device=self.device)),
+                    (temp_losses, torch.tensor([[temp_loss]], device=self.device)),
                     dim=1
                 )
             self.training_loss = torch.cat(
@@ -135,7 +138,7 @@ class LossCallback(GenericCallback):
             )
             for name, loss in self.criterion_handler.losses.items():
                 temp_target_losses = torch.empty(
-                    size=(1,0), 
+                    size=(1, 0),
                     dtype=torch.float, device=self.device
                 )
                 for target in loss.targets:
@@ -153,7 +156,7 @@ class LossCallback(GenericCallback):
             for name, loss in self.criterion_handler.batch_loss.items():
                 temp_loss = loss.sum()/self.num_validation_batches
                 temp_losses = torch.cat(
-                    (temp_losses,torch.tensor([[temp_loss]], device=self.device)),
+                    (temp_losses, torch.tensor([[temp_loss]], device=self.device)),
                     dim=1
                 )
             self.validation_loss = torch.cat(
@@ -162,7 +165,7 @@ class LossCallback(GenericCallback):
             )
             for name, loss in self.criterion_handler.losses.items():
                 temp_target_losses = torch.empty(
-                    size=(1,0), 
+                    size=(1, 0),
                     dtype=torch.float, device=self.device
                 )
                 for target in loss.targets:
@@ -179,7 +182,7 @@ class LossCallback(GenericCallback):
             for name, loss in self.criterion_handler.batch_loss.items():
                 temp_loss = loss.sum()/self.num_test_batches
                 temp_losses = torch.cat(
-                    (temp_losses,torch.tensor([[temp_loss]], device=self.device)),
+                    (temp_losses, torch.tensor([[temp_loss]], device=self.device)),
                     dim=1
                 )
             self.test_loss = torch.cat(
@@ -188,7 +191,7 @@ class LossCallback(GenericCallback):
             )
             for name, loss in self.criterion_handler.losses.items():
                 temp_target_losses = torch.empty(
-                    size=(1,0), 
+                    size=(1, 0),
                     dtype=torch.float, device=self.device
                 )
                 for target in loss.targets:
@@ -202,13 +205,12 @@ class LossCallback(GenericCallback):
                     dim=0
                 )
         self.criterion_handler.reset_batch()
-    
+
     def evaluate_training(self):
         pass
 
     def evaluate_testing(self):
         epoch_ticks = np.arange(1, self.epochs+1)
-        ########### Plots with total from each loss ##########
         if self.num_training_batches != 0:
             fig, axs = plt.subplots(figsize=(15, 10))
             if len(self.loss_names) > 1:
@@ -220,7 +222,7 @@ class LossCallback(GenericCallback):
                     label=rf"{'(total)':<12} {final_training_value:>16}"
                 )
             for ii, loss in enumerate(self.criterion_handler.losses.keys()):
-                temp_loss = self.training_loss[:,ii]
+                temp_loss = self.training_loss[:, ii]
                 final_training_value = f"(final={temp_loss[-1]:.2e})"
                 # plot using specified line colors
                 axs.plot(
@@ -229,7 +231,8 @@ class LossCallback(GenericCallback):
                     c=self.plot_colors[ii],
                     label=rf"{loss:<12} {final_training_value:>16}"
                 )
-                axs.plot([],[],
+                axs.plot(
+                    [], [],
                     marker='',
                     linestyle='',
                     label=rf"($\alpha=${self.criterion_handler.losses[loss].alpha})"
@@ -253,7 +256,7 @@ class LossCallback(GenericCallback):
                     label=rf"{'(total)':<12} {final_validation_value:>16}"
                 )
             for ii, loss in enumerate(self.criterion_handler.losses.keys()):
-                temp_loss = self.validation_loss[:,ii]
+                temp_loss = self.validation_loss[:, ii]
                 final_validation_value = f"(final={temp_loss[-1]:.2e})"
                 axs.plot(
                     epoch_ticks,
@@ -261,7 +264,8 @@ class LossCallback(GenericCallback):
                     c=self.plot_colors[ii],
                     label=rf"{loss:<12} {final_validation_value:>16}"
                 )
-                axs.plot([],[],
+                axs.plot(
+                    [], [],
                     marker='',
                     linestyle='',
                     label=rf"($\alpha=${self.criterion_handler.losses[loss].alpha})"
@@ -294,8 +298,8 @@ class LossCallback(GenericCallback):
             )
             if len(self.loss_names) > 1:
                 for ii, loss in enumerate(self.criterion_handler.losses.keys()):
-                    temp_training_loss = self.training_loss[:,ii]
-                    temp_validation_loss = self.validation_loss[:,ii]
+                    temp_training_loss = self.training_loss[:, ii]
+                    temp_validation_loss = self.validation_loss[:, ii]
                     final_training_value = f"(final={temp_training_loss[-1]:.2e})"
                     final_validation_value = f"(final={temp_validation_loss[-1]:.2e})"
                     alpha_value = rf"($\alpha=${self.criterion_handler.losses[loss].alpha})"
@@ -316,8 +320,9 @@ class LossCallback(GenericCallback):
             # plot test values
             if self.num_test_batches != 0:
                 total_test_loss = f"{self.test_loss.sum(dim=1)[0]:.2e}"
-                axs.plot([], [],
-                    marker='x', 
+                axs.plot(
+                    [], [],
+                    marker='x',
                     c='k',
                     linestyle='',
                     label=f"{'(test) total:'} {total_test_loss}"
@@ -325,8 +330,9 @@ class LossCallback(GenericCallback):
                 for ii, loss in enumerate(self.criterion_handler.losses.keys()):
                     temp_loss_name = f"(test) {loss}:"
                     temp_loss_value = f"{self.test_loss[0][ii]:.2e}"
-                    axs.plot([], [],
-                        marker='x', 
+                    axs.plot(
+                        [], [],
+                        marker='x',
                         c=self.plot_colors[ii],
                         linestyle='',
                         label=f"{temp_loss_name} {temp_loss_value}"
@@ -339,7 +345,6 @@ class LossCallback(GenericCallback):
             plt.tight_layout()
             plt.savefig(f"{self.meta['local_scratch']}/.tmp/plots/epoch_loss.png")
 
-        ########### Plots for each loss with target contributions ##########
         for name, loss in self.criterion_handler.losses.items():
             fig, axs = plt.subplots(figsize=(15, 10))
             for ii, target in enumerate(loss.targets):

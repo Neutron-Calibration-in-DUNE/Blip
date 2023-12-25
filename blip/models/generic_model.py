@@ -8,7 +8,6 @@ import csv
 import getpass
 from torch import nn
 import numpy as np
-from time import time
 from datetime import datetime
 from collections import OrderedDict
 

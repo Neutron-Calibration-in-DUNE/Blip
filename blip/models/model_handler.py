@@ -1,13 +1,12 @@
 """
 Container for models
 """
-import os 
+import os
 import importlib.util
 import sys
 import inspect
 from blip.utils.logger import Logger
 from blip.models import GenericModel
-from blip.utils.utils import get_method_arguments
 
 
 class ModelHandler:
@@ -60,15 +59,15 @@ class ModelHandler:
     def collect_models(self):
         self.available_models = {}
         self.model_files = [
-            os.path.dirname(__file__) + '/' + file 
+            os.path.dirname(__file__) + '/' + file
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
         self.model_files.extend(self.meta['local_blip_files'])
         for model_file in self.model_files:
             if (
-                ("__init__.py" in model_file) or 
-                ("__pycache__.py" in model_file) or 
-                ("generic_model.py" in model_file) or 
+                ("__init__.py" in model_file) or
+                ("__pycache__.py" in model_file) or
+                ("generic_model.py" in model_file) or
                 ("__pycache__" in model_file) or
                 (".py" not in model_file)
             ):
@@ -77,7 +76,7 @@ class ModelHandler:
                 self.load_model(model_file)
             except:
                 self.logger.warn(f'problem loading model from file: {model_file}')
-    
+
     def load_model(
         self,
         model_file: str
@@ -123,7 +122,7 @@ class ModelHandler:
             # check that model exists
             if item not in self.available_models.keys():
                 self.logger.error(
-                    f"specified model '{item}' is not an available type! " + 
+                    f"specified model '{item}' is not an available type! " +
                     f"Available types:\n{self.available_models.keys()}"
                 )
         self.models = {}

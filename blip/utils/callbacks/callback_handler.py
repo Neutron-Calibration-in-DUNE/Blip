@@ -2,68 +2,78 @@
 Container for generic callbacks
 """
 import os, importlib, sys, inspect
-from blip.utils.logger    import Logger
+from blip.utils.logger import Logger
 from blip.utils.callbacks import GenericCallback
-from blip.utils.utils     import get_method_arguments
+from blip.utils.utils import get_method_arguments
+
 
 class CallbackHandler:
     """
     """
 
-    def __init__(self,
+    def __init__(
+        self,
         name:       str,
-        config:     dict={},
-        callbacks:  list=[],
-        meta:       dict={}
+        config:     dict = {},
+        callbacks:  list = [],
+        meta:       dict = {}
     ):
         self.name = name + "_callback_handler"
         self.meta = meta
-        if "device" in self.meta: self.device = self.meta['device']
-        else:                     self.device = 'cpu'
-        if meta['verbose']:       self.logger = Logger(self.name, output="both", file_mode="w")
-        else:                     self.logger = Logger(self.name, level='warning', file_mode="w")
+        if "device" in self.meta:
+            self.device = self.meta['device']
+        else:
+            self.device = 'cpu'
+        if meta['verbose']:
+            self.logger = Logger(self.name, output="both", file_mode="w")
+        else:
+            self.logger = Logger(self.name, level='warning', file_mode="w")
 
         if bool(config) and len(callbacks) != 0:
             self.logger.error(
-                f"handler received both a config and a list of callbacks! " + 
-                f"The user should only provide one or the other!")
+                "handler received both a config and a list of callbacks! " +
+                "The user should only provide one or the other!")
         elif bool(config):
             self.set_config(config)
         else:
-            if len(callbacks) == 0: self.logger.warn(f"handler received neither a config or callbacks!")
+            if len(callbacks) == 0:
+                self.logger.warn("handler received neither a config or callbacks!")
             self.callbacks = {
-                callback.name: callback 
+                callback.name: callback
                 for callback in callbacks
-            }       
-        
+            }
+
     def set_config(self, config):
         self.config = config
         self.process_config()
-    
+
     def collect_callbacks(self):
         self.available_callbacks = {}
         self.callback_files = [
-            os.path.dirname(__file__) + '/' + file 
+            os.path.dirname(__file__) + '/' + file
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
         self.callback_files.extend(self.meta['local_blip_files'])
         for callback_file in self.callback_files:
             if (
-                ("__init__.py" in callback_file) or 
-                ("__pycache__.py" in callback_file) or 
-                ("generic_callback.py" in callback_file) or 
+                ("__init__.py" in callback_file) or
+                ("__pycache__.py" in callback_file) or
+                ("generic_callback.py" in callback_file) or
                 ("__pycache__" in callback_file) or
                 (".py" not in callback_file)
             ):
                 continue
-            try:    self.load_callback(callback_file)
-            except: self.logger.warn(f'problem loading callback from file: {callback_file}')
-    
-    def load_callback(self,
+            try:
+                self.load_callback(callback_file)
+            except:
+                self.logger.warn(f'problem loading callback from file: {callback_file}')
+
+    def load_callback(
+        self,
         callback_file: str
     ):
         spec = importlib.util.spec_from_file_location(
-            f'{callback_file.removesuffix(".py")}.name', 
+            f'{callback_file.removesuffix(".py")}.name',
             callback_file
         )
         custom_callback_file = importlib.util.module_from_spec(spec)
@@ -97,7 +107,7 @@ class CallbackHandler:
             # check that callback function exists
             if item not in self.available_callbacks.keys():
                 self.logger.error(
-                    f"specified callback function '{item}' is not an available type! " + 
+                    f"specified callback function '{item}' is not an available type! " +
                     f"Available types:\n{self.available_callbacks.keys()}"
                 )
             # check that function arguments are provided
@@ -105,15 +115,15 @@ class CallbackHandler:
             for value in self.config[item].keys():
                 if value not in argdict.keys():
                     self.logger.error(
-                        f"specified callback value '{item}:{value}' " + 
-                        f"not a constructor parameter for '{item}'! " + 
+                        f"specified callback value '{item}:{value}' " +
+                        f"not a constructor parameter for '{item}'! " +
                         f"Constructor parameters:\n{argdict}"
                     )
             for value in argdict.keys():
-                if argdict[value] == None:
+                if argdict[value] is None:
                     if value not in self.config[item].keys():
                         self.logger.error(
-                            f"required input parameters '{item}:{value}' "+
+                            f"required input parameters '{item}:{value}' " +
                             f"not specified! Constructor parameters:\n{argdict}"
                         )
         self.callbacks = {}
@@ -123,15 +133,17 @@ class CallbackHandler:
             self.callbacks[item] = self.available_callbacks[item](**self.config[item], meta=self.meta)
             self.logger.info(f'added callback function "{item}" to CallbackHandler.')
 
-    def set_device(self,
+    def set_device(
+        self,
         device
-    ):  
+    ):
         for name, callback in self.callbacks.items():
             callback.set_device(device)
             callback.reset_batch()
         self.device = device
 
-    def add_callback(self,
+    def add_callback(
+        self,
         callback:   GenericCallback
     ):
         if issubclass(type(callback), GenericCallback):
@@ -139,12 +151,13 @@ class CallbackHandler:
             self.callbacks[callback.name] = callback
         else:
             self.logger.error(
-                f'specified callback {callback} is not a child of "GenericCallback"!' + 
-                f' Only callback functions which inherit from GenericCallback can' +
-                f' be used by the callbackHandler in BLIP.'
+                f'specified callback {callback} is not a child of "GenericCallback"!' +
+                ' Only callback functions which inherit from GenericCallback can' +
+                ' be used by the callbackHandler in BLIP.'
             )
-    
-    def set_training_info(self,
+
+    def set_training_info(
+        self,
         epochs: int,
         num_training_batches:   int,
         num_validation_batches:  int,
@@ -158,7 +171,8 @@ class CallbackHandler:
                 num_test_batches
             )
 
-    def evaluate_epoch(self,
+    def evaluate_epoch(
+        self,
         train_type='train',
     ):
         if train_type not in ['train', 'validation', 'test', 'all']:
@@ -173,7 +187,7 @@ class CallbackHandler:
     def evaluate_testing(self):
         for name, callback in self.callbacks.items():
             callback.evaluate_testing()
-    
+
     def evaluate_inference(self):
         for name, callback in self.callbacks.items():
             callback.evaluate_inference()

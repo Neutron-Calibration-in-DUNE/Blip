@@ -77,7 +77,8 @@ def run():
             os.makedirs(f'{os.path.abspath(hyper_parameter_location)}/hyper_parameter_iteration_{ii}')
         hyper_parameter_folders.append([f'{os.path.abspath(hyper_parameter_location)}/hyper_parameter_iteration_{ii}'])
         config_parser.save_config(
-            random_config, f'{os.path.abspath(hyper_parameter_location)}/hyper_parameter_iteration_{ii}/hyper_parameter_config.yaml'
+            random_config,
+            f'{os.path.abspath(hyper_parameter_location)}/hyper_parameter_iteration_{ii}/hyper_parameter_config.yaml'
         )
     with open(f'{os.path.abspath(hyper_parameter_location)}/hyper_parameter_data.csv', "w") as file:
         writer = csv.writer(file, delimiter=",")

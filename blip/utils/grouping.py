@@ -16,5 +16,5 @@ def query_ball_point(
     radius,
     number_of_samples
 ):
-    if radius == None:
+    if radius is None:
         return torch.arange(len(centroids))

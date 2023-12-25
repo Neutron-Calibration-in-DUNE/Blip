@@ -39,7 +39,7 @@ class L2Loss(GenericLoss):
         loss = 0
         for ii, output in enumerate(self.outputs):
             temp_loss = self.alpha[ii] * self.l2_loss[self.targets[ii]](
-                outputs[output].to(self.device), 
+                outputs[output].to(self.device),
                 target[self.targets[ii]].unsqueeze(1).to(self.device)
             )
             loss += temp_loss

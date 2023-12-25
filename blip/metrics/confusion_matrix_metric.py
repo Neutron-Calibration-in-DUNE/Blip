@@ -3,22 +3,22 @@ Confusion matrix metric.
 """
 import torch
 import torch.nn as nn
-from torchmetrics.classification import ConfusionMatrix
 from torchmetrics.classification import MulticlassConfusionMatrix
 
-from blip.dataset.common import *
 from blip.metrics import GenericMetric
 
+
 class ConfusionMatrixMetric(GenericMetric):
-    
-    def __init__(self,
-        name:           str='generic',
-        target_type:        str='classes',
-        when_to_compute:    str='all',
-        targets:        list=[],
-        outputs:        list=[],
-        augmentations:  int=0,
-        meta:           dict={}
+
+    def __init__(
+        self,
+        name:           str = 'generic',
+        target_type:        str = 'classes',
+        when_to_compute:    str = 'all',
+        targets:        list = [],
+        outputs:        list = [],
+        augmentations:  int = 0,
+        meta:           dict = {}
     ):
         """
         """
@@ -32,7 +32,8 @@ class ConfusionMatrixMetric(GenericMetric):
             for key in self.targets
         }
 
-    def _metric_update(self,
+    def _metric_update(
+        self,
         target,
         outputs
     ):

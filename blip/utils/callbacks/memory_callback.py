@@ -5,19 +5,21 @@ import numpy as np
 import torch
 from matplotlib import pyplot as plt
 
-from blip.utils.memory    import MemoryTrackers
+from blip.utils.memory import MemoryTrackers
 from blip.utils.callbacks import GenericCallback
+
 
 class MemoryTrackerCallback(GenericCallback):
     """
     """
-    def __init__(self,
-        name:               str='memory_callback',
-        criterion_handler:  list=[],
-        metrics_handler:    list=[],
-        meta:               dict={},
-        output_dir:         str='',
-        memory_trackers:    MemoryTrackers=None,
+    def __init__(
+        self,
+        name:               str = 'memory_callback',
+        criterion_handler:  list = [],
+        metrics_handler:    list = [],
+        meta:               dict = {},
+        output_dir:         str = '',
+        memory_trackers:    MemoryTrackers = None,
     ):
         self.name = "memory"
         super(MemoryTrackerCallback, self).__init__(
@@ -27,7 +29,8 @@ class MemoryTrackerCallback(GenericCallback):
         self.memory_trackers = memory_trackers
         self.no_timing = False
 
-    def evaluate_epoch(self,
+    def evaluate_epoch(
+        self,
         train_type='train'
     ):
         pass
@@ -35,16 +38,17 @@ class MemoryTrackerCallback(GenericCallback):
     def evaluate_training(self):
         if self.no_timing:
             return
-        if self.epochs != None:
-            if self.num_training_batches != None:
+        if self.epochs is not None:
+            if self.num_training_batches is not None:
                 self.__evaluate_training('training')
-            if self.num_validation_batches != None:
+            if self.num_validation_batches is not None:
                 self.__evaluate_training('validation')
-    
-    def __evaluate_training(self, 
+
+    def __evaluate_training(
+        self,
         train_type
     ):
-        epoch_ticks = np.arange(1,self.epochs+1)
+        epoch_ticks = np.arange(1, self.epochs+1)
         if train_type == 'training':
             num_batches = self.num_training_batches
         else:
@@ -67,26 +71,27 @@ class MemoryTrackerCallback(GenericCallback):
                 averages[item] = temp_times.mean()
                 stds[item] = temp_times.std()
 
-        fig, axs = plt.subplots(figsize=(10,6))
+        fig, axs = plt.subplots(figsize=(10, 6))
         for item in self.memory_trackers.memory_trackers.keys():
             if len(self.memory_trackers.memory_trackers[item].memory_values) == 0:
                 continue
             if self.memory_trackers.memory_trackers[item].type == train_type:
                 if self.memory_trackers.memory_trackers[item].level == 'epoch':
                     temp_times = self.memory_trackers.memory_trackers[item].memory_values.squeeze()
-                    linestyle='-'
+                    linestyle = '-'
                 else:
                     temp_times = self.memory_trackers.memory_trackers[item].memory_values.reshape(
                         (self.epochs, num_batches)
                     ).sum(dim=1)
-                    linestyle='--'
+                    linestyle = '--'
                 axs.plot(
-                    epoch_ticks, 
-                    temp_times, 
-                    linestyle=linestyle,  
+                    epoch_ticks,
+                    temp_times,
+                    linestyle=linestyle,
                     label=f'{item.replace(f"{train_type}_","")}'
-                )                  
-                axs.plot([], [],
+                )
+                axs.plot(
+                    [], [],
                     marker='', linestyle='',
                     label=f"total: {temp_times.sum():.2e}bytes"
                 )
@@ -97,7 +102,8 @@ class MemoryTrackerCallback(GenericCallback):
                 else:
                     batch_overhead -= temp_times
         axs.plot(epoch_ticks, batch_overhead, linestyle='-',  label='overhead')
-        axs.plot([], [],
+        axs.plot(
+            [], [],
             marker='', linestyle='',
             label=f"total: {batch_overhead.sum():.2e}bytes"
         )
@@ -117,10 +123,11 @@ class MemoryTrackerCallback(GenericCallback):
         else:
             plt.savefig(f"{self.output_dir}/batch_validation_memory.png")
 
-        fig, axs = plt.subplots(figsize=(10,6))
-        box_values = torch.empty(size=(0,self.epochs))
+        fig, axs = plt.subplots(figsize=(10, 6))
+        box_values = torch.empty(size=(0, self.epochs))
         labels = []
-        axs.plot([], [],
+        axs.plot(
+            [], [],
             marker='x', linestyle='',
             label=f'epochs: {self.epochs}'
         )
@@ -130,14 +137,15 @@ class MemoryTrackerCallback(GenericCallback):
             if self.memory_trackers.memory_trackers[item].type == train_type:
                 if self.memory_trackers.memory_trackers[item].level == 'epoch':
                     temp_times = self.memory_trackers.memory_trackers[item].memory_values.squeeze()
-                    linestyle='-'
+                    linestyle = '-'
                 else:
                     temp_times = self.memory_trackers.memory_trackers[item].memory_values.reshape(
                         (self.epochs, num_batches)
                     ).sum(dim=1)
-                    linestyle='--'
+                    linestyle = '--'
                 box_values = torch.cat((box_values, temp_times.unsqueeze(0)), dim=0)
-                axs.plot([], [],
+                axs.plot(
+                    [], [],
                     marker='', linestyle=linestyle,
                     label=f'{item.replace(f"{train_type}_","")}\n({averages[item]:.2f} +/- {stds[item]:.2f})'
                 )
@@ -147,8 +155,7 @@ class MemoryTrackerCallback(GenericCallback):
             vert=True,
             patch_artist=True,
             labels=labels
-        )    
-        #axs.set_xlabel("epoch")
+        )
         axs.set_ylabel(r"$\langle\Delta m\rangle$ (bytes)")
         axs.set_xticklabels(labels, rotation=45, ha='right')
         axs.set_yscale('log')
@@ -166,6 +173,6 @@ class MemoryTrackerCallback(GenericCallback):
 
     def evaluate_testing(self):
         pass
-    
+
     def evaluate_inference(self):
         pass

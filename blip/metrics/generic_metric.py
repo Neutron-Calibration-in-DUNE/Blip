@@ -5,6 +5,7 @@ import torch
 
 from blip.utils.logger import Logger
 
+
 class GenericMetric:
     """
     Abstract base class for Blip metrics.  The inputs are
@@ -13,17 +14,18 @@ class GenericMetric:
         3. when_to_compute - when to compute the metric, 'train', 'validation', 'test', 'train_all', 'inference', 'all'
         4. targets - list of names for the targets.
         5. outputs - list of names of the associated outputs for each target.
-        6. augmentations - specified whether augmentations are created for the dataset 
+        6. augmentations - specified whether augmentations are created for the dataset
         7. meta - meta information from the module.
     """
-    def __init__(self,
-        name:           str='generic',
-        target_type:        str='classes',
-        when_to_compute:    str='all',
-        targets:        list=[],
-        outputs:        list=[],
-        augmentations:  int=0,
-        meta:           dict={}
+    def __init__(
+        self,
+        name:           str = 'generic',
+        target_type:        str = 'classes',
+        when_to_compute:    str = 'all',
+        targets:        list = [],
+        outputs:        list = [],
+        augmentations:  int = 0,
+        meta:           dict = {}
     ):
         self.name = name
         self.logger = Logger(self.name, output="both", file_mode="w")
@@ -53,7 +55,9 @@ class GenericMetric:
             ]
         elif target_type == 'classes':
             self.update = self.classes_metric_update
-            self.number_of_target_labels = [len(self.meta['dataset'].meta['blip_labels_values'][target]) for target in self.targets]
+            self.number_of_target_labels = [
+                len(self.meta['dataset'].meta['blip_labels_values'][target]) for target in self.targets
+            ]
             self.target_indicies = [
                 self.meta['dataset'].meta['blip_classes_indices_by_name'][target] for target in self.targets
             ]
@@ -74,9 +78,10 @@ class GenericMetric:
         else:
             self.logger.error(f'specified target_type "{target_type}" not allowed!')
 
-    def set_device(self,
+    def set_device(
+        self,
         device
-    ):  
+    ):
         self.device = device
 
     def _reset_batch(self):
@@ -84,14 +89,16 @@ class GenericMetric:
 
     def reset_batch(self):
         self._reset_batch()
-    
-    def _metric_update(self, 
+
+    def _metric_update(
+        self,
         target,
         outputs
     ):
-        self.logger.error(f'"_metric_update" not implemented in Metric!')
+        self.logger.error('"_metric_update" not implemented in Metric!')
 
-    def position_metric_update(self,
+    def position_metric_update(
+        self,
         outputs,
         data,
     ):
@@ -105,8 +112,9 @@ class GenericMetric:
                 for key in self.targets
             }
         return self._metric_update(target, outputs)
-    
-    def feature_metric_update(self,
+
+    def feature_metric_update(
+        self,
         outputs,
         data,
     ):
@@ -121,7 +129,8 @@ class GenericMetric:
             }
         return self._metric_update(target, outputs)
 
-    def classes_metric_update(self,
+    def classes_metric_update(
+        self,
         outputs,
         data,
     ):
@@ -136,7 +145,8 @@ class GenericMetric:
             }
         return self._metric_update(target, outputs)
 
-    def cluster_metric_update(self,
+    def cluster_metric_update(
+        self,
         outputs,
         data,
     ):
@@ -151,7 +161,8 @@ class GenericMetric:
             }
         return self._metric_update(target, outputs)
 
-    def hit_metric_update(self,
+    def hit_metric_update(
+        self,
         outputs,
         data,
     ):
@@ -166,7 +177,8 @@ class GenericMetric:
             }
         return self._metric_update(target, outputs)
 
-    def augment_batch_metric_update(self,
+    def augment_batch_metric_update(
+        self,
         outputs,
         data,
     ):
@@ -182,6 +194,6 @@ class GenericMetric:
 
     def _metric_compute(self):
         pass
-    
+
     def compute(self):
-        return self._metric_compute() 
+        return self._metric_compute()

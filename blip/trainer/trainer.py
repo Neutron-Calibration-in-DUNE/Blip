@@ -125,7 +125,8 @@ class Trainer:
         if not isinstance(self.meta['callbacks'], CallbackHandler):
             if not isinstance(self.meta['callbacks'], None):
                 self.logger.error(
-                    f'specified callbacks is of type {type(self.meta["callbacks"])}, but should be of type CallbackHandler or None!'
+                    f'specified callbacks is of type {type(self.meta["callbacks"])}, ' +
+                    'but should be of type CallbackHandler or None!'
                 )
         self.callbacks = self.meta['callbacks']
         if self.callbacks is None:

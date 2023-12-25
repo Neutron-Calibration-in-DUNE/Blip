@@ -120,7 +120,7 @@ class BlipDataset(GenericDataset):
                 class_index = self.meta["classes"][classes]
                 for jj, label_value in enumerate(self.meta['blip_labels_values'][classes]):
                     mask |= (event_classes[:, class_index] == label_value)
-        
+
         # Apply masks
         event_features = event_features[mask].astype(np.float)
         event_classes = event_classes[mask].astype(np.int64)
@@ -155,7 +155,7 @@ class BlipDataset(GenericDataset):
         event_features,
         event_classes,
         event_clusters,
-    ):      
+    ):
         voxelized_positions = np.round(event_positions * 10 / self.meta['voxelization'])
         unique_elements, inverse_indices = np.unique(voxelized_positions, return_inverse=True, axis=0)
         unique_counts = np.bincount(inverse_indices)

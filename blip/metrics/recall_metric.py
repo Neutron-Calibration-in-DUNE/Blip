@@ -5,19 +5,20 @@ import torch
 import torch.nn as nn
 from torchmetrics.classification import Recall
 
-from blip.dataset.common import *
 from blip.metrics import GenericMetric
 
+
 class RecallMetric(GenericMetric):
-    
-    def __init__(self,
-        name:           str='recall',
-        target_type:        str='classes',
-        when_to_compute:    str='all',
-        targets:        list=[],
-        outputs:        list=[],
-        augmentations:  int=0,
-        meta:           dict={}
+
+    def __init__(
+        self,
+        name:           str = 'recall',
+        target_type:        str = 'classes',
+        when_to_compute:    str = 'all',
+        targets:        list = [],
+        outputs:        list = [],
+        augmentations:  int = 0,
+        meta:           dict = {}
     ):
         """
         """
@@ -35,8 +36,9 @@ class RecallMetric(GenericMetric):
             ).to(self.device)
             for key in self.targets
         }
-        
-    def _metric_update(self,
+
+    def _metric_update(
+        self,
         target,
         outputs
     ):

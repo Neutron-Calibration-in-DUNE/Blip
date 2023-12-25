@@ -279,7 +279,6 @@ class BlipSegmentation(GenericModel):
         self.module_up_dict = nn.ModuleDict(_up_dict)
         self.bottleneck_dict = nn.ModuleDict(_bottleneck_dict)
         self.classification_dict = nn.ModuleDict(_classification_dict)
-        # record the info
 
     def forward(
         self,

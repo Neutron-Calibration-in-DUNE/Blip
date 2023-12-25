@@ -11,7 +11,7 @@ from blip.utils.logger import Logger
 generic_config = {
     "name":             "default",
     "dataset_params":   None,
-    "root":             "/local_data/",
+    'processed_directory':             "/local_data/",
     "transform":        None,
     "pre_transform":    None,
     "pre_filter":       None,
@@ -107,7 +107,7 @@ class GenericDataset(InMemoryDataset):
 
         InMemoryDataset.__init__(
             self,
-            self.root,
+            self.processed_directory,
             self.transform,
             self.pre_transform,
             self.pre_filter,
@@ -115,7 +115,7 @@ class GenericDataset(InMemoryDataset):
         )
 
     def save_params(self):
-        with open(self.root + '/dataset.params', 'wb') as file:
+        with open(self.processed_directory + '/dataset.params', 'wb') as file:
             pickle.dump(self.config, file)
 
     def load_params(
@@ -144,24 +144,24 @@ class GenericDataset(InMemoryDataset):
         self.process_voxelization()
 
     def process_root(self):
-        # set up "root" directory.  this is mainly for processed data.
-        if "root" in self.config.keys():
-            if os.path.isdir(self.config['root']):
-                self.root = self.config['root']
+        # set up 'processed_directory' directory.  this is mainly for processed data.
+        if 'processed_directory' in self.config.keys():
+            if os.path.isdir(self.config['processed_directory']):
+                self.processed_directory = self.config['processed_directory']
             else:
                 self.logger.warn(
-                    f'specified root directory {self.config["root"]} doesnt exist. attempting to create directory'
+                    f'specified root directory {self.config["processed_directory"]} doesnt exist. attempting to create directory'
                 )
                 try:
-                    os.makedirs(self.config['root'])
-                except:
+                    os.makedirs(self.config['processed_directory'])
+                except Exception as exception:
                     self.logger.warn(
-                        f'attempt at making directory {self.config["root"]} failed.  setting root to /local_data/'
+                        f'attempt at making directory {self.config["processed_directory"]} failed.  setting root to /local_data/'
                     )
-                    self.root = self.meta['local_data']
+                    self.processed_directory = self.meta['local_data']
         else:
-            self.root = self.meta['local_data']
-        self.logger.info(f'set "root" directory to {self.root}')
+            self.processed_directory = self.meta['local_data']
+        self.logger.info(f'set "processed_directory" directory to {self.processed_directory}')
 
     def process_skip_processing(self):
         # set skip_processing
@@ -172,8 +172,8 @@ class GenericDataset(InMemoryDataset):
                 self.skip_processing = self.config["skip_processing"]
 
         if self.skip_processing:
-            if os.path.isdir(self.root + '/processed/'):
-                for path in os.listdir(self.root + '/processed/'):
+            if os.path.isdir(self.processed_directory + '/processed/'):
+                for path in os.listdir(self.processed_directory + '/processed/'):
                     if 'data' in path and '.pt' in path:
                         self.meta['number_of_events'] += 1
             self.logger.info(f"found {self.meta['number_of_events']} processed files.")
@@ -239,7 +239,7 @@ class GenericDataset(InMemoryDataset):
                     self.logger.info(
                         f'searching {self.dataset_folder} recursively for all {self.config["dataset_files"]} files.')
                     self.dataset_files = glob.glob(self.dataset_folder + f'**/{self.config["dataset_files"]}', recursive=True)
-                except:
+                except Exception as exception:
                     self.logger.error(f'specified "dataset_files" parameter: {self.config["dataset_files"]} incompatible!')
         else:
             self.logger.error(f'specified "dataset_files" parameter: {self.config["dataset_files"]} incompatible!')
@@ -252,14 +252,14 @@ class GenericDataset(InMemoryDataset):
             try:
                 data = np.load(input_file, allow_pickle=True)
                 temp_meta.append(data['meta'].item())
-            except:
+            except Exception as exception:
                 self.logger.error(f'error reading file "{input_file}"!')
         try:
             for key, value in temp_meta[0].items():
                 if "created" in key:
                     continue
                 self.meta[key] = value
-        except:
+        except Exception as exception:
             self.logger.error(f'error collecting meta information from file {self.dataset_files[0]}!')
 
         # Check that meta info is consistent over the different files
@@ -455,7 +455,7 @@ class GenericDataset(InMemoryDataset):
                 position: ii
                 for ii, position in enumerate(self.meta['blip_positions'])
             }
-        except:
+        except Exception as exception:
             self.logger.error('failed to get position indices from meta!')
         try:
             self.meta['blip_features_indices'] = [
@@ -466,7 +466,7 @@ class GenericDataset(InMemoryDataset):
                 feature: ii
                 for ii, feature in enumerate(self.meta['blip_features'])
             }
-        except:
+        except Exception as exception:
             self.logger.error('failed to get feature indices from meta!')
         try:
             self.meta['blip_classes_indices'] = [
@@ -477,7 +477,7 @@ class GenericDataset(InMemoryDataset):
                 classes: ii
                 for ii, classes in enumerate(self.meta['blip_classes'])
             }
-        except:
+        except Exception as exception:
             self.logger.error('failed to get classes indices from meta!')
         if "clusters" in self.config['variables'].keys():
             try:
@@ -489,7 +489,7 @@ class GenericDataset(InMemoryDataset):
                     clusters: ii
                     for ii, clusters in enumerate(self.meta['blip_clusters'])
                 }
-            except:
+            except Exception as exception:
                 self.logger.error('failed to get clusters indices from meta!')
         if "hits" in self.config['variables'].keys():
             try:
@@ -501,7 +501,7 @@ class GenericDataset(InMemoryDataset):
                     hits: ii
                     for ii, hits in enumerate(self.meta['blip_hits'])
                 }
-            except:
+            except Exception as exception:
                 self.logger.error('failed to get classes indices from meta!')
         try:
             self.meta['blip_labels_values'] = {}
@@ -530,7 +530,7 @@ class GenericDataset(InMemoryDataset):
                     ii: val
                     for ii, val in enumerate(self.meta['blip_labels_values'][classes])
                 }
-        except:
+        except Exception as exception:
             self.logger.error('failed to arange classes labels from meta!')
 
         if "clusters" in self.config['variables'].keys():
@@ -543,7 +543,7 @@ class GenericDataset(InMemoryDataset):
                     cluster: ii
                     for ii, cluster in enumerate(self.meta['blip_clusters'])
                 }
-            except:
+            except Exception as exception:
                 self.logger.error('failed to get clusters indices from meta!')
 
         # Configure masks for classes and corresponding labels.``
