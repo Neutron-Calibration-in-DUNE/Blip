@@ -107,6 +107,10 @@ class ModuleHandler:
             self.logger.error('module_type not specified in config!')
         if "module_mode" not in self.config["module"].keys():
             self.logger.error('module_mode not specified in config!')
+        if "debug" not in self.config["module"].keys():
+            self.config["module"]["debug"] = False
+        self.logger.info(f'setting debug to {self.config["module"]["debug"]}')
+        self.meta['debug'] = self.config['module']['debug']
         # check for dataset module.  If it doesn't exist, but there is a dataset and loader section
         # in the config, then add the dataset module to the list in the config.
         if 'DatasetModule' not in self.config['module']['module_type']:
@@ -131,7 +135,7 @@ class ModuleHandler:
             if self.module_type[ii] not in self.available_modules.keys():
                 self.logger.error(
                     f"specified module '{item}' is not an available type! " +
-                    f"Available types:\n{self.available_modules.keys()}"
+                    f"available types:\n{self.available_modules.keys()}"
                 )
         self.modules = {}
 
@@ -143,6 +147,8 @@ class ModuleHandler:
             self.modules[item].parse_config()
             self.logger.info(f'added module "{item}" to ModuleHandler.')
 
+        #  TODO: make sure to check if the module is custom, if so
+        #        should provide instructions for adding this stuff!
         for ii, item in enumerate(self.module_type):
             # check that the products of one module feed sequentially to
             # the next module.

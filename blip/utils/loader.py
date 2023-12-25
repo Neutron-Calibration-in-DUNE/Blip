@@ -6,6 +6,7 @@ import MinkowskiEngine as ME
 from torch.utils.data import Subset, random_split
 from torch_geometric.loader import DataLoader
 
+from blip.utils.common import quantization_modes, minkowski_algorithms
 from blip.utils.logger import Logger
 from blip.dataset.generic_dataset import GenericDataset
 
@@ -59,6 +60,33 @@ class Loader:
                 f"specified batch size: {self.config['batch_size']} " +
                 "not allowed, must be > 0!"
             )
+        # quantization mode
+        if "quantization_mode" not in self.config.keys():
+            self.logger.warn('quantization_mode not set in config! setting to "random_subsample"')
+            self.config['quantization_mode'] = 'random_subsample'
+        else:
+            if self.config['quantization_mode'] not in quantization_modes:
+                self.logger.warn(
+                    f'specified quantization_mode {self.config["quantization_mode"]} not allowed!' +
+                    'setting to "random_subsample"'
+                )
+                self.config['quantization_mode'] = 'random_subsample'
+        self.meta['quantization_mode'] = quantization_modes[self.config['quantization_mode']]
+        self.logger.info(f'setting MinkowskiEngine quantization_mode to {self.config["quantization_mode"]}')
+
+        # minkowski algorithm
+        if "minkowski_algorithm" not in self.config.keys():
+            self.logger.warn('minkowski_algorithm not set in config! setting to "speed_optimization"')
+            self.config['minkowski_algorithm'] = 'speed_optimization'
+        else:
+            if self.config['minkowski_algorithm'] not in minkowski_algorithms:
+                self.logger.warn(
+                    f'specified minkowski_algorithm {self.config["minkowski_algorithm"]} not allowed!' +
+                    'setting to "speed_optimization"'
+                )
+                self.config['minkowski_algorithm'] = 'speed_optimization'
+        self.meta['minkowski_algorithm'] = minkowski_algorithms[self.config['minkowski_algorithm']]
+        self.logger.info(f'setting MinkowskiEngine minkowski_algorithm to {self.config["minkowski_algorithm"]}')
 
         # setting validation split
         if "validation_split" not in self.config.keys():

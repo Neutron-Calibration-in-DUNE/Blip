@@ -18,24 +18,26 @@ generic_config = {
     "no_params":    "no_values"
 }
 
+
 class GenericModel(nn.Module):
     """
     Wrapper of torch nn.Module that generates a GenericModel
     """
-    def __init__(self,
+    def __init__(
+        self,
         name:   str,
-        config: dict=generic_config,
-        meta:   dict={}
+        config: dict = generic_config,
+        meta:   dict = {}
     ):
         super(GenericModel, self).__init__()
         self.name = name
         self.config = config
         self.logger = Logger(self.name, file_mode='w')
-        self.logger.info(f"configuring model.")
+        self.logger.info("configuring model.")
 
         # forward view maps
-        self.forward_views      = {}
-        self.forward_view_map   = {}
+        self.forward_views = {}
+        self.forward_view_map = {}
 
         self.input_shape = None
         self.output_shape = None
@@ -43,10 +45,11 @@ class GenericModel(nn.Module):
         # device for the model
         self.meta = meta
         if "device" in self.meta:
-            self.device = self.meta['device'] 
+            self.device = self.meta['device']
         self.to(self.device)
 
-    def set_device(self,
+    def set_device(
+        self,
         device
     ):
         self.device = device
@@ -62,14 +65,14 @@ class GenericModel(nn.Module):
     def register_forward_hooks(self):
         """
         This function registers all forward hooks for the modules
-        in ModuleDict.  
+        in ModuleDict.
         """
         for name, module in self._modules.items():
             if isinstance(module, nn.ModuleDict):
                 for name, layer in module.items():
                     self.forward_view_map[layer] = name
                     layer.register_forward_hook(self.forward_hook)
-                    
+
     def construct_model(self):
         """
         The current methodology is to create an ordered
@@ -83,11 +86,11 @@ class GenericModel(nn.Module):
 
         # record the info
         self.logger.info(
-            f"Constructed GenericModel with dictionaries:"
+            "Constructed GenericModel with dictionaries:"
         )
 
     def forward(self, x):
-        self.logger.error(f'"forward" not implemented in Model!')
+        self.logger.error('"forward" not implemented in Model!')
 
     def save_model(
         self,
@@ -134,15 +137,17 @@ class GenericModel(nn.Module):
     def total_parameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
-    def load_checkpoint(self,
-        checkpoint_file:    str=''
+    def load_checkpoint(
+        self,
+        checkpoint_file:    str = ''
     ):
         pass
 
-    def load_model(self,
-        model_file:   str=''
+    def load_model(
+        self,
+        model_file:   str = ''
     ):
-        self.logger.info(f"Attempting to load model checkpoint from file {model_file}.")
+        self.logger.info(f"attempting to load model checkpoint from file {model_file}.")
         try:
             checkpoint = torch.load(model_file)
             self.config = checkpoint['model_config']
@@ -151,6 +156,6 @@ class GenericModel(nn.Module):
             self.register_forward_hooks()
             self.load_state_dict(checkpoint['model_state_dict'])
         except Exception as e:
-            self.logger.error(f"Unable to load model file {model_file}: {e}.")
-            raise ValueError(f"Unable to load model file {model_file}: {e}.")
-        self.logger.info(f"Successfully loaded model checkpoint.")
+            self.logger.error(f"unable to load model file {model_file}: {e}.")
+            raise ValueError(f"unable to load model file {model_file}: {e}.")
+        self.logger.info("successfully loaded model checkpoint.")

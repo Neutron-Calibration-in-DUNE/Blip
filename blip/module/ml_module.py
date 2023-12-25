@@ -47,20 +47,15 @@ class MachineLearningModule(GenericModule):
         """
         self.check_config()
 
-        self.model = None
-        self.criterion = None
-        self.optimizer = None
-        self.metrics = None
-        self.callbacks = None
-        self.trainer = None
-        self.model_analyzer = None
+        self.meta['model'] = None
+        self.meta['criterion'] = None
+        self.meta['optimizer'] = None
+        self.meta['metrics'] = None
+        self.meta['callbacks'] = None
+        self.meta['trainer'] = None
+        self.meta['model_analyzer'] = None
 
         self.parse_model()
-        # self.parse_loss()
-        # self.parse_optimizer()
-        # self.parse_metrics()
-        # self.parse_callbacks()
-        # self.parse_training()
         self.parse_inference()
         self.parse_hyper_parameters()
         self.parse_linear_evaluation()
@@ -120,7 +115,7 @@ class MachineLearningModule(GenericModule):
             return
         self.logger.info("configuring model.")
         model_config = self.config["model"]
-        self.model = ModelHandler(
+        self.meta['model'] = ModelHandler(
             self.name + name,
             model_config,
             meta=self.meta
@@ -138,7 +133,7 @@ class MachineLearningModule(GenericModule):
         self.logger.info("configuring criterion.")
         criterion_config = self.config['criterion']
         # add in class weight numbers for loss functions
-        self.criterion = LossHandler(
+        self.meta['criterion'] = LossHandler(
             self.name + name,
             criterion_config,
             meta=self.meta
@@ -157,10 +152,10 @@ class MachineLearningModule(GenericModule):
             return
         self.logger.info("configuring optimizer.")
         optimizer_config = self.config['optimizer']
-        self.optimizer = Optimizer(
+        self.meta['optimizer'] = Optimizer(
             self.name + name,
             optimizer_config,
-            self.model.model
+            meta=self.meta,
         )
 
     def parse_metrics(
@@ -174,7 +169,7 @@ class MachineLearningModule(GenericModule):
             return
         self.logger.info("configuring metrics.")
         metrics_config = self.config['metrics']
-        self.metrics = MetricHandler(
+        self.meta['metrics'] = MetricHandler(
             self.name + name,
             metrics_config,
             meta=self.meta
@@ -197,9 +192,9 @@ class MachineLearningModule(GenericModule):
             for callback in callbacks_config.keys():
                 if callbacks_config[callback] is None:
                     callbacks_config[callback] = {}
-                callbacks_config[callback]['criterion_handler'] = self.criterion
-                callbacks_config[callback]['metrics_handler'] = self.metrics
-        self.callbacks = CallbackHandler(
+                callbacks_config[callback]['criterion_handler'] = self.meta['criterion']
+                callbacks_config[callback]['metrics_handler'] = self.meta['metrics']
+        self.meta['callbacks'] = CallbackHandler(
             self.name + name,
             callbacks_config,
             meta=self.meta
@@ -220,15 +215,10 @@ class MachineLearningModule(GenericModule):
             self.config['training']['iterations'] = 1
         if self.mode == "linear_evaluation":
             return
-        self.trainer = Trainer(
+        self.meta['trainer'] = Trainer(
             self.name + name,
-            self.model.model,
-            self.criterion,
-            self.optimizer,
-            self.metrics,
-            self.callbacks,
+            training_config,
             meta=self.meta,
-            seed=training_config['seed']
         )
 
     def parse_inference(
@@ -238,23 +228,21 @@ class MachineLearningModule(GenericModule):
         if "inference" not in self.config.keys():
             self.logger.warn("no inference in config file.")
             return
-        if self.trainer is None:
-            self.trainer = Trainer(
+        self.logger.info("configuring inference.")
+        training_config = self.config['training']
+        if self.meta['trainer'] is None:
+            self.meta['trainer'] = Trainer(
                 self.name + name,
-                self.model.model,
-                self.criterion,
-                self.optimizer,
-                self.metrics,
-                self.callbacks,
+                training_config,
                 meta=self.meta
             )
 
         if "layers" in self.config["inference"].keys():
             for layer in self.config["inference"]["layers"]:
-                if layer not in self.model.model.forward_views.keys():
+                if layer not in self.meta['model'].forward_views().keys():
                     self.logger.error(
                         f"layer '{layer}' not in the model forward views!" +
-                        f" Possible views: {self.model.model.forward_views.keys()}"
+                        f" possible views: {self.meta['model'].forward_views().keys()}"
                     )
                 self.module_data_product[layer] = None
         if "outputs" in self.config["inference"].keys():
@@ -319,11 +307,11 @@ class MachineLearningModule(GenericModule):
         """
         if "model_analyzer" not in self.config.keys():
             self.logger.warn("no model_analyzer in config file.")
-            self.model_analyzer = None
+            self.meta['model_analyzer'] = None
             return
         self.logger.info("configuring model_analyzer")
         model_analyzer_config = self.config["model_analyzer"]
-        self.model_analyzer = ModelAnalyzerHandler(
+        self.meta['model_analyzer'] = ModelAnalyzerHandler(
             self.name + name,
             model_analyzer_config,
             meta=self.meta
@@ -364,7 +352,7 @@ class MachineLearningModule(GenericModule):
         self,
         hyper_parameters_config
     ):
-        model_parameters = hyper_parameters_config["model_parameters"]
+        self.logger.error("generate random hyper parameters not available yet!")
 
     def save_iteration(
         self,
@@ -404,7 +392,7 @@ class MachineLearningModule(GenericModule):
             self.parse_metrics(f'_{jj}')
             self.parse_callbacks(f'_{jj}')
             self.parse_training(f'_{jj}')
-            self.module_data_product[f'predictions_{jj}'] = self.trainer.train(
+            self.module_data_product[f'predictions_{jj}'] = self.meta['trainer'].train(
                 epochs=self.config['training']['epochs'],
                 checkpoint=self.config['training']['checkpoint'],
                 progress_bar=self.config['training']['progress_bar'],
@@ -413,21 +401,21 @@ class MachineLearningModule(GenericModule):
                 no_timing=self.config['training']['no_timing'],
                 skip_metrics=self.config['training']['skip_metrics']
             )
-            if self.model_analyzer is not None:
-                self.model_analyzer.analyze(self.model.model)
+            if self.meta['model_analyzer'] is not None:
+                self.meta['model_analyzer'].analyze(self.meta['model'])
             self.save_iteration(f"iteration_{jj}")
 
     def run_contrastive_training(self):
         for jj in range(self.config['training']['iterations']):
             self.parse_model(f'_contrastive_{jj}')
-            self.model.model.contrastive_learning()
+            self.meta['model'].contrastive_learning()
 
             self.parse_optimizer(f'_contrastive_{jj}')
             self.parse_loss(f'_contrastive_{jj}')
             self.parse_metrics(f'_contrastive_{jj}')
             self.parse_callbacks(f'_contrastive_{jj}')
             self.parse_training(f'_contrastive_{jj}')
-            self.module_data_product[f'contrastive_predictions_{jj}'] = self.trainer.train(
+            self.module_data_product[f'contrastive_predictions_{jj}'] = self.meta['trainer'].train(
                 epochs=self.config['training']['epochs'],
                 checkpoint=self.config['training']['checkpoint'],
                 progress_bar=self.config['training']['progress_bar'],
@@ -436,21 +424,21 @@ class MachineLearningModule(GenericModule):
                 no_timing=self.config['training']['no_timing'],
                 skip_metrics=self.config['training']['skip_metrics']
             )
-            if self.model_analyzer is not None:
-                self.model_analyzer.analyze(self.model.model)
+            if self.meta['model_analyzer'] is not None:
+                self.meta['model_analyzer'].analyze(self.meta['model'])
             self.save_iteration(f"contrastive_iteration_{jj}")
             # linear evaluation
-            self.model.model.linear_evaluation()
+            self.meta['model'].linear_evaluation()
             self.parse_optimizer(f'_linear_evaluation_{jj}')
             self.parse_loss(f'_linear_evaluation_{jj}')
             # remove contrastive losses
-            self.criterion.remove_loss('NTXEntropyLoss')
+            self.meta['criterion'].remove_loss('NTXEntropyLoss')
 
             self.parse_metrics(f'_linear_evaluation_{jj}')
             self.parse_callbacks(f'_linear_evaluation_{jj}')
             self.parse_training(f'_linear_evaluation_{jj}')
 
-            self.module_data_product[f'linear_predictions_{jj}'] = self.trainer.train(
+            self.module_data_product[f'linear_predictions_{jj}'] = self.meta['trainer'].train(
                 epochs=self.config['linear_evaluation']['epochs'],
                 checkpoint=self.config['training']['checkpoint'],
                 progress_bar=self.config['training']['progress_bar'],
@@ -462,7 +450,7 @@ class MachineLearningModule(GenericModule):
             self.save_iteration(f"linear_evaluation_iteration_{jj}")
 
     def run_inference(self):
-        self.module_data_product['predictions'] = self.trainer.inference(
+        self.module_data_product['predictions'] = self.meta['trainer'].inference(
             dataset_type=self.config['inference']['dataset_type'],
             layers=self.config['inference']['layers'],
             outputs=self.config['inference']['outputs'],
@@ -472,7 +460,7 @@ class MachineLearningModule(GenericModule):
         )
 
     def run_model_analyzer(self):
-        pass
+        self.logger.error("running model analyzer by itself not available yet!")
 
     def run_hyper_parameter_scan(self):
         if self.search_type == 'grid' or self.search_type == 'random':
@@ -485,7 +473,7 @@ class MachineLearningModule(GenericModule):
         training_config = self.config['training']
         for ii, iteration in enumerate(self.hyper_parameters.keys()):
             for jj in range(training_config['iterations']):
-                self.model = ModelHandler(
+                self.meta['model'] = ModelHandler(
                     self.name + f"_{ii}_{jj}",
                     self.hyper_parameters[iteration],
                     meta=self.meta
@@ -496,7 +484,7 @@ class MachineLearningModule(GenericModule):
                 self.parse_callbacks(f'_{ii}_{jj}')
                 self.parse_training(f'_{ii}_{jj}')
 
-                self.module_data_product[f'predictions_{ii}_{jj}'] = self.trainer.train(
+                self.module_data_product[f'predictions_{ii}_{jj}'] = self.meta['trainer'].train(
                     epochs=training_config['epochs'],
                     checkpoint=training_config['checkpoint'],
                     progress_bar=training_config['progress_bar'],
@@ -505,8 +493,8 @@ class MachineLearningModule(GenericModule):
                     no_timing=training_config['no_timing'],
                     skip_metrics=training_config['skip_metrics']
                 )
-                if self.model_analyzer is not None:
-                    self.model_analyzer.analyze(self.model.model)
+                if self.meta['model_analyzer'] is not None:
+                    self.meta['model_analyzer'].analyze(self.meta['model'])
                 self.save_iteration(f"hyper_parameter_{ii}_iteration_{jj}")
         np.savez(
             f"{self.meta['local_scratch']}/runs/{self.now}/hyper_parameters.npz",
@@ -514,9 +502,7 @@ class MachineLearningModule(GenericModule):
         )
 
     def run_bayes_hyper_parameter_scan(self):
-        self.logger.info(f"running hyper_parameter scan over {self.iterations} iterations")
-        optimizer_config = self.config['optimizer']
-        training_config = self.config['training']
+        self.logger.error("bayes hyper parameter scan not available yet!")
 
     def run_contrastive_hyper_parameter_scan(self):
         if self.search_type == 'grid' or self.search_type == 'random':
@@ -529,20 +515,20 @@ class MachineLearningModule(GenericModule):
         training_config = self.config['training']
         for ii, iteration in enumerate(self.hyper_parameters.keys()):
             for jj in range(training_config['iterations']):
-                self.model = ModelHandler(
+                self.meta['model'] = ModelHandler(
                     self.name + f"_contrastive_{ii}_{jj}",
                     self.hyper_parameters[iteration],
                     meta=self.meta
                 )
                 # contrastive learning
-                self.model.model.contrastive_learning()
+                self.meta['model'].contrastive_learning()
                 self.parse_optimizer(f'_contrastive_{ii}_{jj}')
                 self.parse_loss(f'_contrastive_{ii}_{jj}')
                 self.parse_metrics(f'_contrastive_{ii}_{jj}')
                 self.parse_callbacks(f'_contrastive_{ii}_{jj}')
                 self.parse_training(f'_contrastive_{ii}_{jj}')
 
-                self.module_data_product[f'contrastive_predictions_{ii}_{jj}'] = self.trainer.train(
+                self.module_data_product[f'contrastive_predictions_{ii}_{jj}'] = self.meta['trainer'].train(
                     epochs=training_config['epochs'],
                     checkpoint=training_config['checkpoint'],
                     progress_bar=training_config['progress_bar'],
@@ -551,21 +537,21 @@ class MachineLearningModule(GenericModule):
                     no_timing=training_config['no_timing'],
                     skip_metrics=training_config['skip_metrics']
                 )
-                if self.model_analyzer is not None:
-                    self.model_analyzer.analyze(self.model.model)
+                if self.meta['model_analyzer'] is not None:
+                    self.meta['model_analyzer'].analyze(self.meta['model'])
                 self.save_iteration(f"contrastive_hyper_parameter_{ii}_iteration_{jj}")
                 # linear evaluation
-                self.model.model.linear_evaluation()
+                self.meta['model'].linear_evaluation()
                 self.parse_optimizer(f'_linear_evaluation_{ii}_{jj}')
                 self.parse_loss(f'_linear_evaluation_{ii}_{jj}')
                 # remove contrastive losses
-                self.criterion.remove_loss('NTXEntropyLoss')
+                self.meta['criterion'].remove_loss('NTXEntropyLoss')
 
                 self.parse_metrics(f'_linear_evaluation_{ii}_{jj}')
                 self.parse_callbacks(f'_linear_evaluation_{ii}_{jj}')
                 self.parse_training(f'_linear_evaluation_{ii}_{jj}')
 
-                self.module_data_product[f'linear_predictions_{ii}_{jj}'] = self.trainer.train(
+                self.module_data_product[f'linear_predictions_{ii}_{jj}'] = self.meta['trainer'].train(
                     epochs=self.config['linear_evaluation']['epochs'],
                     checkpoint=training_config['checkpoint'],
                     progress_bar=training_config['progress_bar'],
@@ -581,9 +567,7 @@ class MachineLearningModule(GenericModule):
         )
 
     def run_bayes_contrastive_hyper_parameter_scan(self):
-        self.logger.info(f"running hyper_parameter scan over {self.iterations} iterations")
-        optimizer_config = self.config['optimizer']
-        training_config = self.config['training']
+        self.logger.error("bayes contrastive hyper parameter scan not available yet!")
 
     def run_linear_evaluation(self):
         self.logger.info("running linear_evaluation protocol")
@@ -596,7 +580,7 @@ class MachineLearningModule(GenericModule):
                 linear_config = {
                     'model':    self.linear_evaluation_model_directory + model,
                 }
-                self.model = LinearEvaluation(
+                self.meta['model'] = LinearEvaluation(
                     config=linear_config,
                     meta=self.meta
                 )
@@ -605,7 +589,7 @@ class MachineLearningModule(GenericModule):
                 self.parse_metrics(f'_{ii}_{jj}')
                 self.parse_callbacks(f'_{ii}_{jj}')
                 self.parse_training(f'_{ii}_{jj}')
-                self.module_data_product[f'predictions_{ii}_{jj}'] = self.trainer.train(
+                self.module_data_product[f'predictions_{ii}_{jj}'] = self.meta['trainer'].train(
                     epochs=self.config['linear_evaluation']['epochs'],
                     checkpoint=self.config['training']['checkpoint'],
                     progress_bar=self.config['training']['progress_bar'],
@@ -614,6 +598,6 @@ class MachineLearningModule(GenericModule):
                     no_timing=self.config['training']['no_timing'],
                     skip_metrics=self.config['training']['skip_metrics']
                 )
-                if self.model_analyzer is not None:
-                    self.model_analyzer.analyze(self.model.model)
+                if self.meta['model_analyzer'] is not None:
+                    self.meta['model_analyzer'].analyze(self.meta['model'])
                 self.save_iteration(f"linear_{ii}_iteration_{jj}")
