@@ -76,15 +76,15 @@ class Loader:
 
         # minkowski algorithm
         if "minkowski_algorithm" not in self.config.keys():
-            self.logger.warn('minkowski_algorithm not set in config! setting to "speed_optimization"')
-            self.config['minkowski_algorithm'] = 'speed_optimization'
+            self.logger.warn('minkowski_algorithm not set in config! setting to "speed_optimized"')
+            self.config['minkowski_algorithm'] = 'speed_optimized'
         else:
             if self.config['minkowski_algorithm'] not in minkowski_algorithms:
                 self.logger.warn(
                     f'specified minkowski_algorithm {self.config["minkowski_algorithm"]} not allowed!' +
-                    'setting to "speed_optimization"'
+                    'setting to "speed_optimized"'
                 )
-                self.config['minkowski_algorithm'] = 'speed_optimization'
+                self.config['minkowski_algorithm'] = 'speed_optimized'
         self.meta['minkowski_algorithm'] = minkowski_algorithms[self.config['minkowski_algorithm']]
         self.logger.info(f'setting MinkowskiEngine minkowski_algorithm to {self.config["minkowski_algorithm"]}')
 

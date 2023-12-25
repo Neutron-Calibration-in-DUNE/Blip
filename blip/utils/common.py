@@ -12,5 +12,5 @@ quantization_modes = {
 
 minkowski_algorithms = {
     "memory_efficient":     ME.MinkowskiAlgorithm.MEMORY_EFFICIENT,
-    "speed_optimized":   ME.MinkowskiAlgorithm.SPEED_OPTIMIZED,
+    "speed_optimized":      ME.MinkowskiAlgorithm.SPEED_OPTIMIZED,
 }
