@@ -1,23 +1,24 @@
 """
 Container for models
 """
-import os 
+import os
 import importlib.util
 import sys
 import inspect
 from blip.utils.logger import Logger
 from blip.models import GenericModel
-from blip.utils.utils import get_method_arguments
+
 
 class ModelHandler:
     """
     """
-    def __init__(self,
+    def __init__(
+        self,
         name:   str,
-        config:  dict={},
-        models:  list=[],
-        use_sample_weights: bool=False,
-        meta:   dict={}
+        config:  dict = {},
+        models:  list = [],
+        use_sample_weights: bool = False,
+        meta:   dict = {}
     ):
         self.name = name + "_model_handler"
         self.use_sample_weights = use_sample_weights
@@ -37,20 +38,20 @@ class ModelHandler:
 
         if bool(config) and len(models) != 0:
             self.logger.error(
-                f"handler received both a config and a list of models! " + 
-                f"The user should only provide one or the other!")
+                "handler received both a config and a list of models! " +
+                "The user should only provide one or the other!")
         elif bool(config):
             self.set_config(config)
         else:
             if len(models) == 0:
-                self.logger.error(f"handler received neither a config or models!")
+                self.logger.error("handler received neither a config or models!")
             self.models = {
-                model.name: model 
+                model.name: model
                 for model in models
             }
             if len(models) == 1:
                 self.model = list(self.models.values())[0]
-        
+
     def set_config(self, config):
         self.config = config
         self.process_config()
@@ -58,15 +59,15 @@ class ModelHandler:
     def collect_models(self):
         self.available_models = {}
         self.model_files = [
-            os.path.dirname(__file__) + '/' + file 
+            os.path.dirname(__file__) + '/' + file
             for file in os.listdir(path=os.path.dirname(__file__))
         ]
         self.model_files.extend(self.meta['local_blip_files'])
         for model_file in self.model_files:
             if (
-                ("__init__.py" in model_file) or 
-                ("__pycache__.py" in model_file) or 
-                ("generic_model.py" in model_file) or 
+                ("__init__.py" in model_file) or
+                ("__pycache__.py" in model_file) or
+                ("generic_model.py" in model_file) or
                 ("__pycache__" in model_file) or
                 (".py" not in model_file)
             ):
@@ -75,12 +76,13 @@ class ModelHandler:
                 self.load_model(model_file)
             except:
                 self.logger.warn(f'problem loading model from file: {model_file}')
-    
-    def load_model(self,
+
+    def load_model(
+        self,
         model_file: str
     ):
         spec = importlib.util.spec_from_file_location(
-            f'{model_file.removesuffix(".py")}.name', 
+            f'{model_file.removesuffix(".py")}.name',
             model_file
         )
         custom_model_file = importlib.util.module_from_spec(spec)
@@ -108,7 +110,7 @@ class ModelHandler:
             else:
                 self.logger.error(f'custom_model_file {self.config["custom_model_file"]} not found!')
         if "model_type" not in self.config.keys():
-            self.logger.warn(f'model_type not specified in config! Setting to "single"!')
+            self.logger.warn('model_type not specified in config! Setting to "single"!')
             self.model_type = 'single'
         # process models
         for item in self.config.keys():
@@ -120,7 +122,7 @@ class ModelHandler:
             # check that model exists
             if item not in self.available_models.keys():
                 self.logger.error(
-                    f"specified model '{item}' is not an available type! " + 
+                    f"specified model '{item}' is not an available type! " +
                     f"Available types:\n{self.available_models.keys()}"
                 )
         self.models = {}
@@ -134,19 +136,21 @@ class ModelHandler:
             self.logger.info(f'added model "{item}" to ModelHandler.')
         if self.model_type == 'single':
             if len(self.models.keys()) > 1:
-                self.logger.error(f'model_type set to "single", but multiple models have been registered!')
+                self.logger.error('model_type set to "single", but multiple models have been registered!')
             else:
                 self.model = list(self.models.values())[0]
 
-    def set_device(self,
+    def set_device(
+        self,
         device
-    ):  
+    ):
         self.logger.info(f'setting device to "{device}".')
         for name, model in self.models.items():
             model.set_device(device)
         self.device = device
 
-    def add_model(self,
+    def add_model(
+        self,
         model:   GenericModel
     ):
         if issubclass(type(model), GenericModel):
@@ -154,11 +158,47 @@ class ModelHandler:
             self.models[model.name] = model
         else:
             self.logger.error(
-                f'specified model {model} is not a child of "GenericModel"!' + 
-                f' Only models which inherit from GenericModel can' +
-                f' be used by the ModelHandler in BLIP.'
+                'specified model {model} is not a child of "GenericModel"!' +
+                ' only models which inherit from GenericModel can' +
+                ' be used by the ModelHandler in BLIP.'
             )
-    
-    def __call__(self, inputs):
-        if self.model_type == "single":
-            return self.models[self.single_model_name](inputs)
+
+    def contrastive_learning(self):
+        if self.model_type == 'single':
+            self.model.contrastive_learning()
+        else:
+            for name, model in self.models.items():
+                try:
+                    model.contrastive_learning()
+                except:
+                    self.logger.warn(f'problem with setting contrastive learning for model {name}')
+
+    def linear_evaluation(self):
+        if self.model_type == 'single':
+            self.model.linear_evaluation()
+        else:
+            for name, model in self.models.items():
+                try:
+                    model.linear_evaluation()
+                except:
+                    self.logger.warn(f'problem with setting linear_evaluation for model {name}')
+
+    def parameters(self):
+        if self.model_type == 'single':
+            return self.model.parameters()
+        else:
+            parameters = []
+            for name, model in self.models.items():
+                parameters += model.parameters()
+            return parameters
+
+    def forward_views(self):
+        if self.model_type == 'single':
+            return self.model.forward_views()
+        else:
+            forward_views = {}
+            for name, model in self.models.items():
+                model_views = model.forward_views()
+                for view_name, view in model_views.items():
+                    forward_views[view_name] = view
+            return forward_views

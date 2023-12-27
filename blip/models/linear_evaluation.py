@@ -1,18 +1,11 @@
 """
 Implementation of the LinearEvaluation model using pytorch
 """
-import numpy as np
 import torch
 import torch.nn as nn
 from collections import OrderedDict
-import torch_geometric.transforms as T
-from torch.nn import Linear
-import torch.nn.functional as F
-from torch_geometric.nn import MLP, DynamicEdgeConv, PointNetConv, PointTransformerConv
-from torch_geometric.nn import global_add_pool, global_mean_pool, global_max_pool
+from torch_geometric.nn import MLP
 
-
-from blip.models.common import activations, normalizations
 from blip.models import GenericModel
 from blip.models.blip_graph import BlipGraph
 
@@ -20,19 +13,21 @@ linear_evaluation_config = {
 
 }
 
+
 class LinearEvaluation(GenericModel):
     """
     """
-    def __init__(self,
-        name:   str='linear_evaluation',
-        config: dict=linear_evaluation_config,
-        meta:   dict={}
+    def __init__(
+        self,
+        name:   str = 'linear_evaluation',
+        config: dict = linear_evaluation_config,
+        meta:   dict = {}
     ):
         super(LinearEvaluation, self).__init__(
             name, config, meta
         )
         self.config = config
-         
+
         # construct the model
         self.construct_model()
         # register hooks
@@ -51,17 +46,23 @@ class LinearEvaluation(GenericModel):
         if isinstance(self.blip_graph_model, str):
             try:
                 checkpoint = torch.load(self.blip_graph_model)
-            except:
-                self.logger.error(f"failed to load model from ckpt: {self.blip_graph_model}! Does this file exist?")
+            except Exception as exception:
+                self.logger.error(
+                    f"failed to load model from ckpt: {self.blip_graph_model}! Does this file exist?" +
+                    f" exception: {exception}"
+                )
             try:
                 self.blip_graph_config = checkpoint['model_config']
-            except:
-                self.logger.error(f"could not load 'model_config' from checkpoint of {self.blip_graph_model}!")
-        
+            except Exception as exception:
+                self.logger.error(
+                    f"could not load 'model_config' from checkpoint of {self.blip_graph_model}!" +
+                    f" exception: {exception}"
+                )
+
             self.logger.info(f"loading BlipGraph from {self.config['model']}.")
             if self.blip_graph_config["add_summed_adc"]:
                 self.blip_graph_config['reduction']['linear_output'] -= 1
-            
+
             self.blip_graph = BlipGraph(
                 'blip_graph',
                 self.blip_graph_config,
@@ -85,12 +86,8 @@ class LinearEvaluation(GenericModel):
         self.classification_dict = nn.ModuleDict(_classification_dict)
         self.softmax = nn.Softmax(dim=1)
 
-        # record the info
-        self.logger.info(
-            f"Constructed LinearEvaluation with dictionaries:"
-        )
-    
-    def forward(self,
+    def forward(
+        self,
         data
     ):
         self.blip_graph.eval()

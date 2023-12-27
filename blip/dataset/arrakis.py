@@ -293,7 +293,7 @@ class Arrakis:
                 self.config["download_dataset"] = [self.config["download_dataset"]]
             for ii, dataset in enumerate(self.config["download_dataset"]):
                 if dataset not in self.osf_files.keys():
-                    self.logger.error(f'specified osf_dataset {dataset} not an available set from OSF!') 
+                    self.logger.error(f'specified osf_dataset {dataset} not an available set from OSF!')
 
     def load_root_arrays(
         self,

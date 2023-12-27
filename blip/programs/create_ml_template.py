@@ -45,7 +45,7 @@ def run():
             os.makedirs(f"{module_location}.backup/")
         os.makedirs(f"{module_location}.backup/{now}")
         selected_files = [
-            file for file in os.listdir(module_location) 
+            file for file in os.listdir(module_location)
             if (file.endswith('.py') or file.endswith('.yaml'))
         ]
         for file in selected_files:

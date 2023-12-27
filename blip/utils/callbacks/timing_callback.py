@@ -5,21 +5,23 @@ import numpy as np
 import torch
 from matplotlib import pyplot as plt
 
-from blip.utils.timing           import Timers
-from blip.utils.callbacks        import GenericCallback
-from blip.losses.loss_handler    import LossHandler
+from blip.utils.timing import Timers
+from blip.utils.callbacks import GenericCallback
+from blip.losses.loss_handler import LossHandler
 from blip.metrics.metric_handler import MetricHandler
+
 
 class TimingCallback(GenericCallback):
     """
     """
-    def __init__(self,
-        name:               str='timing_callback',
-        criterion_handler:  list=[],
-        metrics_handler:    list=[],
-        meta:               dict={},
-        output_dir:         str='',
-        timers:             Timers=None,
+    def __init__(
+        self,
+        name:               str = 'timing_callback',
+        criterion_handler:  LossHandler = None,
+        metrics_handler:    MetricHandler = None,
+        meta:               dict = {},
+        output_dir:         str = '',
+        timers:             Timers = None,
     ):
         self.name = "timing"
         super(TimingCallback, self).__init__(
@@ -28,8 +30,9 @@ class TimingCallback(GenericCallback):
         self.output_dir = output_dir
         self.timers = timers
         self.no_timing = False
-    
-    def evaluate_epoch(self,
+
+    def evaluate_epoch(
+        self,
         train_type='train'
     ):
         pass
@@ -37,16 +40,17 @@ class TimingCallback(GenericCallback):
     def evaluate_training(self):
         if self.no_timing:
             return
-        if self.epochs != None:
-            if self.num_training_batches != None:
+        if self.epochs is not None:
+            if self.num_training_batches is not None:
                 self.__evaluate_training('training')
-            if self.num_validation_batches != None:
+            if self.num_validation_batches is not None:
                 self.__evaluate_training('validation')
-    
-    def __evaluate_training(self, 
+
+    def __evaluate_training(
+        self,
         train_type
     ):
-        epoch_ticks = np.arange(1,self.epochs+1)
+        epoch_ticks = np.arange(1, self.epochs+1)
         if train_type == 'training':
             num_batches = self.num_training_batches
         else:
@@ -69,27 +73,29 @@ class TimingCallback(GenericCallback):
                 averages[item] = temp_times.mean()
                 stds[item] = temp_times.std()
 
-        fig, axs = plt.subplots(figsize=(10,6))
+        fig, axs = plt.subplots(figsize=(10, 6))
         for item in self.timers.timers.keys():
             if len(self.timers.timers[item].timer_values) == 0:
                 continue
             if self.timers.timers[item].type == train_type:
                 if self.timers.timers[item].level == 'epoch':
                     temp_times = self.timers.timers[item].timer_values.squeeze()
-                    linestyle='-'
+                    linestyle = '-'
                 else:
                     temp_times = self.timers.timers[item].timer_values.reshape(
                         (self.epochs, num_batches)
                     ).sum(dim=1)
-                    linestyle='--'
+                    linestyle = '--'
                 axs.plot(
-                    epoch_ticks, 
-                    temp_times, 
-                    linestyle=linestyle,  
+                    epoch_ticks,
+                    temp_times,
+                    linestyle=linestyle,
                     label=f'{item.replace(f"{train_type}_","")}'
-                )    
-                axs.plot([], [],
-                    marker='', linestyle='',
+                )
+                axs.plot(
+                    [], [],
+                    marker='',
+                    linestyle='',
                     label=f"total: {temp_times.sum():.2f}ms"
                 )
                 if 'epoch' in item:
@@ -99,8 +105,10 @@ class TimingCallback(GenericCallback):
                 else:
                     batch_overhead -= temp_times
         axs.plot(epoch_ticks, batch_overhead, linestyle='-',  label='overhead')
-        axs.plot([], [],
-            marker='', linestyle='',
+        axs.plot(
+            [], [],
+            marker='',
+            linestyle='',
             label=f"total: {batch_overhead.sum():.2f}ms"
         )
 
@@ -118,12 +126,14 @@ class TimingCallback(GenericCallback):
             plt.savefig(f"{self.output_dir}/batch_training_timing.png")
         else:
             plt.savefig(f"{self.output_dir}/batch_validation_timing.png")
-        
-        fig, axs = plt.subplots(figsize=(10,6))
-        box_values = torch.empty(size=(0,self.epochs))
+
+        fig, axs = plt.subplots(figsize=(10, 6))
+        box_values = torch.empty(size=(0, self.epochs))
         labels = []
-        axs.plot([], [],
-            marker='x', linestyle='',
+        axs.plot(
+            [], [],
+            marker='x',
+            linestyle='',
             label=f'epochs: {self.epochs}'
         )
         for item in self.timers.timers.keys():
@@ -132,15 +142,17 @@ class TimingCallback(GenericCallback):
             if self.timers.timers[item].type == train_type:
                 if self.timers.timers[item].level == 'epoch':
                     temp_times = self.timers.timers[item].timer_values.squeeze()
-                    linestyle='-'
+                    linestyle = '-'
                 else:
                     temp_times = self.timers.timers[item].timer_values.reshape(
                         (self.epochs, num_batches)
                     ).sum(dim=1)
-                    linestyle='--'
+                    linestyle = '--'
                 box_values = torch.cat((box_values, temp_times.unsqueeze(0)), dim=0)
-                axs.plot([], [],
-                    marker='', linestyle=linestyle,
+                axs.plot(
+                    [], [],
+                    marker='',
+                    linestyle=linestyle,
                     label=f'{item.replace(f"{train_type}_","")}\n({averages[item]:.2f} +/- {stds[item]:.2f})'
                 )
                 labels.append(f'{item.replace(f"{train_type}_","")}')
@@ -149,8 +161,7 @@ class TimingCallback(GenericCallback):
             vert=True,
             patch_artist=True,
             labels=labels
-        )    
-        #axs.set_xlabel("epoch")
+        )
         axs.set_ylabel(r"$\langle\Delta t\rangle$ (ms)")
         axs.set_xticklabels(labels, rotation=45, ha='right')
         axs.set_yscale('log')
@@ -168,6 +179,6 @@ class TimingCallback(GenericCallback):
 
     def evaluate_testing(self):
         pass
-    
+
     def evaluate_inference(self):
         pass

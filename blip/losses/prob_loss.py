@@ -6,16 +6,18 @@ import torch.nn as nn
 
 from blip.losses import GenericLoss
 
+
 class MultiClassProbabilityLoss(GenericLoss):
     """
     """
-    def __init__(self,
-        alpha: float=1.0,
-        name:  str='probability_loss',
-        classes:    list=[],
-        reduction:  str='mean',
-        class_weights:  dict={},
-        meta:   dict={}
+    def __init__(
+        self,
+        alpha:      float = 1.0,
+        name:       str = 'probability_loss',
+        classes:    list = [],
+        reduction:  str = 'mean',
+        class_weights:  dict = {},
+        meta:       dict = {}
     ):
         super(MultiClassProbabilityLoss, self).__init__(
             name, alpha, meta)
@@ -25,7 +27,7 @@ class MultiClassProbabilityLoss(GenericLoss):
         if len(class_weights.keys()) > 0:
             self.cross_entropy_loss = {
                 key: nn.MSELoss(
-                    weight=self.class_weights[key].to(self.device), 
+                    weight=self.class_weights[key].to(self.device),
                     reduction=self.reduction
                 )
                 for key in self.class_weights.keys()
@@ -36,7 +38,8 @@ class MultiClassProbabilityLoss(GenericLoss):
                 for key in self.classes
             }
 
-    def loss(self,
+    def loss(
+        self,
         outputs,
         data,
     ):

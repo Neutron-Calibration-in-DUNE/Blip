@@ -5,9 +5,7 @@ and running them through the running coupling code
 import csv
 import os
 from matplotlib import pyplot as plt
-from Blip.blip.dataset.mssm_dataset import cMSSMDataset
-from Blip.blip.dataset.mssm_dataset import pMSSMDataset
-from Blip.blip.dataset.vanilla_dataset import VanillaDataset
+from blip.dataset.mssm_dataset import MSSMDataset
 from blip.utils.loader import Loader
 from blip.utils.logger import Logger
 from blip.utils.mssm import MSSMGenerator
@@ -17,7 +15,7 @@ from blip.utils import utils
 chunc_generator_config = {
     'loader':       Loader,
     'sampler':      CHUNCSampler,
-    'mssm_generator':MSSMGenerator,
+    'mssm_generator': MSSMGenerator,
     'subspace':     'cmssm',
     'num_events':   1000,
     'num_workers':  16,
@@ -29,7 +27,7 @@ chunc_generator_config = {
 chuncc_generator_config = {
     'loader':       Loader,
     'sampler':      CHUNCCSampler,
-    'mssm_generator':MSSMGenerator,
+    'mssm_generator': MSSMGenerator,
     'subspace':     'cmssm',
     'num_events':   1000,
     'num_workers':  16,
@@ -37,13 +35,15 @@ chuncc_generator_config = {
     'variables':    [],
 }
 
+
 class CHUNCGenerator:
     """
     """
-    def __init__(self,
-        cfg=chunc_generator_config,
+    def __init__(
+        self,
+        config: dict = chunc_generator_config,
     ):
-        self.cfg = cfg
+        self.config = config
         self.logger = Logger(name='generator', file_mode='w')
 
         if not os.path.isdir('mssm_input/'):
@@ -52,41 +52,38 @@ class CHUNCGenerator:
         self.gut_m1_gap = 50.0
         self.gut_m2_gap = 100.0
         self.gut_mmu_gap = 100.0
-        
-        self.constraints = ['higgs','dm','higgs_dm','higgs_dm_lsp']
+
+        self.constraints = ['higgs', 'dm', 'higgs_dm', 'higgs_dm_lsp']
         self.num_valid = []
         self.num_invalid = []
- 
-    def set_device(self,
-        device, 
+
+    def set_device(
+        self,
+        device,
     ):
         self.device = device
-        self.cfg['sampler'].device = device
-    
-    def generate(self,
+        self.config['sampler'].device = device
+
+    def generate(
+        self,
         model,
         loader,
-        mean=-999,
-        sigma=-999,
-        iteration=-1,
-        plot_samples=True,
+        mean:   float = -999.0,
+        sigma:  float = -999.0,
+        iteration:  int = -1,
+        plot_samples:   bool = True,
     ):
         if (mean == -999) and (sigma == -999):
-            mean = self.cfg['sample_mean']
-            sigma = self.cfg['sample_sigma']
-        valid_samples = self.cfg['sampler'].sample_latent(
-            loader, 
-            self.cfg['num_events']
+            mean = self.config['sample_mean']
+            sigma = self.config['sample_sigma']
+        valid_samples = self.config['sampler'].sample_latent(
+            loader,
+            self.config['num_events']
         )
-        # valid_samples = self.cfg['sampler'].sample_latent(
-        #     self.cfg['num_events'],
-        #     mean,
-        #     sigma,
-        # )
         """Generate the samples from the model"""
         generated_samples = model.sample(valid_samples).cpu()
         generated_samples = loader.dataset.unnormalize(generated_samples, detach=True)
-        if self.cfg['subspace'] == 'cmssm':
+        if self.config['subspace'] == 'cmssm':
             for ii, sample in enumerate(generated_samples):
                 if sample[4] < 0:
                     generated_samples[ii][4] = -1
@@ -114,97 +111,64 @@ class CHUNCGenerator:
             training_classes = loader.dataset.event_classes
             # plot all variable inputs and outputs
             fig, axs = utils.generate_plot_grid(
-                len(self.cfg['variables']),
+                len(self.config['variables']),
                 figsize=(10, 6)
             )
-            for ii in range(len(self.cfg['variables'])):
+            for ii in range(len(self.config['variables'])):
                 axs.flat[ii].hist(
-                    generated_samples[:,ii], 
-                    bins=25, 
-                    label='samples', 
-                    histtype='step', 
+                    generated_samples[:, ii],
+                    bins=25,
+                    label='samples',
+                    histtype='step',
                     stacked=True,
                     density=True
                 )
                 axs.flat[ii].hist(
-                    training_input[:,ii].cpu().numpy(), 
-                    bins=25, 
-                    label='input_training', 
-                    histtype='step', 
+                    training_input[:, ii].cpu().numpy(),
+                    bins=25,
+                    label='input_training',
+                    histtype='step',
                     stacked=True,
                     density=True
                 )
                 axs.flat[ii].hist(
-                    training_input[:,ii][(training_classes == 1).squeeze(1)].cpu().numpy(), 
-                    bins=25, 
-                    label='input_constrained', 
-                    histtype='step', 
+                    training_input[:, ii][(training_classes == 1).squeeze(1)].cpu().numpy(),
+                    bins=25,
+                    label='input_constrained',
+                    histtype='step',
                     stacked=True,
                     density=True
                 )
                 axs.flat[ii].hist(
-                    training_input[:,ii][(training_classes == 0).squeeze(1)].cpu().numpy(), 
-                    bins=25, 
-                    label='input_unconstrained', 
-                    histtype='step', 
+                    training_input[:, ii][(training_classes == 0).squeeze(1)].cpu().numpy(),
+                    bins=25,
+                    label='input_unconstrained',
+                    histtype='step',
                     stacked=True,
                     density=True
                 )
-                axs.flat[ii].set_xlabel(f"{self.cfg['variables'][ii]}")
+                axs.flat[ii].set_xlabel(f"{self.config['variables'][ii]}")
             axs.flat[0].legend()
             plt.suptitle(f"CHUNC training input/sample variables (mean: {mean}, sigma: {sigma})")
             plt.tight_layout()
             plt.savefig(f"plots/samples_{mean}_{sigma}/training_sample_variables_{iteration}.png")
-        
-            # fig, axs = utils.generate_plot_grid(
-            #     len(self.cfg['variables']),
-            #     figsize=(10, 6)
-            # )
-            # for ii in range(len(self.cfg['variables'])):
-            #     axs.flat[ii].hist(
-            #         generated_samples[:,ii][(training_classes == 1).squeeze(1)], 
-            #         bins=25, 
-            #         label='valid samples', 
-            #         histtype='step', 
-            #         stacked=True,
-            #         density=True
-            #     )
-            #     axs.flat[ii].hist(
-            #         training_input[:,ii][(training_classes == 1).squeeze(1)].cpu().numpy(), 
-            #         bins=25, 
-            #         label='valid input', 
-            #         histtype='step', 
-            #         stacked=True,
-            #         density=True
-            #     )
-            #     axs.flat[ii].set_xlabel(f"{self.cfg['variables'][ii]}")
-            # axs.flat[0].legend()
-            # plt.suptitle(f"CHUNC training input/sample variables (mean: {mean}, sigma: {sigma})")
-            # plt.tight_layout()
-            # plt.savefig(f"plots/samples_{mean}_{sigma}/training_sample_valid_variables_{iteration}.png")
 
         with open(f"mssm_input/samples_{mean}_{sigma}_{iteration}.txt", "w") as file:
             writer = csv.writer(file, delimiter=",")
             writer.writerows(generated_samples)
         # run the parameters and dump the output
         # to the standard folder mssm_output.
-        self.cfg['mssm_generator'].run_parameters(
+        self.config['mssm_generator'].run_parameters(
             input_file=f"mssm_input/samples_{mean}_{sigma}_{iteration}.txt",
-            num_events=self.cfg['num_events'],
-            num_workers=self.cfg['num_workers'],
+            num_events=self.config['num_events'],
+            num_workers=self.config['num_workers'],
             save_super_invalid=False,
             output_flag=f"{mean}_{sigma}_{iteration}"
         )
-        
+
     def check_validities(self):
-        if self.cfg['subspace'] == 'cmssm':
-            mssm_dataset = cMSSMDataset(
-                input_dir = 'mssm_output/',
-            )
-        else:
-            mssm_dataset = pMSSMDataset(
-                input_dir = 'mssm_output/'
-            )
+        mssm_dataset = MSSMDataset(
+        )
         validities = [
             mssm_dataset.get_number_of_valid(
                 apply_dm=False,
@@ -230,21 +194,22 @@ class CHUNCGenerator:
         self.num_valid.append(validities)
         return validities
 
-    def generate_iterative(self,
+    def generate_iterative(
+        self,
         iteration,
         model,
         loader,
     ):
-        valid_samples = self.cfg['sampler'].sample_latent(
-            self.cfg['num_events'],
-            self.cfg['sample_mean'],
-            self.cfg['sample_sigma']
+        valid_samples = self.config['sampler'].sample_latent(
+            self.config['num_events'],
+            self.config['sample_mean'],
+            self.config['sample_sigma']
         )
 
         """Generate the samples from the model"""
         generated_samples = model.sample(valid_samples).cpu()
         generated_samples = loader.dataset.unnormalize(generated_samples, detach=True)
-        if self.cfg['subspace'] == 'cmssm':
+        if self.config['subspace'] == 'cmssm':
             for ii, sample in enumerate(generated_samples):
                 if sample[4] < 0:
                     generated_samples[ii][4] = -1
@@ -255,14 +220,14 @@ class CHUNCGenerator:
             writer.writerows(generated_samples)
         # run the parameters and dump the output
         # to the standard folder mssm_output.
-        self.cfg['mssm_generator'].run_parameters(
+        self.config['mssm_generator'].run_parameters(
             input_file=f"mssm_input/samples_{iteration}.txt",
-            num_events=self.cfg['num_events'],
-            num_workers=self.cfg['num_workers'],
+            num_events=self.config['num_events'],
+            num_workers=self.config['num_workers'],
             save_super_invalid=False,
             output_flag=f"{iteration}"
         )
-        if self.cfg['subspace'] == 'cmssm':
+        if self.config['subspace'] == 'cmssm':
             mssm_dataset = cMSSMDataset(
                 input_dir = 'mssm_output/',
             )
@@ -278,11 +243,11 @@ class CHUNCGenerator:
         ))
         mssm_dataset.generate_constrained_dataset(
             output_file=f"iterative_constrained_{iteration}",
-            input_file=f"{self.cfg['subspace']}_generated_{iteration}.txt"
+            input_file=f"{self.config['subspace']}_generated_{iteration}.txt"
         )
         mssm_dataset.generate_unconstrained_dataset(
             output_file=f"iterative_unconstrained_{iteration}",
-            input_file=f"{self.cfg['subspace']}_generated_{iteration}.txt"
+            input_file=f"{self.config['subspace']}_generated_{iteration}.txt"
         )
 
         # """Add the new events to the constrained and unconstrained files"""
@@ -306,21 +271,21 @@ class CHUNCGenerator:
 
         # """Reload training set"""
         mssm_dataset.generate_training_set(
-            constrained_file    = 'constraints/higgs_dm_lsp/constrained_data.csv',
-            unconstrained_file  = 'constraints/higgs_dm_lsp/unconstrained_data.csv',
-            symmetric_events    = True,
-            labeling    = 'binary',
-            save        = True,
-            output_file = 'cmssm_dataset_symmetric.npz'
+            constrained_file='constraints/higgs_dm_lsp/constrained_data.csv',
+            unconstrained_file='constraints/higgs_dm_lsp/unconstrained_data.csv',
+            symmetric_events=True,
+            labeling='binary',
+            save=True,
+            output_file='cmssm_dataset_symmetric.npz'
         )
         dataset = CHUNCDataset(
             name=f"dataset_{iteration}",
             input_file='datasets/cmssm_dataset_symmetric.npz',
-            features = self.cfg['loader'].dataset.features,
-            classes = self.cfg['loader'].dataset.classes
+            features=self.config['loader'].dataset.features,
+            classes=self.config['loader'].dataset.classes
         )
         loader = Loader(
-            dataset, 
+            dataset,
             batch_size=64,
             test_split=0.3,
             test_seed=100,
@@ -330,15 +295,15 @@ class CHUNCGenerator:
         )
         return loader
 
-    
 
 class CHUNCCGenerator:
     """
     """
-    def __init__(self,
-        cfg=chuncc_generator_config,
+    def __init__(
+        self,
+        config: dict = chuncc_generator_config,
     ):
-        self.cfg = cfg
+        self.config = config
         self.logger = Logger(name='generator', file_mode='w')
 
         if not os.path.isdir('mssm_input/'):
@@ -347,34 +312,36 @@ class CHUNCCGenerator:
         self.gut_m1_gap = 50.0
         self.gut_m2_gap = 100.0
         self.gut_mmu_gap = 100.0
-        
+
         self.num_valid = []
         self.num_invalid = []
-    
-    def set_device(self,
-        device, 
+
+    def set_device(
+        self,
+        device,
     ):
         self.device = device
-        self.cfg['sampler'].device = device
+        self.config['sampler'].device = device
 
-    def generate(self,
+    def generate(
+        self,
         model,
         loader,
         iteration=-1,
         plot_samples=True,
     ):
-        self.cfg['sampler'].build_histograms(
+        self.config['sampler'].build_histograms(
             loader
         )
-        valid_samples = self.cfg['sampler'].sample_histograms(
-            num_samples=self.cfg['num_events'],
-            binary_bin=self.cfg['binary_bin'],
+        valid_samples = self.config['sampler'].sample_histograms(
+            num_samples=self.config['num_events'],
+            binary_bin=self.config['binary_bin'],
             sample_type='valid'
         )
         """Generate the samples from the model"""
         generated_samples = model.sample(valid_samples).cpu()
         generated_samples = loader.dataset.unnormalize(generated_samples, detach=True)
-        if self.cfg['subspace'] == 'cmssm':
+        if self.config['subspace'] == 'cmssm':
             for ii, sample in enumerate(generated_samples):
                 if sample[4] < 0:
                     generated_samples[ii][4] = -1
@@ -401,29 +368,29 @@ class CHUNCCGenerator:
             training_input = loader.dataset.event_features
             # plot all variable inputs and outputs
             fig, axs = utils.generate_plot_grid(
-                len(self.cfg['variables']),
+                len(self.config['variables']),
                 figsize=(10, 6)
             )
-            for ii in range(len(self.cfg['variables'])):
+            for ii in range(len(self.config['variables'])):
                 axs.flat[ii].hist(
-                    generated_samples[:,ii], 
-                    bins=25, 
-                    label='samples', 
-                    histtype='step', 
+                    generated_samples[:, ii],
+                    bins=25,
+                    label='samples',
+                    histtype='step',
                     stacked=True,
                     density=True
                 )
                 axs.flat[ii].hist(
-                    training_input[:,ii].cpu().numpy(), 
-                    bins=25, 
-                    label='input_training', 
-                    histtype='step', 
+                    training_input[:, ii].cpu().numpy(),
+                    bins=25,
+                    label='input_training',
+                    histtype='step',
                     stacked=True,
                     density=True
                 )
-                axs.flat[ii].set_xlabel(f"{self.cfg['variables'][ii]}")
+                axs.flat[ii].set_xlabel(f"{self.config['variables'][ii]}")
             axs.flat[0].legend()
-            plt.suptitle(f"CHUNCC training input/sample variables")
+            plt.suptitle("CHUNCC training input/sample variables")
             plt.tight_layout()
             plt.savefig(f"plots/samples_{iteration}/training_sample_variables_{iteration}.png")
 
@@ -432,32 +399,33 @@ class CHUNCCGenerator:
             writer.writerows(generated_samples)
         # run the parameters and dump the output
         # to the standard folder mssm_output.
-        self.cfg['mssm_generator'].run_parameters(
+        self.config['mssm_generator'].run_parameters(
             input_file=f"mssm_input/samples_{iteration}_{iteration}.txt",
-            num_events=self.cfg['num_events'],
-            num_workers=self.cfg['num_workers'],
+            num_events=self.config['num_events'],
+            num_workers=self.config['num_workers'],
             save_super_invalid=False,
             output_flag=f"{iteration}"
         )
 
-    def generate_iterative(self,
+    def generate_iterative(
+        self,
         iteration,
         model,
         loader,
     ):
-        self.cfg['sampler'].build_histograms(
+        self.config['sampler'].build_histograms(
             loader
         )
-        valid_samples = self.cfg['sampler'].sample_histograms(
-            num_samples=self.cfg['num_events'],
-            binary_bin=self.cfg['binary_bin'],
+        valid_samples = self.config['sampler'].sample_histograms(
+            num_samples=self.config['num_events'],
+            binary_bin=self.config['binary_bin'],
             sample_type='valid'
         )
 
         """Generate the samples from the model"""
         generated_samples = model.sample(valid_samples).cpu()
         generated_samples = loader.dataset.unnormalize(generated_samples, detach=True)
-        if self.cfg['subspace'] == 'cmssm':
+        if self.config['subspace'] == 'cmssm':
             for ii, sample in enumerate(generated_samples):
                 if sample[4] < 0:
                     generated_samples[ii][4] = -1
@@ -468,14 +436,14 @@ class CHUNCCGenerator:
             writer.writerows(generated_samples)
         # run the parameters and dump the output
         # to the standard folder mssm_output.
-        self.cfg['mssm_generator'].run_parameters(
+        self.config['mssm_generator'].run_parameters(
             input_file=f"mssm_input/samples_{iteration}.txt",
-            num_events=self.cfg['num_events'],
-            num_workers=self.cfg['num_workers'],
+            num_events=self.config['num_events'],
+            num_workers=self.config['num_workers'],
             save_super_invalid=False,
             output_flag=f"{iteration}"
         )
-        if self.cfg['subspace'] == 'cmssm':
+        if self.config['subspace'] == 'cmssm':
             mssm_dataset = cMSSMDataset(
                 input_dir = 'mssm_output/',
             )
@@ -488,14 +456,14 @@ class CHUNCCGenerator:
                 apply_dm=True,
                 apply_higgs=True,
                 apply_lsp=True,
-        ))
+            ))
         mssm_dataset.generate_constrained_dataset(
             output_file=f"iterative_constrained_{iteration}",
-            input_file=f"{self.cfg['subspace']}_generated_{iteration}.txt"
+            input_file=f"{self.config['subspace']}_generated_{iteration}.txt"
         )
         mssm_dataset.generate_unconstrained_dataset(
             output_file=f"iterative_unconstrained_{iteration}",
-            input_file=f"{self.cfg['subspace']}_generated_{iteration}.txt"
+            input_file=f"{self.config['subspace']}_generated_{iteration}.txt"
         )
 
         # """Add the new events to the constrained and unconstrained files"""
@@ -519,18 +487,18 @@ class CHUNCCGenerator:
 
         # """Reload training set"""
         mssm_dataset.generate_training_set(
-            constrained_file    = 'constraints/higgs_dm_lsp/constrained_data.csv',
-            unconstrained_file  = 'constraints/higgs_dm_lsp/unconstrained_data.csv',
-            symmetric_events    = True,
-            labeling    = 'binary',
-            save        = True,
-            output_file = 'cmssm_dataset_symmetric.npz'
+            constrained_file='constraints/higgs_dm_lsp/constrained_data.csv',
+            unconstrained_file='constraints/higgs_dm_lsp/unconstrained_data.csv',
+            symmetric_events=True,
+            labeling='binary',
+            save=True,
+            output_file='cmssm_dataset_symmetric.npz'
         )
         dataset = CHUNCDataset(
             name=f"dataset_{iteration}",
             input_file='datasets/cmssm_dataset_symmetric.npz',
-            features = self.cfg['loader'].dataset.features,
-            classes = self.cfg['loader'].dataset.classes
+            features=self.config['loader'].dataset.features,
+            classes=self.config['loader'].dataset.classes
         )
         loader = Loader(
             dataset, 
@@ -542,9 +510,9 @@ class CHUNCCGenerator:
             num_workers=4
         )
         return loader
-    
+
     def check_validities(self):
-        if self.cfg['subspace'] == 'cmssm':
+        if self.config['subspace'] == 'cmssm':
             mssm_dataset = cMSSMDataset(
                 input_dir = 'mssm_output/',
             )
@@ -577,13 +545,15 @@ class CHUNCCGenerator:
         self.num_valid.append(validities)
         return validities
 
+
 class CHUNCCKDEGenerator:
     """
     """
-    def __init__(self,
-        cfg=chuncc_generator_config,
+    def __init__(
+        self,
+        config: dict = chuncc_generator_config,
     ):
-        self.cfg = cfg
+        self.config = config
         self.logger = Logger(name='generator', file_mode='w')
 
         if not os.path.isdir('mssm_input/'):
@@ -592,34 +562,36 @@ class CHUNCCKDEGenerator:
         self.gut_m1_gap = 50.0
         self.gut_m2_gap = 100.0
         self.gut_mmu_gap = 100.0
-        
+
         self.num_valid = []
         self.num_invalid = []
-    
-    def set_device(self,
-        device, 
+
+    def set_device(
+        self,
+        device,
     ):
         self.device = device
-        self.cfg['sampler'].device = device
+        self.config['sampler'].device = device
 
-    def generate(self,
+    def generate(
+        self,
         model,
         loader,
         iteration=-1,
         plot_samples=True,
     ):
-        self.cfg['sampler'].build_histograms(
+        self.config['sampler'].build_histograms(
             loader
         )
-        valid_samples = self.cfg['sampler'].sample_histograms(
+        valid_samples = self.config['sampler'].sample_histograms(
             loader,
-            num_samples=self.cfg['num_events'],
-            binary_bin=self.cfg['binary_bin'],
+            num_samples=self.config['num_events'],
+            binary_bin=self.config['binary_bin'],
         )
         """Generate the samples from the model"""
         generated_samples = model.sample(valid_samples).cpu()
         generated_samples = loader.dataset.unnormalize(generated_samples, detach=True)
-        if self.cfg['subspace'] == 'cmssm':
+        if self.config['subspace'] == 'cmssm':
             for ii, sample in enumerate(generated_samples):
                 if sample[4] < 0:
                     generated_samples[ii][4] = -1
@@ -646,29 +618,29 @@ class CHUNCCKDEGenerator:
             training_input = loader.dataset.event_features
             # plot all variable inputs and outputs
             fig, axs = utils.generate_plot_grid(
-                len(self.cfg['variables']),
+                len(self.config['variables']),
                 figsize=(10, 6)
             )
-            for ii in range(len(self.cfg['variables'])):
+            for ii in range(len(self.config['variables'])):
                 axs.flat[ii].hist(
-                    generated_samples[:,ii], 
-                    bins=25, 
-                    label='samples', 
-                    histtype='step', 
+                    generated_samples[:, ii],
+                    bins=25,
+                    label='samples',
+                    histtype='step',
                     stacked=True,
                     density=True
                 )
                 axs.flat[ii].hist(
-                    training_input[:,ii].cpu().numpy(), 
-                    bins=25, 
-                    label='input_training', 
-                    histtype='step', 
+                    training_input[:, ii].cpu().numpy(),
+                    bins=25,
+                    label='input_training',
+                    histtype='step',
                     stacked=True,
                     density=True
                 )
-                axs.flat[ii].set_xlabel(f"{self.cfg['variables'][ii]}")
+                axs.flat[ii].set_xlabel(f"{self.config['variables'][ii]}")
             axs.flat[0].legend()
-            plt.suptitle(f"CHUNCC training input/sample variables")
+            plt.suptitle("CHUNCC training input/sample variables")
             plt.tight_layout()
             plt.savefig(f"plots/samples_{iteration}/training_sample_variables_{iteration}.png")
 
@@ -677,32 +649,33 @@ class CHUNCCKDEGenerator:
             writer.writerows(generated_samples)
         # run the parameters and dump the output
         # to the standard folder mssm_output.
-        self.cfg['mssm_generator'].run_parameters(
+        self.config['mssm_generator'].run_parameters(
             input_file=f"mssm_input/samples_{iteration}_{iteration}.txt",
-            num_events=self.cfg['num_events'],
-            num_workers=self.cfg['num_workers'],
+            num_events=self.config['num_events'],
+            num_workers=self.config['num_workers'],
             save_super_invalid=False,
             output_flag=f"{iteration}"
         )
 
-    def generate_iterative(self,
+    def generate_iterative(
+        self,
         iteration,
         model,
         loader,
     ):
-        self.cfg['sampler'].build_histograms(
+        self.config['sampler'].build_histograms(
             loader
         )
-        valid_samples = self.cfg['sampler'].sample_histograms(
-            num_samples=self.cfg['num_events'],
-            binary_bin=self.cfg['binary_bin'],
+        valid_samples = self.config['sampler'].sample_histograms(
+            num_samples=self.config['num_events'],
+            binary_bin=self.config['binary_bin'],
             sample_type='valid'
         )
 
         """Generate the samples from the model"""
         generated_samples = model.sample(valid_samples).cpu()
         generated_samples = loader.dataset.unnormalize(generated_samples, detach=True)
-        if self.cfg['subspace'] == 'cmssm':
+        if self.config['subspace'] == 'cmssm':
             for ii, sample in enumerate(generated_samples):
                 if sample[4] < 0:
                     generated_samples[ii][4] = -1
@@ -713,14 +686,14 @@ class CHUNCCKDEGenerator:
             writer.writerows(generated_samples)
         # run the parameters and dump the output
         # to the standard folder mssm_output.
-        self.cfg['mssm_generator'].run_parameters(
+        self.config['mssm_generator'].run_parameters(
             input_file=f"mssm_input/samples_{iteration}.txt",
-            num_events=self.cfg['num_events'],
-            num_workers=self.cfg['num_workers'],
+            num_events=self.config['num_events'],
+            num_workers=self.config['num_workers'],
             save_super_invalid=False,
             output_flag=f"{iteration}"
         )
-        if self.cfg['subspace'] == 'cmssm':
+        if self.config['subspace'] == 'cmssm':
             mssm_dataset = cMSSMDataset(
                 input_dir = 'mssm_output/',
             )
@@ -733,14 +706,14 @@ class CHUNCCKDEGenerator:
                 apply_dm=True,
                 apply_higgs=True,
                 apply_lsp=True,
-        ))
+            ))
         mssm_dataset.generate_constrained_dataset(
             output_file=f"iterative_constrained_{iteration}",
-            input_file=f"{self.cfg['subspace']}_generated_{iteration}.txt"
+            input_file=f"{self.config['subspace']}_generated_{iteration}.txt"
         )
         mssm_dataset.generate_unconstrained_dataset(
             output_file=f"iterative_unconstrained_{iteration}",
-            input_file=f"{self.cfg['subspace']}_generated_{iteration}.txt"
+            input_file=f"{self.config['subspace']}_generated_{iteration}.txt"
         )
 
         # """Add the new events to the constrained and unconstrained files"""
@@ -764,18 +737,18 @@ class CHUNCCKDEGenerator:
 
         # """Reload training set"""
         mssm_dataset.generate_training_set(
-            constrained_file    = 'constraints/higgs_dm_lsp/constrained_data.csv',
-            unconstrained_file  = 'constraints/higgs_dm_lsp/unconstrained_data.csv',
-            symmetric_events    = True,
-            labeling    = 'binary',
-            save        = True,
-            output_file = 'cmssm_dataset_symmetric.npz'
+            constrained_file='constraints/higgs_dm_lsp/constrained_data.csv',
+            unconstrained_file='constraints/higgs_dm_lsp/unconstrained_data.csv',
+            symmetric_events=True,
+            labeling='binary',
+            save=True,
+            output_file='cmssm_dataset_symmetric.npz'
         )
         dataset = CHUNCDataset(
             name=f"dataset_{iteration}",
             input_file='datasets/cmssm_dataset_symmetric.npz',
-            features = self.cfg['loader'].dataset.features,
-            classes = self.cfg['loader'].dataset.classes
+            features=self.config['loader'].dataset.features,
+            classes=self.config['loader'].dataset.classes
         )
         loader = Loader(
             dataset, 
@@ -787,9 +760,9 @@ class CHUNCCKDEGenerator:
             num_workers=4
         )
         return loader
-    
+
     def check_validities(self):
-        if self.cfg['subspace'] == 'cmssm':
+        if self.config['subspace'] == 'cmssm':
             mssm_dataset = cMSSMDataset(
                 input_dir = 'mssm_output/',
             )

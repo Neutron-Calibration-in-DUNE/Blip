@@ -1,6 +1,6 @@
 """
 This script takes Arrakis outputs and constructs "singles" datasets
-of Blip types to be used in optimizing BlipGraph. 
+of Blip types to be used in optimizing BlipGraph.
 """
 
 import numpy as np
@@ -8,14 +8,13 @@ import matplotlib.pyplot as plt
 import uproot
 import os
 import imageio
-import csv
-import argparse
 
 
-def create_class_gif(self,
+def create_class_gif(
+    self,
     input_file:     str,
     class_label:    str,
-    num_events:     int=10,
+    num_events:     int = 10,
 ):
     pos = self.data[input_file]['positions']
     summed_adc = self.data[input_file]['summed_adc']
@@ -23,8 +22,8 @@ def create_class_gif(self,
 
     pos = pos[(y == self.labels[input_file][class_label])]
     summed_adc = summed_adc[(y == self.labels[input_file][class_label])]
-    mins = np.min(np.concatenate(pos[:num_events]),axis=0)
-    maxs = np.max(np.concatenate(pos[:num_events]),axis=0)
+    mins = np.min(np.concatenate(pos[:num_events]), axis=0)
+    maxs = np.max(np.concatenate(pos[:num_events]), axis=0)
 
     gif_frames = []
     for ii in range(min(num_events, len(pos))):
@@ -47,16 +46,17 @@ def create_class_gif(self,
         duration=2000
     )
 
+
 def create_class_gif_frame(
     pos,
     class_label,
     summed_adc,
     image_number,
-    xlim:   list=[-1.0,1.0],
-    ylim:   list=[-1.0,1.0],
+    xlim:   list = [-1.0, 1.0],
+    ylim:   list = [-1.0, 1.0],
 ):
-    fig, axs = plt.subplots(figsize=(8,8))
-    scatter = axs.scatter(
+    fig, axs = plt.subplots(figsize=(8, 8))
+    axs.scatter(
         pos[0],   # channel
         pos[1],   # tdc
         marker='o',
@@ -64,30 +64,31 @@ def create_class_gif_frame(
         c=pos[2],
         label=r"$\Sigma$"+f" ADC: {summed_adc:.2f}"
     )
-    axs.set_xlim(-1.2,1.2)
-    axs.set_ylim(-1.2,1.2)
-    axs.set_xlabel(f"Channel [id normalized]")
-    axs.set_ylabel(f"TDC (ns normalized)")
+    axs.set_xlim(-1.2, 1.2)
+    axs.set_ylim(-1.2, 1.2)
+    axs.set_xlabel("Channel [id normalized]")
+    axs.set_ylabel("TDC (ns normalized)")
     plt.title(f"Point cloud {image_number} for class {class_label}")
     plt.legend(loc='upper right')
     plt.tight_layout()
     plt.savefig(
         f"/local_data/blip_plots/.img/img_{image_number}.png",
-        transparent = False,
-        facecolor = 'white'
+        transparent=False,
+        facecolor='white'
     )
     plt.close()
+
 
 def generate_decay_singles(
     files,
     decay_label,
-    max_events:     int=100,
-    channel_min:    int=4200,
-    channel_max:    int=4600,
-    tdc_min:        int=1000,
-    tdc_max:        int=5000,
-    consolidate:    bool=False,
-    make_gifs:      bool=False,
+    max_events:     int = 100,
+    channel_min:    int = 4200,
+    channel_max:    int = 4600,
+    tdc_min:        int = 1000,
+    tdc_max:        int = 5000,
+    consolidate:    bool = False,
+    make_gifs:      bool = False,
 ):
     """
     This function takes in a set of radioactive decay files generated
@@ -145,7 +146,7 @@ def generate_decay_singles(
         33: "5.036",
         34: "1.161",
         35: "5.407",
-    } 
+    }
 
     decay_type = decay_types[decay_label]
     decay_energy = decay_energies[decay_label]
@@ -175,7 +176,6 @@ def generate_decay_singles(
     for ii, file in enumerate(files):
         with uproot.open(file) as f:
             wire_plane = f['ana/mc_wire_plane_point_cloud'].arrays(library="np")
-            
             channel = wire_plane['channel']
             wire = wire_plane['wire']
             tick = wire_plane['tick']
@@ -226,10 +226,10 @@ def generate_decay_singles(
                 if saved_events >= max_events:
                     break
                 mask = (
-                    (view[event] == 2) & 
-                    (channel[event] >= channel_min) & 
-                    (channel[event] <= channel_max) & 
-                    (tdc[event] >= tdc_min) & 
+                    (view[event] == 2) &
+                    (channel[event] >= channel_min) &
+                    (channel[event] <= channel_max) &
+                    (tdc[event] >= tdc_min) &
                     (tdc[event] <= tdc_max)
                 )
                 channel[event] = channel[event][mask]
@@ -306,7 +306,6 @@ def generate_decay_singles(
                     new_wire_plane['hit_amplitude'].append(hit_amplitude[event][mask])
                     new_wire_plane['hit_charge'].append(hit_charge[event][mask])
 
-
                     # create animated GIF of events
                     if make_gifs:
                         pos = np.vstack((channel[event][mask], tdc[event][mask], np.abs(adc[event][mask]))).astype(float)
@@ -352,20 +351,21 @@ def generate_decay_singles(
         with uproot.recreate(f"/local_data/data/single_decay_{decay_type}.root") as r:
             r['ana/mc_wire_plane_point_cloud'] = new_wire_plane
 
+
 def generate_capture_gamma_singles(
     files,
     gamma_label,
-    max_events:     int=100,
-    channel_min:    int=4200,
-    channel_max:    int=4600,
-    tdc_min:        int=1000,
-    tdc_max:        int=5000,
-    consolidate:    bool=False,
-    make_gifs:      bool=False,
+    max_events:     int = 100,
+    channel_min:    int = 4200,
+    channel_max:    int = 4600,
+    tdc_min:        int = 1000,
+    tdc_max:        int = 5000,
+    consolidate:    bool = False,
+    make_gifs:      bool = False,
 ):
     """
     This function takes in a set of capture gamma files of
-    a specific energy and generates a new root file where each gamma is 
+    a specific energy and generates a new root file where each gamma is
     separated into a different event.
 
     It is assumed that Arrakis does not properly label single gammas
@@ -388,7 +388,7 @@ def generate_capture_gamma_singles(
         12: "0.837",
         13: "0.516",
         14: "0.167",
-    } 
+    }
 
     gamma_energy = gamma_energies[gamma_label]
 
@@ -417,7 +417,6 @@ def generate_capture_gamma_singles(
     for ii, file in enumerate(files):
         with uproot.open(file) as f:
             wire_plane = f['ana/mc_wire_plane_point_cloud'].arrays(library="np")
-            
             channel = wire_plane['channel']
             wire = wire_plane['wire']
             tick = wire_plane['tick']
@@ -441,7 +440,7 @@ def generate_capture_gamma_singles(
             for event in range(num_events):
                 mask = (physics_label[event] != 0) & (physics_label[event] != -1)
                 physics_label[event][mask] = gamma_label
-            
+
             if not consolidate:
                 new_wire_plane = {
                     'channel':  [],
@@ -470,10 +469,10 @@ def generate_capture_gamma_singles(
             saved_events = 0
             for event in range(num_events):
                 mask = (
-                    (view[event] == 2) & 
-                    (channel[event] >= channel_min) & 
-                    (channel[event] <= channel_max) & 
-                    (tdc[event] >= tdc_min) & 
+                    (view[event] == 2) &
+                    (channel[event] >= channel_min) &
+                    (channel[event] <= channel_max) &
+                    (tdc[event] >= tdc_min) &
                     (tdc[event] <= tdc_max)
                 )
                 channel[event] = channel[event][mask]

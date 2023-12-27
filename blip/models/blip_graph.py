@@ -568,11 +568,6 @@ class BlipGraph(GenericModel):
         self.linear_classification_dict = nn.ModuleDict(_linear_classification_dict)
         self.softmax = nn.Softmax(dim=1)
 
-        # record the info
-        self.logger.info(
-            f"Constructed BlipGraph with dictionaries {self.embedding_dict}, {self.reduction_dict}, {self.classification_dict}"
-        )
-
     def forward(
         self,
         data

@@ -2,31 +2,18 @@
 """
 Generic model code.
 """
-import os,csv,random,copy,ot,persim,warnings,torch,getpass
-import numpy             as np
-import networkx          as nx
-import gudhi             as gd
-import matplotlib.pyplot as plt
-from tqdm                     import tqdm
-from torch                    import nn
-from time                     import time
-from datetime                 import datetime
-from ripser                   import ripser
-from scipy.cluster.hierarchy  import dendrogram, linkage, cut_tree
-from scipy.optimize           import linear_sum_assignment
-from sklearn.metrics.pairwise import pairwise_distances
-from bisect                   import bisect_left
-from hopcroftkarp             import HopcroftKarp
+import warnings
+from tqdm import tqdm
 
-from blip.utils.logger          import Logger
-from blip.utils.utils           import print_colored
 from blip.module.generic_module import GenericModule
-from blip.topology.merge_tree   import MergeTree
+from blip.topology.merge_tree import MergeTree
 
 warnings.filterwarnings("ignore")
 
+generic_config = {
+    "no_params":    "no_values"
+}
 
-generic_config = { "no_params":    "no_values" }
 
 class MergeTreeModule(GenericModule):
     """
@@ -36,20 +23,28 @@ class MergeTreeModule(GenericModule):
     Merge trees can be 'decorated' with higher-dimensional homological data by the 'fit_barcode' method.
     The result is a 'decorated merge tree'.
     """
+    def __init__(
+        self,
+        name:   str,
+        config: dict = {},
+        mode:   str = '',
+        meta:   dict = {}
+    ):
+        self.name = name
+        super(MergeTreeModule, self).__init__(
+            self.name, config, mode, meta
+        )
+        self.consumes = ['dataset']
+        self.produces = ['merge_tree']
 
-    def set_device(self, device):
-        self.device = device
-    
-    def set_config(self, config_file: str):
-        self.config_file = config_file
         self.parse_config()
-    
+
     def parse_config(self):
-        self.logger.info(f'setting up merge_tree')
+        self.logger.info('setting up merge_tree')
         self.merge_tree = MergeTree()
-    
+
     def run_module(self):
-        self.logger.info(f'running merge_tree module.')
+        self.logger.info('running merge_tree module.')
         """
         Set up progress bar.
         """
@@ -61,8 +56,8 @@ class MergeTreeModule(GenericModule):
                 leave=rewrite_bar,
                 colour='magenta'
             )
-        else: inference_loop = enumerate(inference_loader, 0)
-        
+        else: 
+            inference_loop = enumerate(inference_loader, 0)
+
         for ii, data in inference_loop:
-            vietoris_rips, tree = self.merge_tree.create_merge_tree(
-                data)
+            vietoris_rips, tree = self.merge_tree.create_merge_tree(data)

@@ -7,9 +7,10 @@ import torch.nn as nn
 import torchvision.transforms.functional as F
 import MinkowskiEngine as ME
 from collections import OrderedDict
+import time
 
 from blip.models import GenericModel
-from blip.models.common import Identity, sparse_activations
+from blip.models.common import Identity, activations, sparse_activations
 
 
 def get_activation(
@@ -128,7 +129,7 @@ blip_segmentation_params = {
     'filtrations':  [64, 128, 256, 512],    # the number of filters in each downsample
     'residual':     True,
     'sparse_conv_params': {
-        'kernel':       3,
+        'kernel_size':       3,
         'stride':       1,
         'dilation':     1,
         'activation':   'relu',
@@ -139,13 +140,13 @@ blip_segmentation_params = {
         'residual':     True,
     },
     'conv_transpose_params': {
-        'kernel':    2,
+        'kernel_size':    2,
         'stride':    2,
         'dilation':  1,
         'dimension': 3,
     },
     'max_pooling_params': {
-        'kernel':    2,
+        'kernel_size':    2,
         'stride':    2,
         'dilation':  1,
         'dimension': 3,
@@ -172,12 +173,12 @@ class BlipSegmentation(GenericModel):
                 self.logger.error(f"parameter {item} was not specified in config file {self.config}")
                 raise AttributeError
         if (
-            (self.config["variable_conv_params"]["dimension"] != self.config["conv_transpose_params"]["dimension"]) or
-            (self.config["variable_conv_params"]["dimension"] != self.config["max_pooling_params"]["dimension"])
+            (self.config["sparse_conv_params"]["dimension"] != self.config["conv_transpose_params"]["dimension"]) or
+            (self.config["sparse_conv_params"]["dimension"] != self.config["max_pooling_params"]["dimension"])
         ):
             self.logger.error(
-                "dimensions for 'variable_conv_params', 'conv_transpose_params' and" +
-                f"'max_pooling_params' (with values {self.config['variable_conv_params']['dimension']}" +
+                "dimensions for 'sparse_conv_params', 'conv_transpose_params' and" +
+                f"'max_pooling_params' (with values {self.config['sparse_conv_params']['dimension']}" +
                 f", {self.config['conv_transpose_params']['dimension']} and " +
                 f"{self.config['max_pooling_params']['dimension']}) do not match!"
             )
@@ -202,15 +203,15 @@ class BlipSegmentation(GenericModel):
                 name=f'down_{filter}',
                 in_channels=in_channels,
                 out_channels=filter,
-                kernel_size=self.config['variable_conv_params']['kernel_size'],
-                stride=self.config['variable_conv_params']['stride'],
-                dilation=self.config['variable_conv_params']['dilation'],
-                dimension=self.config['variable_conv_params']['dimension'],
-                activation=self.config['variable_conv_params']['activation'],
-                batch_norm=self.config['variable_conv_params']['batch_norm'],
-                num_of_convs=self.config['variable_conv_params']['num_of_convs'],
-                dropout=self.config['variable_conv_params']['dropout'],
-                residual=self.config['variable_conv_params']['residual']
+                kernel_size=self.config['sparse_conv_params']['kernel_size'],
+                stride=self.config['sparse_conv_params']['stride'],
+                dilation=self.config['sparse_conv_params']['dilation'],
+                dimension=self.config['sparse_conv_params']['dimension'],
+                activation=self.config['sparse_conv_params']['activation'],
+                batch_norm=self.config['sparse_conv_params']['batch_norm'],
+                num_of_convs=self.config['sparse_conv_params']['num_of_convs'],
+                dropout=self.config['sparse_conv_params']['dropout'],
+                residual=self.config['residual']
             )
             # set new in channel to current filter size
             in_channels = filter
@@ -229,15 +230,15 @@ class BlipSegmentation(GenericModel):
                 name=f'up_{filter}',
                 in_channels=2*filter,
                 out_channels=filter,
-                kernel_size=self.config['variable_conv_params']['kernel_size'],
-                stride=self.config['variable_conv_params']['stride'],
-                dilation=self.config['variable_conv_params']['dilation'],
-                dimension=self.config['variable_conv_params']['dimension'],
-                activation=self.config['variable_conv_params']['activation'],
-                batch_norm=self.config['variable_conv_params']['batch_norm'],
-                num_of_convs=self.config['variable_conv_params']['num_of_convs'],
-                dropout=self.config['variable_conv_params']['dropout'],
-                residual=self.config['variable_conv_params']['residual']
+                kernel_size=self.config['sparse_conv_params']['kernel_size'],
+                stride=self.config['sparse_conv_params']['stride'],
+                dilation=self.config['sparse_conv_params']['dilation'],
+                dimension=self.config['sparse_conv_params']['dimension'],
+                activation=self.config['sparse_conv_params']['activation'],
+                batch_norm=self.config['sparse_conv_params']['batch_norm'],
+                num_of_convs=self.config['sparse_conv_params']['num_of_convs'],
+                dropout=self.config['sparse_conv_params']['dropout'],
+                residual=self.config['residual']
             )
 
         # create bottleneck layer
@@ -245,15 +246,15 @@ class BlipSegmentation(GenericModel):
             name=f"bottleneck_{self.config['filtrations'][-1]}",
             in_channels=self.config['filtrations'][-1],
             out_channels=2*self.config['filtrations'][-1],
-            kernel_size=self.config['variable_conv_params']['kernel_size'],
-            stride=self.config['variable_conv_params']['stride'],
-            dilation=self.config['variable_conv_params']['dilation'],
-            dimension=self.config['variable_conv_params']['dimension'],
-            activation=self.config['variable_conv_params']['activation'],
-            batch_norm=self.config['variable_conv_params']['batch_norm'],
-            num_of_convs=self.config['variable_conv_params']['num_of_convs'],
-            dropout=self.config['variable_conv_params']['dropout'],
-            residual=self.config['variable_conv_params']['residual']
+            kernel_size=self.config['sparse_conv_params']['kernel_size'],
+            stride=self.config['sparse_conv_params']['stride'],
+            dilation=self.config['sparse_conv_params']['dilation'],
+            dimension=self.config['sparse_conv_params']['dimension'],
+            activation=self.config['sparse_conv_params']['activation'],
+            batch_norm=self.config['sparse_conv_params']['batch_norm'],
+            num_of_convs=self.config['sparse_conv_params']['num_of_convs'],
+            dropout=self.config['sparse_conv_params']['dropout'],
+            residual=self.config['residual']
         )
 
         # create output layer
@@ -262,7 +263,7 @@ class BlipSegmentation(GenericModel):
                 in_channels=self.config['filtrations'][0],      # to match first filtration
                 out_channels=self.config['out_channels'][ii],   # to the number of classes
                 kernel_size=1,                                  # a one-one convolution
-                dimension=self.config['variable_conv_params']['dimension'],
+                dimension=self.config['sparse_conv_params']['dimension'],
             )
 
         # create the max pooling layer
@@ -278,7 +279,6 @@ class BlipSegmentation(GenericModel):
         self.module_up_dict = nn.ModuleDict(_up_dict)
         self.bottleneck_dict = nn.ModuleDict(_bottleneck_dict)
         self.classification_dict = nn.ModuleDict(_classification_dict)
-        # record the info
 
     def forward(
         self,
@@ -295,6 +295,8 @@ class BlipSegmentation(GenericModel):
                 (data.batch.unsqueeze(1), data.pos),
                 dim=1
             ).int(),
+            quantization_mode=self.meta['quantization_mode'],
+            minkowski_algorithm=self.meta['minkowski_algorithm'],
             device=self.device
         )
         # record the skip connections
@@ -313,7 +315,6 @@ class BlipSegmentation(GenericModel):
             # check for compatibility
             if x.shape != skip_connection.shape:
                 x = F.resize(x, size=skip_connection.shape[2:])
-
             concat_skip = ME.cat(skip_connection, x)
             x = self.module_up_dict[f'up_filter_double_conv{filter}'](concat_skip)
 

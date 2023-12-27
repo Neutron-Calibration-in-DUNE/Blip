@@ -5,19 +5,20 @@ import torch
 import torch.nn as nn
 from torchmetrics.classification import JaccardIndex
 
-from blip.dataset.common import *
 from blip.metrics import GenericMetric
 
+
 class JaccardIndexMetric(GenericMetric):
-    
-    def __init__(self,
-        name:           str='jaccard_index',
-        target_type:        str='classes',
-        when_to_compute:    str='all',
-        targets:        list=[],
-        outputs:        list=[],
-        augmentations:  int=0,
-        meta:           dict={}
+
+    def __init__(
+        self,
+        name:           str = 'jaccard_index',
+        target_type:        str = 'classes',
+        when_to_compute:    str = 'all',
+        targets:        list = [],
+        outputs:        list = [],
+        augmentations:  int = 0,
+        meta:           dict = {}
     ):
         """
         """
@@ -35,8 +36,9 @@ class JaccardIndexMetric(GenericMetric):
             ).to(self.device)
             for key in self.targets
         }
-        
-    def _metric_update(self,
+
+    def _metric_update(
+        self,
         target,
         outputs
     ):

@@ -1,31 +1,31 @@
 """
 Class for a generic clusterer.
 """
-import torch, os
+import os
 import numpy as np
-from tqdm                       import tqdm
-from Blip.blip.dataset.blip_dataset          import BlipDataset
+from tqdm import tqdm
 from blip.clustering_algorithms import ClusteringAlgorithmHandler
-from blip.utils.logger          import Logger
-from blip.utils.timing          import Timers
-from blip.utils.memory          import MemoryTrackers
-from blip.metrics               import MetricHandler
-from blip.utils.callbacks       import CallbackHandler
-from blip.utils.callbacks       import TimingCallback, MemoryTrackerCallback
-import blip.utils.utils as utils
+from blip.utils.logger import Logger
+from blip.utils.timing import Timers
+from blip.utils.memory import MemoryTrackers
+from blip.metrics import MetricHandler
+from blip.utils.callbacks import CallbackHandler
+from blip.utils.callbacks import TimingCallback, MemoryTrackerCallback
+
 
 class Clusterer:
     """
-    This class is ... 
+    This class is ...
     """
-    def __init__(self,
+    def __init__(
+        self,
         name: str,
-        clustering_algorithms: ClusteringAlgorithmHandler=None,
-        clustering_metrics: MetricHandler=None,
-        clustering_callbacks: CallbackHandler=None,
-        meta:   dict={},
-        gpu: bool=False,
-        seed: int=0,
+        clustering_algorithms: ClusteringAlgorithmHandler = None,
+        clustering_metrics: MetricHandler = None,
+        clustering_callbacks: CallbackHandler = None,
+        meta:   dict = {},
+        gpu: bool = False,
+        seed: int = 0,
     ):
         """
         """
@@ -58,14 +58,14 @@ class Clusterer:
         if not os.path.isdir(self.memory_dir):
             self.logger.info(f"creating memory directory '{self.memory_dir}'")
             os.makedirs(self.memory_dir)
-        
+
         self.clustering_algorithms = clustering_algorithms
         self.clustering_metrics = clustering_metrics
 
         # check for devices
         self.gpu = gpu
         self.seed = seed
-        
+
         if clustering_callbacks is None:
             # add generic clustering_callbacks
             self.clustering_callbacks = CallbackHandler(
@@ -88,15 +88,16 @@ class Clusterer:
             self.memory_trackers
         )
         self.clustering_callbacks.add_callback(self.memory_callback)
-    
-    def cluster(self,
-        dataset_loader,             # dataset_loader to pass in
-        num_parameters: int=10,
-        eps_range: list=None,
-        progress_bar: bool=True,  # progress bar from tqdm
-        rewrite_bar: bool=False, # wether to leave the bars after each epoch
-        save_predictions: bool=True, # wether to save network outputs for all events to original file
-        no_timing: bool=False,     # wether to keep the bare minimum timing info as a callback          
+
+    def cluster(
+        self,
+        dataset_loader,                     # dataset_loader to pass in
+        num_parameters: int = 10,
+        eps_range: list = None,
+        progress_bar: bool = True,          # progress bar from tqdm
+        rewrite_bar: bool = False,          # wether to leave the bars after each epoch
+        save_predictions: bool = True,      # wether to save network outputs for all events to original file
+        no_timing: bool = False,            # wether to keep the bare minimum timing info as a callback
     ):
         """
         Main clustering loop.  First, we see if the user wants to omit timing information.
@@ -115,7 +116,7 @@ class Clusterer:
         )
         # Clustering
         self.logger.info(
-            f"running clustering on '{dataset_loader.dataset.name}' " + 
+            f"running clustering on '{dataset_loader.dataset.name}' " +
             f"for {num_parameters} parameters in range {eps_range}."
         )
         if no_timing:
@@ -137,31 +138,32 @@ class Clusterer:
                 save_predictions
             )
 
-    def __cluster_with_timing(self,
-        dataset_loader,             # dataset_loader to pass in
-        num_parameters: int=10,     # number of parameter values to cluster with
-        eps_range:      list=[1.0, 100.0],  # range of parameter values
-        progress_bar:   bool=True,  # progress bar from tqdm
-        rewrite_bar:    bool=False, # wether to leave the bars after each epoch
-        save_predictions:bool=True, # wether to save network outputs for all events to original file
+    def __cluster_with_timing(
+        self,
+        dataset_loader,                         # dataset_loader to pass in
+        num_parameters: int = 10,               # number of parameter values to cluster with
+        eps_range:      list = [1.0, 100.0],    # range of parameter values
+        progress_bar:   bool = True,            # progress bar from tqdm
+        rewrite_bar:    bool = False,           # wether to leave the bars after each epoch
+        save_predictions: bool = True,          # wether to save network outputs for all events to original file
     ):
         """
         """
         eps_steps = np.linspace(eps_range[0], eps_range[1], num_parameters)
         parameter_values = []
         for kk in range(num_parameters):
-            
+
             if (progress_bar):
                 event_loop = tqdm(
-                    enumerate(dataset_loader.all_loader, 0), 
-                    total=len(dataset_loader.all_loader), 
+                    enumerate(dataset_loader.all_loader, 0),
+                    total=len(dataset_loader.all_loader),
                     leave=rewrite_bar,
                     colour='green'
                 )
             else:
                 event_loop = enumerate(dataset_loader.all_loader, 0)
-                       
-            #Setup timing/memory information for epoch.
+
+            # setup timing/memory information for epoch.
             self.timers.timers['parameter_clustering'].start()
             self.memory_trackers.memory_trackers['parameter_clustering'].start()
 
@@ -179,10 +181,9 @@ class Clusterer:
             for ii, data in event_loop:
                 self.memory_trackers.memory_trackers['cluster_data'].end()
                 self.timers.timers['cluster_data'].end()
-                
-                
-                # Send the event to the clustering algorithms to produce
-                # clustering results.  
+
+                # send the event to the clustering algorithms to produce
+                # clustering results.
                 self.timers.timers['cluster_algorithm'].start()
                 self.memory_trackers.memory_trackers['cluster_algorithm'].start()
                 clustering = self.clustering_algorithms.cluster(parameters, data)
@@ -201,7 +202,7 @@ class Clusterer:
                 self.memory_trackers.memory_trackers['cluster_progress'].start()
                 if (progress_bar):
                     event_loop.set_description(f"Parameter: [{kk+1}/{num_parameters}]")
-                    event_loop.set_postfix_str(f"loss")
+                    event_loop.set_postfix_str("loss")
                 self.memory_trackers.memory_trackers['cluster_progress'].end()
                 self.timers.timers['cluster_progress'].end()
 
@@ -229,6 +230,3 @@ class Clusterer:
                 **self.clustering_callbacks.callbacks['AdjustedRandIndexCallback'].adjusted_rand_index,
                 **self.clustering_callbacks.callbacks['AdjustedRandIndexCallback'].adjusted_rand_index_individual['DBSCAN']
             )
-
-
-    

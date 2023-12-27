@@ -2,24 +2,26 @@
 Wrapper for NTXent loss
 """
 import torch
-import torch.nn as nn
 from pytorch_metric_learning.losses import AngularLoss as angular_loss
+from pytorch_metric_learning import reducers
 
 from blip.losses import GenericLoss
+
 
 class AngularLoss(GenericLoss):
     """
     """
-    def __init__(self,
-        name:           str='ntxent_loss',
-        alpha:          float=0.0,
-        target_type:    str='classes',
-        targets:        list=[],
-        outputs:        list=[],
-        augmentations:  int=0,
-        reduction:      str='mean',
-        beta:           float=40,
-        meta:           dict={}
+    def __init__(
+        self,
+        name:           str = 'angular_loss',
+        alpha:          float = 0.0,
+        target_type:    str = 'classes',
+        targets:        list = [],
+        outputs:        list = [],
+        augmentations:  int = 0,
+        reduction:      str = 'mean',
+        beta:           float = 40,
+        meta:           dict = {}
     ):
         super(AngularLoss, self).__init__(
             name, alpha, target_type, targets, outputs, augmentations, meta
@@ -30,7 +32,8 @@ class AngularLoss(GenericLoss):
             for key in self.targets
         }
 
-    def _loss(self,
+    def _loss(
+        self,
         target,
         outputs,
     ):
@@ -38,7 +41,7 @@ class AngularLoss(GenericLoss):
         loss = 0
         for ii, output in enumerate(self.outputs):
             temp_loss = self.alpha[ii] * self.angular_loss[self.targets[ii]](
-                outputs[output].to(self.device), 
+                outputs[output].to(self.device),
                 target[self.targets[ii]].to(self.device)
             )
             loss += temp_loss

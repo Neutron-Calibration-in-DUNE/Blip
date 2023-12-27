@@ -1,32 +1,30 @@
 """
 Generic metric callback
 """
-import os,torch,copy
-import numpy   as np
-import seaborn as sns
-import pandas  as pd
-from matplotlib       import pyplot as plt
+import os
+from matplotlib import pyplot as plt
 from sklearn.manifold import TSNE
 
-from blip.losses.loss_handler    import LossHandler
+from blip.losses.loss_handler import LossHandler
 from blip.metrics.metric_handler import MetricHandler
-from blip.utils.callbacks        import GenericCallback
-from blip.utils                  import utils
-from blip.dataset.common         import *
+from blip.utils.callbacks import GenericCallback
+from blip.dataset.common import *
+
 
 class AdjustedRandIndexCallback(GenericCallback):
     """
     """
-    def __init__(self,
-        name='adjusted_rand_index_callback',
-        criterion_handler: LossHandler=None,
-        metrics_handler: MetricHandler=None,
-        meta:   dict={}
-    ):  
+    def __init__(
+        self,
+        name:   str = 'adjusted_rand_index_callback',
+        criterion_handler: LossHandler = None,
+        metrics_handler: MetricHandler = None,
+        meta:   dict = {}
+    ):
         super(AdjustedRandIndexCallback, self).__init__(
             name, criterion_handler, metrics_handler, meta
         )
-        
+
         if "AdjustedRandIndexMetric" in self.metrics_handler.metrics.keys():
             self.metric = self.metrics_handler.metrics["AdjustedRandIndexMetric"]
 
@@ -40,9 +38,10 @@ class AdjustedRandIndexCallback(GenericCallback):
     def reset_batch(self):
         pass
 
-    def evaluate_epoch(self,
+    def evaluate_epoch(
+        self,
         train_type='training'
-    ):  
+    ):
         pass
         # batch_metric, batch_metric_individual = self.metric.compute()
         # for ii, input in enumerate(self.metric.inputs):
@@ -62,7 +61,7 @@ class AdjustedRandIndexCallback(GenericCallback):
         #                 dim=1
         #             )
         # self.metric.reset_batch()
-        
+
     def evaluate_clustering(self):
         pass
         # for ii, input in enumerate(self.metric.inputs):
@@ -77,7 +76,7 @@ class AdjustedRandIndexCallback(GenericCallback):
         #     hi_error[(hi_error > 1.0)] = 1.0
         #     lo_error = (means - stds)
         #     lo_error[(lo_error < 0.0)] = 0.0
-            
+
         #     axs.errorbar(
         #         self.parameter_values,
         #         means,

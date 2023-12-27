@@ -1,18 +1,10 @@
 """
 Implementation of the CausalDilatedConv1D model using pytorch
 """
-import numpy as np
-import torch
 import torch.nn as nn
 from collections import OrderedDict
-import torch_geometric.transforms as T
-from torch.nn import Linear
-import torch.nn.functional as F
-from torch_geometric.nn import MLP, DynamicEdgeConv, PointNetConv, PointTransformerConv
-from torch_geometric.nn import global_add_pool, global_mean_pool, global_max_pool
 import MinkowskiEngine as ME
 
-from blip.models.common import activations, normalizations
 from blip.models import GenericModel
 
 causal_dilated_conv1d_config = {
@@ -24,20 +16,22 @@ causal_dilated_conv1d_config = {
     "bias":         False
 }
 
+
 class CausalDilatedConv1D(ME.MinkowskiNetwork, GenericModel):
     """
     """
-    def __init__(self,
-        name:   str='causal_dilated_conv1d',
-        config: dict=causal_dilated_conv1d_config,
+    def __init__(
+        self,
+        name:   str = 'causal_dilated_conv1d',
+        config: dict = causal_dilated_conv1d_config,
     ):
         super(CausalDilatedConv1D, self).__init__(config['dimension'])
         self.name = name
         self.config = config
 
         # construct the model
-        self.forward_views      = {}
-        self.forward_view_map   = {}
+        self.forward_views = {}
+        self.forward_view_map = {}
 
         # construct the model
         self.construct_model()
@@ -46,8 +40,6 @@ class CausalDilatedConv1D(ME.MinkowskiNetwork, GenericModel):
         """
         The current methodology is to create an ordered
         dictionary and fill it with individual modules.
-
-        
         """
         self.logger.info(f"Attempting to build CausalDilatedConv1D architecture using config: {self.config}")
 
@@ -63,13 +55,8 @@ class CausalDilatedConv1D(ME.MinkowskiNetwork, GenericModel):
         )
         self.model_dict = nn.ModuleDict(_model_dict)
 
-        # record the info
-        self.logger.info(
-            f"Constructed CausalDilatedConv1D with dictionaries:"
-        )
-
-    
-    def forward(self,
+    def forward(
+        self,
         x
     ):
         """

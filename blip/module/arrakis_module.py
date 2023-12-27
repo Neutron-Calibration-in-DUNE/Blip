@@ -101,7 +101,9 @@ class ArrakisModule(GenericModule):
         for ii, simulation_file in simulation_file_loop:
             self.arrakis.load_root_arrays(simulation_file)
             self.arrakis.generate_larsoft_training_data(simulation_file)
-            simulation_file_loop.set_description(f"Running LArSoft Arrakis: File [{ii+1}/{len(self.arrakis.simulation_files)}]")
+            simulation_file_loop.set_description(
+                f"Running LArSoft Arrakis: File [{ii+1}/{len(self.arrakis.simulation_files)}]"
+            )
         self.logger.info('larsoft arrakis finished')
 
     def run_ndlar_flow(self):
@@ -115,7 +117,9 @@ class ArrakisModule(GenericModule):
         for ii, simulation_file in simulation_file_loop:
             self.arrakis.load_flow_arrays(simulation_file)
             self.arrakis.generate_larpix_training_data(simulation_file)
-            simulation_file_loop.set_description(f"Running ndlar-flow Arrakis: File [{ii+1}/{len(self.arrakis.simulation_files)}]")
+            simulation_file_loop.set_description(
+                f"Running ndlar-flow Arrakis: File [{ii+1}/{len(self.arrakis.simulation_files)}]"
+            )
         self.logger.info('ndlar_flow arrakis finished')
 
     def run_larsoft_singles(self):
@@ -161,5 +165,7 @@ class ArrakisModule(GenericModule):
                     simulation_file,
                     unique_label='topology',
                 )
-            simulation_file_loop.set_description(f"Running LArSoft Arrakis: File [{ii+1}/{len(self.arrakis.simulation_files)}]")
+            simulation_file_loop.set_description(
+                f"Running LArSoft Arrakis: File [{ii+1}/{len(self.arrakis.simulation_files)}]"
+            )
         self.logger.info('larsoft arrakis sinles finished')

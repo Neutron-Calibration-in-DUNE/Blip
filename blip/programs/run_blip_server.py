@@ -54,7 +54,7 @@ def run():
     os.environ['LOCAL_SCRATCH'] = args.local_scratch
     os.environ['LOCAL_BLIP'] = args.local_blip
     os.environ['LOCAL_DATA'] = args.local_data
-    
+
     p = os.path.realpath(__file__)
     prefix, _ = os.path.split(p)
     bokeh_server_file = os.path.join(prefix, "../utils/event_display/blip_http_server.py")

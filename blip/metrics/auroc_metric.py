@@ -6,16 +6,18 @@ import torch.nn as nn
 from torchmetrics.classification import MulticlassAUROC
 from blip.metrics import GenericMetric
 
+
 class AUROCMetric(GenericMetric):
-    
-    def __init__(self,
-        name:           str='auroc',
-        target_type:        str='classes',
-        when_to_compute:    str='all',
-        targets:        list=[],
-        outputs:        list=[],
-        augmentations:  int=0,
-        meta:           dict={}
+
+    def __init__(
+        self,
+        name:           str = 'auroc',
+        target_type:        str = 'classes',
+        when_to_compute:    str = 'all',
+        targets:        list = [],
+        outputs:        list = [],
+        augmentations:  int = 0,
+        meta:           dict = {}
     ):
         """
         """
@@ -28,8 +30,9 @@ class AUROCMetric(GenericMetric):
             ).to(self.device)
             for key in self.targets
         }
-        
-    def _metric_update(self,
+
+    def _metric_update(
+        self,
         target,
         outputs
     ):

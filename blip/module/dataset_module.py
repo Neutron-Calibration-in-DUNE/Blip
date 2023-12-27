@@ -2,13 +2,10 @@
 """
 Dataset module code.
 """
-from tqdm import tqdm
-
 from blip.module import GenericModule
 from blip.dataset.common import blip_datasets, mssm_datasets
 from blip.dataset.mssm_dataset import MSSMDataset
 from blip.dataset.blip_dataset import BlipDataset
-from blip.dataset.vanilla_dataset import VanillaDataset
 from blip.utils.loader import Loader
 
 dataset_config = {
