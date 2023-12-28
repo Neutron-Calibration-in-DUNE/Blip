@@ -35,7 +35,7 @@ class WireLArTPCPanelDisplay:
     Tools for displaying events
     """
 
-    def __init__(self, document=None):
+    def __init__(self, document=None,nplots=2):
         # File folder and file select.
         # These act as drop down menus which update upon
         # selecting, one for wire planes and another for
@@ -183,8 +183,14 @@ class WireLArTPCPanelDisplay:
         self.figure2_plot_type = "Wire Plane"
 
         self.document = document
+        self.nplots = nplots
+        self.construct_widgets(self.document,self.nplots)
 
-        self.construct_widgets(self.document)
+    def update(self, document):
+        # Update the WireLArTPCPanelDisplay object with the new document
+        # This is just a placeholder. You need to replace this with your own code.
+        self.document = document
+        self.construct_widgets(self.document,self.nplots)
 
     def update_available_folders(self):
         self.available_folders = [".", ".."]
@@ -229,18 +235,18 @@ class WireLArTPCPanelDisplay:
         if len(self.available_events) > 0:
             self.event = 0
 
-    def update_figure1_taptool(self, event):
+    def update_figure1_taptool(self,event):
         print(event.x, event.y)
 
     def update_figure2_taptool(self):
         pass
 
-    def construct_widgets(self, document):
+    def construct_widgets(self,document,nplots):
         # Left hand column
         self.construct_left_hand_column()
         self.construct_figure1_column()
         self.construct_figure2_column()
-        self.construct_layout()
+        self.construct_layout(nplots)
 
     def construct_left_hand_column(self):
         # Folder select
@@ -291,15 +297,8 @@ class WireLArTPCPanelDisplay:
         self.simulation_wrangler_pretext = PreText(
             text=self.simulation_wrangler_string, width=200, height=200
         )
-        self.nplots_select = Select(
-            name="Number of plots:",
-            value="2",
-            options=["1","2"],
-            width_policy="fixed",
-            width=350,
-        )
 
-        # First plot column
+    # First plot column
     def construct_figure1_column(self):
         self.figure1_event_features = []
         self.figure1_event_classes = []
@@ -394,14 +393,6 @@ class WireLArTPCPanelDisplay:
                 coloraxis=dict(colorbar=dict(title=""), colorscale="Viridis"),
             )
         )
-        # Defining properties of color mapper
-        # self.figure2_color_mapper = LinearColorMapper(palette = "Viridis256")
-        # self.figure2_color_bar    = ColorBar(
-        #     color_mapper   = self.figure2_color_mapper,
-        #     label_standoff = 12,
-        #     location       = (0,0),
-        #     title          = ''
-        # )
         self.figure2 = self.figure2.add_trace(go.Scatter())
         self.figure2.data[0].on_click(self.update_figure2_taptool)
 
@@ -445,7 +436,7 @@ class WireLArTPCPanelDisplay:
         )
         # Plot type options
         self.figure2_plot_type_options = Select(
-            name="Plot I options:",
+            name="Plot II options:",
             value="",
             options=self.options,
             width_policy="fixed",
@@ -467,44 +458,26 @@ class WireLArTPCPanelDisplay:
         self.figure2_plot_button.on_click(self.plot_second_event)
         self.figure2_pane = pn.pane.Plotly(self.figure2, config={"responsive": True})
 
-
-
-    def construct_layout(self):
+    def generate_plot_settings(self,n):
         plot_settings = []
-        def generate_plot_settings(n):
-            plot_settings = []
-            for i in range(int(n)):
-                plot_settings.append({
-                    'figure_pane': getattr(self, f'figure{i+1}_pane'),
-                    'adc_slider_option': getattr(self, f'figure{i+1}_adc_slider_option'),
-                    'slider': getattr(self, f'figure{i+1}_slider'),
-                    'radio_text': getattr(self, f'figure{i+1}_radio_text'),
-                    'radio_group': getattr(self, f'figure{i+1}_radio_group'),
-                    'plot_option_text': getattr(self, f'figure{i+1}_plot_option_text'),
-                    'plot_options': getattr(self, f'figure{i+1}_plot_options'),
-                    'color_select': getattr(self, f'figure{i+1}_color_select'),
-                    'plot_type_options': getattr(self, f'figure{i+1}_plot_type_options'),
-                    'plot_button': getattr(self, f'figure{i+1}_plot_button'),
-                })
-            return plot_settings
-        nplots = self.nplots_select.value
-        plot_settings = generate_plot_settings(nplots)
+        for i in range(int(n)):
+            plot_settings.append({
+                'figure_pane': getattr(self, f'figure{i+1}_pane'),
+                'adc_slider_option': getattr(self, f'figure{i+1}_adc_slider_option'),
+                'slider': getattr(self, f'figure{i+1}_slider'),
+                'radio_text': getattr(self, f'figure{i+1}_radio_text'),
+                'radio_group': getattr(self, f'figure{i+1}_radio_group'),
+                'plot_option_text': getattr(self, f'figure{i+1}_plot_option_text'),
+                'plot_options': getattr(self, f'figure{i+1}_plot_options'),
+                'color_select': getattr(self, f'figure{i+1}_color_select'),
+                'plot_type_options': getattr(self, f'figure{i+1}_plot_type_options'),
+                'plot_button': getattr(self, f'figure{i+1}_plot_button'),
+            })
+        return plot_settings
 
-        # construct the wire plane layout
-        self.layout = Row(
+    def construct_layout(self,nplots):
+        columns = [
             Column(
-                self.file_folder_select,
-                self.file_select,
-                self.load_file_button,
-                self.tpc_meta_pretext,
-                self.event_select,
-                self.load_event_button,
-                pn.Column('<p style="font-size:18px;">Link plots</p>',self.link_axes_switch),
-                self.nplots_select,
-                self.simulation_wrangler_pretext,
-            ),
-            *[
-                Column(
                     settings['figure_pane'],
                     Row(
                         settings['adc_slider_option'],
@@ -527,8 +500,21 @@ class WireLArTPCPanelDisplay:
                     height_policy="fixed",
                     height=1000,
                 )
-                for settings in plot_settings
-            ],
+            for settings in self.generate_plot_settings(self.nplots)
+        ]
+        # construct the wire plane layout
+        self.layout = Row(
+            Column(
+                self.file_folder_select,
+                self.file_select,
+                self.load_file_button,
+                self.tpc_meta_pretext,
+                self.event_select,
+                self.load_event_button,
+                pn.Column('<p style="font-size:19px;">Link plots!</p>',self.link_axes_switch),
+                self.simulation_wrangler_pretext,
+            ),
+            *columns,
         )
 
     """
