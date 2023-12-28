@@ -8,7 +8,7 @@ import numpy as np
 
 from blip.analysis.model_analyzer_handler import ModelAnalyzerHandler
 from blip.models import ModelHandler
-from blip.models import LinearEvaluation
+from blip.models.linear_evaluation import LinearEvaluation
 from blip.module.generic_module import GenericModule
 from blip.losses import LossHandler
 from blip.optimizers import Optimizer

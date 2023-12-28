@@ -10,7 +10,7 @@ from collections import OrderedDict
 from blip.models import GenericModel
 from blip.models.common import sparse_activations
 from blip.models import PointProposalNetwork
-from blip.models.sparse_uresnet import DoubleConv
+from Blip.blip.models.arxiv.sparse_uresnet import DoubleConv
 
 
 def get_activation(
