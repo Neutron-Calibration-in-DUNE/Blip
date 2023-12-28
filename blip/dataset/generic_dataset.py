@@ -274,6 +274,8 @@ class GenericDataset(InMemoryDataset):
                         else:
                             for label, points in temp_meta[ii][key].items():
                                 self.meta[key][label] += points
+                    elif "events" in key:
+                        continue
                     else:
                         if isinstance(value, list):
                             for item in value:
