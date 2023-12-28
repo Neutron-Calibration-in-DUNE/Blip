@@ -576,34 +576,43 @@ class WireLArTPCPanelDisplay:
 
     def update_link_axes(self,new):
         if self.link_axes_switch.value:
-            # print("Linking axes")
-            # print(self.figure1)
-            # x_range = self.figure1['x']
-            # y_range = self.figure1['y']
-            # print("here",x_range)
+            if self.nplots == 1: print("\nCannot link axes with only one plot!")
+            else:
+                print("Linking axes")
+                x =  []
+                y =  []
+                for i in range(int(self.nplots)): #change to have the best range
+                    print(i)
+                    # getattr(self, f'figure{i+1}')['layout']['showlegend'] = False
+                    x_aux = getattr(self, f'figure{i+1}')['data'][0]['x']
+                    y_aux = getattr(self, f'figure{i+1}')['data'][0]['y']
+                    x.append(min(x_aux))
+                    x.append(max(x_aux))
+                    y.append(min(y_aux))
+                    y.append(max(y_aux))
+                x_range = [min(x),max(x)]
+                y_range = [min(y),max(y)]
+            self.plot_first_event(self.event)
+            self.figure1["layout"]["xaxis"]['range'] = x_range
+            self.figure1["layout"]["yaxis"]['range'] = y_range
+            self.figure1_pane.object = self.figure1
+            self.plot_second_event(self.event)
+            self.figure2["layout"]["xaxis"]['range'] = x_range
+            self.figure2["layout"]["yaxis"]['range'] = y_range
+            self.figure2_pane.object = self.figure2
 
-            # self.figure2['layout']['xaxis']['range'] = x_range
-            # self.figure2['layout']['yaxis']['range'] = y_range
-            print("Linking axes")
-
-            # Create a subplot figure
-            fig = sp.make_subplots(rows=2, cols=1)
-
-            # Add the traces from figure1 to the subplot
-            for trace in self.figure1['data']:
-                fig.add_trace(trace, row=1, col=1)
-
-            # Add the traces from figure2 to the subplot
-            for trace in self.figure2['data']:
-                fig.add_trace(trace, row=2, col=1)
-
-            # Update the layout
-            fig.update_layout(self.figure1['layout'])
-            fig.update_layout(self.figure2['layout'])
-
-            # Assign the subplot figure to figure1 and figure2
-            self.figure1 = fig
-            self.figure2 = fig
+            self.construct_layout(self.nplots)
+            
+            # Create a subplot figure ?? maybe better
+            # fig = sp.make_subplots(rows=2, cols=1)
+            # for trace in self.figure1['data']:
+            #     fig.add_trace(trace, row=1, col=1)
+            # for trace in self.figure2['data']:
+            #     fig.add_trace(trace, row=2, col=1)
+            # fig.update_layout(self.figure1['layout'])
+            # fig.update_layout(self.figure2['layout'])
+            # self.figure1 = fig
+            # self.figure2 = fig
 
     """
     functions here are for updating the Wire Plane display plots.
