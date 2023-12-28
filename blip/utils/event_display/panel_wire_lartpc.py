@@ -502,6 +502,14 @@ class WireLArTPCPanelDisplay:
                 )
             for settings in self.generate_plot_settings(self.nplots)
         ]
+        if len(columns) == 1:
+            self.figure1["layout"].update(
+            width=1500,
+            height=800,
+        )
+            self.figure1_pane.object = self.figure1
+            self.generate_plot_settings(self.nplots)[0]['figure_pane'] = self.figure1_pane.object
+
         # construct the wire plane layout
         self.layout = Row(
             Column(
