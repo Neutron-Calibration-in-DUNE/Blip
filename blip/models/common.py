@@ -20,6 +20,7 @@ sparse_activations = {
     'sigmoid':  ME.MinkowskiSigmoid(),
     'tanh':     ME.MinkowskiTanh(),
     'softmax':  ME.MinkowskiSoftmax(),
+    'leaky_relu':   ME.MinkowskiLeakyReLU(),
 }
 
 normalizations = {

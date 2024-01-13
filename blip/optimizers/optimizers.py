@@ -2,6 +2,7 @@
 Optimizers for blip.
 """
 import torch.optim as optim
+import torch.nn as nn
 
 from blip.utils.logger import Logger
 from blip.models.model_handler import ModelHandler
@@ -66,8 +67,15 @@ class Optimizer:
                 f"specified optimizer_type: {self.config['optimizer_type']} not allowed!"
             )
 
+        if "max_norm" not in self.config.keys():
+            self.logger.warn('no "max_norm" specified in config! setting to 1.0')
+            self.config["max_norm"] = 1.0
+        self.max_norm = self.config["max_norm"]
+
     def zero_grad(self):
         return self.optimizer.zero_grad()
 
     def step(self):
+        if self.max_norm:
+            nn.utils.clip_grad_norm_(self.meta['model'].model.parameters(), max_norm=self.max_norm)
         return self.optimizer.step()
