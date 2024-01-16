@@ -55,7 +55,6 @@ class MachineLearningModule(GenericModule):
         self.meta['trainer'] = None
         self.meta['model_analyzer'] = None
 
-        self.parse_model()
         self.parse_inference()
         self.parse_hyper_parameters()
         self.parse_linear_evaluation()
@@ -450,6 +449,7 @@ class MachineLearningModule(GenericModule):
             self.save_iteration(f"linear_evaluation_iteration_{jj}")
 
     def run_inference(self):
+        self.parse_model()
         self.module_data_product['predictions'] = self.meta['trainer'].inference(
             dataset_type=self.config['inference']['dataset_type'],
             layers=self.config['inference']['layers'],

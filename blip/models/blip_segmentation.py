@@ -125,7 +125,7 @@ adjusted by the user for each application
 """
 blip_segmentation_params = {
     'in_channels':  1,
-    'out_channels': 1,  # this is the number of classes for the semantic segmentation
+    # 'out_channels': 1,  # this is the number of classes for the semantic segmentation
     'filtrations':  [64, 128, 256, 512],    # the number of filters in each downsample
     'residual':     True,
     'sparse_conv_params': {
@@ -183,6 +183,12 @@ class BlipSegmentation(GenericModel):
                 f"{self.config['max_pooling_params']['dimension']}) do not match!"
             )
             raise AttributeError
+
+        if "out_channels" not in self.config:
+            out_channels = []
+            for classification in self.config["classifications"]:
+                out_channels.append(len(self.meta['classes_labels_names'][classification]))
+            self.config['out_channels'] = out_channels
 
         # construct the model
         self.construct_model()

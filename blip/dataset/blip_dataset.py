@@ -120,6 +120,11 @@ class BlipDataset(GenericDataset):
                 class_index = self.meta["classes"][classes]
                 for jj, label_value in enumerate(self.meta['blip_labels_values'][classes]):
                     mask |= (event_classes[:, class_index] == label_value)
+        if self.meta['skip_undefined'] is True:
+            for classes in self.meta['blip_classes']:
+                class_index = self.meta["classes"][classes]
+                mask &= (event_classes[:, class_index] != -1)
+                mask &= (event_classes[:, class_index] != 0)
 
         # Apply masks
         event_features = event_features[mask].astype(np.float)

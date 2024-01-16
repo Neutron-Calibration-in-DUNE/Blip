@@ -43,6 +43,24 @@ class ParticleLabel(Enum):
     Deuteron = 1000010020
     Triton = 1000010030
     Alpha = 1000020040
+    Sulfur32 = 1000160320
+    Sulfur33 = 1000160330
+    Sulfur34 = 1000160340
+    Sulfur35 = 1000160350
+    Sulfur36 = 1000160360
+    Chlorine35 = 1000170350
+    Chlorine36 = 1000170360
+    Chlorine37 = 1000170370
+    Chlorine38 = 1000170380
+    Chlorine39 = 1000170390
+    Chlorine40 = 1000170400
+    Argon36 = 1000180360
+    Argon37 = 1000180370
+    Argon38 = 1000180380
+    Argon39 = 1000180390
+    Argon40 = 1000180400
+    Argon41 = 1000180410
+    Ion = 1000000000
 
 
 class TopologyLabel(Enum):
@@ -50,6 +68,7 @@ class TopologyLabel(Enum):
     High-level description of the shape of certain
     event types.
     """
+
     Undefined = -1
     Noise = 0
     Blip = 1
@@ -63,21 +82,26 @@ class PhysicsMicroLabel(Enum):
     This further breaks down the blip/track/shower
     topology labels into micro-level physics.
     """
+
     Undefined = -1
     Noise = 0
     MIPIonization = 1
     HIPIonization = 2
     ElectronIonization = 3
-    GammaCompton = 4
-    GammaConversion = 5
-    NuclearRecoil = 6
-    ElectronRecoil = 7
+    Bremsstrahlung = 4
+    Annihilation = 5
+    PhotoElectric = 6
+    GammaCompton = 7
+    GammaConversion = 8
+    HadronElastic = 9
+    HadronInelastic = 10
 
 
 class PhysicsMesoLabel(Enum):
     """
     meso-level descriptions of topological types.
     """
+
     Undefined = -1
     Noise = 0
     MIP = 1
@@ -87,24 +111,28 @@ class PhysicsMesoLabel(Enum):
     ElectronShower = 5
     PositronShower = 6
     PhotonShower = 7
-    NeutronCaptureGamma474 = 8
-    NeutronCaptureGamma336 = 9
-    NeutronCaptureGamma256 = 10
-    NeutronCaptureGamma118 = 11
-    NeutronCaptureGamma083 = 12
-    NeutronCaptureGamma051 = 13
-    NeutronCaptureGamma016 = 14
-    NeutronCaptureGammaOther = 15
-    Pi0Decay = 16
-    AlphaDecay = 17
-    BetaDecay = 18
-    GammaDecay = 19
+    LowEnergyIonization = 8
+    NeutronCaptureGamma474 = 9
+    NeutronCaptureGamma336 = 10
+    NeutronCaptureGamma256 = 11
+    NeutronCaptureGamma118 = 12
+    NeutronCaptureGamma083 = 13
+    NeutronCaptureGamma051 = 14
+    NeutronCaptureGamma016 = 15
+    NeutronCaptureGammaOther = 16
+    Pi0Decay = 17
+    AlphaDecay = 18
+    BetaDecay = 19
+    GammaDecay = 20
+    NuclearRecoil = 21
+    ElectronRecoil = 22
 
 
 class PhysicsMacroLabel(Enum):
     """
     macro-level descriptions of topological types
     """
+
     Undefined = -1
     Noise = 0
 
@@ -113,122 +141,159 @@ class PhysicsMacroLabel(Enum):
     CCNuMu = 2
     NC = 3
 
-    Cosmics = 5
+    Cosmics = 4
 
     # Radiological interactions
-    Ar39 = 6
-    Ar42 = 7
-    K42 = 8
-    Kr85 = 9
-    Rn222 = 10
-    Po218a = 11
-    Po218b = 12
-    At218a = 13
-    At218b = 14
-    Rn218 = 15
-    Pb214 = 16
-    Bi214a = 17
-    Bi214b = 18
-    Po214 = 19
-    Tl210 = 20
-    Pb210a = 21
-    Pb210b = 22
-    Bi210a = 23
-    Bi210b = 24
-    Po210 = 25
+    Ar39 = 5
+    Ar42 = 6
+    K42 = 7
+    Kr85 = 8
+    Rn222 = 9
+    Po218a = 10
+    Po218b = 11
+    At218a = 12
+    At218b = 13
+    Rn218 = 14
+    Pb214 = 15
+    Bi214a = 16
+    Bi214b = 17
+    Po214 = 18
+    Tl210 = 19
+    Pb210a = 20
+    Pb210b = 21
+    Bi210a = 22
+    Bi210b = 23
+    Po210 = 24
 
 
 classification_labels = {
     "particle": {
-        -1:     "undefined",
-        0:      "noise",
-        11:     "electron",
-        -11:    "positron",
-        12:     "electron_neutrino",
-        -12:    "anti-electron_neutrino",
-        13:     "muon",
-        -13:    "anti-muon",
-        14:     "muon_neutrino",
-        -14:    "anti-muon_neutrino",
-        15:     "tauon",
-        -15:    "anti-tauon",
-        16:     "tauon_neutrino",
-        -16:    "anti-tauon_neutrino",
-        22:     "gamma",
-        111:    "pion0",
-        211:    "pion_plus",
-        -211:   "pion_minus",
-        311:    "kaon0",
-        321:    "kaon_plus",
-        -321:   "kaon_minus",
-        2112:   "neutron",
-        -2112:  "anti-neutron",
-        2212:   "proton",
-        -2212:  "anti-proton",
+        -1: "undefined",
+        0: "noise",
+        11: "electron",
+        -11: "positron",
+        12: "electron_neutrino",
+        -12: "anti-electron_neutrino",
+        13: "muon",
+        -13: "anti-muon",
+        14: "muon_neutrino",
+        -14: "anti-muon_neutrino",
+        15: "tauon",
+        -15: "anti-tauon",
+        16: "tauon_neutrino",
+        -16: "anti-tauon_neutrino",
+        22: "gamma",
+        111: "pion0",
+        211: "pion_plus",
+        -211: "pion_minus",
+        311: "kaon0",
+        321: "kaon_plus",
+        -321: "kaon_minus",
+        2112: "neutron",
+        -2112: "anti-neutron",
+        2212: "proton",
+        -2212: "anti-proton",
         1000010020: "deuteron",
         1000010030: "triton",
-        1000020040: "alpha"
+        1000020040: "alpha",
+        1000160320: "sulfur_32",
+        1000160330: "sulfur_33",
+        1000160340: "sulfur_34",
+        1000160350: "sulfur_35",
+        1000160360: "sulfur_36",
+        1000170350: "chlorine_35",
+        1000170360: "chlorine_36",
+        1000170370: "chlorine_37",
+        1000170380: "chlorine_38",
+        1000170390: "chlorine_39",
+        1000170400: "chlorine_40",
+        1000180360: "argon_36",
+        1000180370: "argon_37",
+        1000180380: "argon_38",
+        1000180390: "argon_39",
+        1000180400: "argon_40",
+        1000180410: "argon_41",
+        1000000000: "ion",
     },
     "topology": {
         -1: "undefined",
-        0:  "noise",
-        1:  "blip",
-        2:  "track",
-        3:  "shower",
+        0: "noise",
+        1: "blip",
+        2: "track",
+        3: "shower",
     },
     "physics_micro": {
         -1: "undefined",
-        0:  "noise",
-        1:  "mip_ionization",
-        2:  "hip_ionization",
-        3:  "electron_ionization",
-        4:  "gamma_compton",
-        5:  "gamma_conversion",
-        6:  "nuclear_recoil",
-        7:  "electron_recoil"
+        0: "noise",
+        1: "mip_ionization",
+        2: "hip_ionization",
+        3: "electron_ionization",
+        4: "bremsstrahlung",
+        5: "annihilation",
+        6: "photo_electric",
+        7: "gamma_compton",
+        8: "gamma_conversion",
+        9: "hadron_elastic",
+        10: "hadron_inelastic",
     },
     "physics_meso": {
         -1: "undefined",
-        0:  "noise",
-        1:  "mip",
-        2:  "hip",
-        3:  "delta_electron",
-        4:  "michel_electron",
-        5:  "electron_shower",
-        6:  "positron_shower",
-        7:  "photon_shower",
-        8:  "neutron_capture_gamma_474",
-        9:  "neutron_capture_gamma_336",
-        10: "neutron_capture_gamma_256",
-        11: "neutron_capture_gamma_118",
-        12: "neutron_capture_gamma_083",
-        13: "neutron_capture_gamma_051",
-        14: "neutron_capture_gamma_016",
-        15: "neutron_capture_gamma_other",
-        16: "pi0_decay",
-        17: "alpha_decay",
-        18: "beta_decay",
-        19: "gamma_decay",
+        0: "noise",
+        1: "mip",
+        2: "hip",
+        3: "delta_electron",
+        4: "michel_electron",
+        5: "electron_shower",
+        6: "positron_shower",
+        7: "photon_shower",
+        8: "low_energy_ionization",
+        9: "neutron_capture_gamma_474",
+        10: "neutron_capture_gamma_336",
+        11: "neutron_capture_gamma_256",
+        12: "neutron_capture_gamma_118",
+        13: "neutron_capture_gamma_083",
+        14: "neutron_capture_gamma_051",
+        15: "neutron_capture_gamma_016",
+        16: "neutron_capture_gamma_other",
+        17: "pi0_decay",
+        18: "alpha_decay",
+        19: "beta_decay",
+        20: "gamma_decay",
+        21: "nuclear_recoil",
+        22: "electron_recoil"
     },
     "physics_macro": {
         -1: "undefined",
-        0:  "noise",
-        1:  "cc_nu_e",
-        2:  "cc_nu_mu",
-        3:  "nc",
-        4:  "neutron_capture",
-        5:  "cosmics",
-        6:  "ar39",
-        7:  "ar42",
-        8:  "k42",
-        9:  "kr895",
-        10: "rn222",
-        26: "bi_po"
+        0: "noise",
+        1: "cc_nu_e",
+        2: "cc_nu_mu",
+        3: "nc",
+        4: "cosmics",
+        5: "ar39",
+        6: "ar42",
+        7: "k42",
+        8: "kr85",
+        9: "rn222",
+        10: "po218a",
+        11: "po218b",
+        12: "at218a",
+        13: "at218b",
+        14: "rn218",
+        15: "pb214",
+        16: "bi214a",
+        17: "bi214b",
+        18: "po214",
+        19: "tl210",
+        20: "pb210a",
+        21: "pb210b",
+        22: "bi210a",
+        23: "bi210b",
+        24: "po210",
     },
     "hit": {
-        0:  "induction",
-        1:  "hit",
-    }
+        0: "induction",
+        1: "hit",
+    },
 }
 
 projection_types = [

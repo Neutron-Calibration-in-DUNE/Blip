@@ -318,6 +318,18 @@ class GenericDataset(InMemoryDataset):
         self.meta['classes_names'] = list(self.meta['classes'].keys())
         self.meta['classes_values'] = list(self.meta['classes'].values())
         self.meta['classes_names_by_value'] = {val: key for key, val in self.meta['classes'].items()}
+
+        # arange label maps.  if we don't want undefined and noise then
+        # don't include them in these maps and they won't appear downstream.
+        if "skip_undefined" not in self.config.keys():
+            self.logger.warn('skip_undefined not specified in config! setting to "True"')
+            self.config["skip_undefined"] = True
+        self.meta['skip_undefined'] = self.config['skip_undefined']
+        if self.meta["skip_undefined"]:
+            for label in self.meta['classes'].keys():
+                del self.meta[f'{label}_labels'][-1]
+                del self.meta[f'{label}_labels'][0]
+
         self.meta['classes_labels_names'] = {
             label:   list(self.meta[f'{label}_labels'].values())
             for label in self.meta['classes'].keys()
