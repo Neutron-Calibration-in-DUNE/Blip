@@ -39,6 +39,7 @@ blip_dataset_config = {
         "sample_weights":   [],
     },
     "clustering": {
+        "cluster_method":     "unique_physics_meso",
         "dbscan_min_samples": 10,
         "dbscan_eps":         10.0,
         "cluster_positions":  [""],
@@ -319,6 +320,8 @@ class BlipDataset(GenericDataset):
         event_positions, event_features, event_classes, event_clusters, event_hits, mask = self.apply_event_masks(
             event_features, event_classes, event_clusters, event_hits
         )
+        if np.sum(mask) == 0:
+            return
         # # check if classes need to be consolidated
         # if self.meta['consolidate_classes'] is not None:
         #     event_classes = self.consolidate_class(classes[ii])
@@ -326,12 +329,14 @@ class BlipDataset(GenericDataset):
         #     event_classes = classes[ii]
 
         # create clusters using DBSCAN
-        if np.sum(mask) == 0:
-            return
-        cluster_labels = self.dbscan.fit(
-            event_positions[:, self.meta['cluster_position_indices']]
-        ).labels_
-        unique_labels = np.unique(cluster_labels)
+        if self.cluster_method == "dbscan":
+            cluster_labels = self.dbscan.fit(
+                event_positions[:, self.meta['cluster_position_indices']]
+            ).labels_
+            unique_labels = np.unique(cluster_labels)
+        else:
+            cluster_labels = event_clusters[:, self.meta["blip_cluster_indices"][self.cluster_method]]
+            unique_labels = np.unique(cluster_labels)
 
         self.meta['event_mask'][raw_path].append(mask)
         self.meta['cluster_ids'][raw_path].append(cluster_labels)
@@ -447,6 +452,7 @@ class BlipDataset(GenericDataset):
             pos=torch.tensor(event_positions).type(self.meta['position_type']),
             x=torch.tensor(event_features).type(self.meta['feature_type']),
             category=torch.tensor(event_classes).type(self.meta['class_type']),
+            clusters=torch.tensor(event_clusters) .type(self.meta['cluster_type']),
             merge_tree=merge_tree_data,
         )
         if self.pre_filter is not None:
