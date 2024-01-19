@@ -28,7 +28,7 @@ class AngularLoss(GenericLoss):
         )
         self.beta = beta
         self.angular_loss = {
-            key: angular_loss(alpha=self.beta)
+            key: angular_loss(alpha=self.beta, weight=self.meta['class_weights'][key])
             for key in self.targets
         }
 

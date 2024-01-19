@@ -27,7 +27,7 @@ class CrossEntropyLoss(GenericLoss):
         )
         self.reduction = reduction
         self.cross_entropy_loss = {
-            key: nn.CrossEntropyLoss(reduction=self.reduction)
+            key: nn.CrossEntropyLoss(reduction=self.reduction, weight=self.meta['class_weights'][key])
             for key in self.targets
         }
 

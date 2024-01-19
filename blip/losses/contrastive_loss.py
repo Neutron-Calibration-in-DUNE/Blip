@@ -29,7 +29,11 @@ class ContrastiveLoss(GenericLoss):
         self.pos_margin = pos_margin
         self.neg_margin = neg_margin
         self.contrastive_loss = {
-            key: contrastive_loss(pos_margin=self.pos_margin, neg_margin=self.neg_margin)
+            key: contrastive_loss(
+                pos_margin=self.pos_margin,
+                neg_margin=self.neg_margin,
+                weight=self.meta['class_weights'][key]
+            )
             for key in self.targets
         }
 

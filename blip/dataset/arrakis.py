@@ -350,29 +350,38 @@ class Arrakis:
                     "t": 0, "x": 1, "y": 2, "z": 3, "energy": 4, "num_photons": 5, "num_electrons": 6
                 },
                 "classes": {
-                    "source": 0, "topology": 1, "particle": 2, "physics": 3, "hit": 4
+                    "particle": 0,
+                    "topology": 1,
+                    "physics_micro": 2,
+                    "physics_meso": 3,
+                    "physics_macro": 4,
                 },
                 "clusters": {
-                    "topology":  0, "particle": 1, "physics": 2
-                },
-                "hits": {
-                    "mean": 0, "rms": 1, "amplitude": 2, "charge": 3
-                },
-                "source_labels": {
-                    key: value
-                    for key, value in classification_labels["source"].items()
+                    "particle": 0,
+                    "topology": 1,
+                    "physics_micro": 2,
+                    "physics_meso": 3,
+                    "physics_macro": 4,
                 },
                 "topology_labels": {
-                    key: value
+                    key: value 
                     for key, value in classification_labels["topology"].items()
                 },
                 "particle_labels": {
-                    key: value
+                    key: value 
                     for key, value in classification_labels["particle"].items()
                 },
-                "physics_labels": {
+                "physics_micro_labels": {
                     key: value
-                    for key, value in classification_labels["physics"].items()
+                    for key, value in classification_labels["physics_micro"].items()
+                },
+                "physics_meso_labels": {
+                    key: value
+                    for key, value in classification_labels["physics_meso"].items()
+                },
+                "physics_macro_labels": {
+                    key: value
+                    for key, value in classification_labels["physics_macro"].items()
                 },
                 "hit_labels": {
                     key: value
@@ -522,7 +531,9 @@ class Arrakis:
         unique_label:       str = 'topology',
         replace_topology_label:  int = -1,
         replace_particle_label:  int = -1,
-        replace_physics_label:  int = -1,
+        replace_physics_micro_label:  int = -1,
+        replace_physics_meso_label:  int = -1,
+        replace_physics_macro_label:  int = -1,
         max_events:     int = 5000,
         limit_tpcs:     list = [],
         make_gifs:      bool = False
@@ -548,13 +559,16 @@ class Arrakis:
         edep_num_electrons = self.energy_deposit_point_cloud['edep_num_electrons']
 
         # construct ids and names for source, topology and particle labels
-        source_label = self.energy_deposit_point_cloud['source_label']
-        topology_label = self.energy_deposit_point_cloud['topology_label']
         particle_label = self.energy_deposit_point_cloud['particle_label']
-        physics_label = self.energy_deposit_point_cloud['physics_label']
-        unique_topology_label = self.energy_deposit_point_cloud['unique_topology']
-        unique_particle_label = self.energy_deposit_point_cloud['unique_particle']
-        unique_physics_label = self.energy_deposit_point_cloud['unique_physics']
+        topology_label = self.energy_deposit_point_cloud['topology_label']
+        physics_micro_label = self.energy_deposit_point_cloud['physics_micro_label']
+        physics_meso_label = self.energy_deposit_point_cloud['physics_meso_label']
+        physics_macro_label = self.energy_deposit_point_cloud['physics_macro_label']
+        unique_particle_label = self.energy_deposit_point_cloud['unique_particle_label']
+        unique_topology_label = self.energy_deposit_point_cloud['unique_topology_label']
+        unique_physics_micro_label = self.energy_deposit_point_cloud['unique_physics_micro_label']
+        unique_physics_meso_label = self.energy_deposit_point_cloud['unique_physics_meso_label']
+        unique_physics_macro_label = self.energy_deposit_point_cloud['unique_physics_macro_label']
 
         for tpc, tpc_ranges in self.tpc_positions.items():
             if len(limit_tpcs) != 0 and tpc not in limit_tpcs:
@@ -566,13 +580,16 @@ class Arrakis:
             edep_energy_tpc = []
             edep_num_photons_tpc = []
             edep_num_electrons_tpc = []
-            source_label_tpc = []
-            topology_label_tpc = []
             particle_label_tpc = []
-            physics_label_tpc = []
-            unique_topology_label_tpc = []
+            topology_label_tpc = []
+            physics_micro_label_tpc = []
+            physics_meso_label_tpc = []
+            physics_macro_label_tpc = []
             unique_particle_label_tpc = []
-            unique_physics_label_tpc = []
+            unique_topology_label_tpc = []
+            unique_physics_micro_label_tpc = []
+            unique_physics_meso_label_tpc = []
+            unique_physics_macro_label_tpc = []
 
             for event in range(len(edep_t)):
                 view_mask = (
@@ -588,12 +605,16 @@ class Arrakis:
                 )
                 if np.sum(view_mask) > 0:
                     if separate_unique:
-                        if unique_label == 'topology':
-                            unique_labels = unique_topology_label[event]
-                        elif unique_label == 'particle':
+                        if unique_label == 'particle':
                             unique_labels = unique_particle_label[event]
-                        elif unique_label == 'physics':
-                            unique_labels = unique_physics_label[event]
+                        elif unique_label == 'topology':
+                            unique_labels = unique_topology_label[event]
+                        elif unique_label == 'physics_micro':
+                            unique_labels = unique_physics_micro_label[event]
+                        elif unique_label == 'physics_meso':
+                            unique_labels = unique_physics_meso_label[event]
+                        elif unique_label == 'physics_macro':
+                            unique_labels = unique_physics_macro_label[event]
                         else:
                             self.logger.error(f'specified unique_label type {unique_label} not allowed!')
                         for label in np.unique(unique_labels):
@@ -605,7 +626,11 @@ class Arrakis:
                             edep_energy_tpc.append(edep_energy[event][unique_mask])
                             edep_num_photons_tpc.append(edep_num_photons[event][unique_mask])
                             edep_num_electrons_tpc.append(edep_num_electrons[event][unique_mask])
-                            source_label_tpc.append(source_label[event][unique_mask])
+                            # if we want to replace the particle label (temp solution for single gammas)
+                            if replace_particle_label != -1:
+                                particle_label[event][unique_mask] = replace_particle_label
+
+                            particle_label_tpc.append(particle_label[event][unique_mask])
 
                             # if we want to replace the topology label (temp solution for single gammas)
                             if replace_topology_label != -1:
@@ -613,20 +638,29 @@ class Arrakis:
 
                             topology_label_tpc.append(topology_label[event][unique_mask])
 
-                            # if we want to replace the particle label (temp solution for single gammas)
-                            if replace_particle_label != -1:
-                                particle_label[event][unique_mask] = replace_particle_label
+                            # if we want to replace the physics label (temp solution for single gammas)
+                            if replace_physics_micro_label != -1:
+                                physics_micro_label[event][unique_mask] = replace_physics_micro_label
 
-                            particle_label_tpc.append(particle_label[event][unique_mask])
+                            physics_micro_label_tpc.append(physics_micro_label[event][unique_mask])
 
                             # if we want to replace the physics label (temp solution for single gammas)
-                            if replace_physics_label != -1:
-                                physics_label[event][unique_mask] = replace_physics_label
+                            if replace_physics_meso_label != -1:
+                                physics_meso_label[event][unique_mask] = replace_physics_meso_label
 
-                            physics_label_tpc.append(physics_label[event][unique_mask])
-                            unique_topology_label_tpc.append(unique_topology_label[event][unique_mask])
+                            physics_meso_label_tpc.append(physics_meso_label[event][unique_mask])
+
+                            # if we want to replace the physics label (temp solution for single gammas)
+                            if replace_physics_macro_label != -1:
+                                physics_macro_label[event][unique_mask] = replace_physics_macro_label
+
+                            physics_macro_label_tpc.append(physics_macro_label[event][unique_mask])
+
                             unique_particle_label_tpc.append(unique_particle_label[event][unique_mask])
-                            unique_physics_label_tpc.append(unique_physics_label[event][unique_mask])
+                            unique_topology_label_tpc.append(unique_topology_label[event][unique_mask])
+                            unique_physics_micro_label_tpc.append(unique_physics_micro_label[event][unique_mask])
+                            unique_physics_meso_label_tpc.append(unique_physics_meso_label[event][unique_mask])
+                            unique_physics_macro_label_tpc.append(unique_physics_macro_label[event][unique_mask])
                     else:
                         edep_t_tpc.append(edep_t[event][view_mask])
                         edep_x_tpc.append(edep_x[event][view_mask])
@@ -635,13 +669,16 @@ class Arrakis:
                         edep_energy_tpc.append(edep_energy[event][view_mask])
                         edep_num_photons_tpc.append(edep_num_photons[event][view_mask])
                         edep_num_electrons_tpc.append(edep_num_electrons[event][view_mask])
-                        source_label_tpc.append(source_label[event][view_mask])
-                        topology_label_tpc.append(topology_label[event][view_mask])
                         particle_label_tpc.append(particle_label[event][view_mask])
-                        physics_label_tpc.append(physics_label[event][view_mask])
-                        unique_topology_label_tpc.append(unique_topology_label[event][view_mask])
+                        topology_label_tpc.append(topology_label[event][view_mask])
+                        physics_micro_label_tpc.append(physics_micro_label[event][view_mask])
+                        physics_meso_label_tpc.append(physics_meso_label[event][view_mask])
+                        physics_macro_label_tpc.append(physics_macro_label[event][view_mask])
                         unique_particle_label_tpc.append(unique_particle_label[event][view_mask])
-                        unique_physics_label_tpc.append(unique_physics_label[event][view_mask])
+                        unique_topology_label_tpc.append(unique_topology_label[event][view_mask])
+                        unique_physics_micro_label_tpc.append(unique_physics_micro_label[event][view_mask])
+                        unique_physics_meso_label_tpc.append(unique_physics_meso_label[event][view_mask])
+                        unique_physics_macro_label_tpc.append(unique_physics_macro_label[event][view_mask])
 
                 if len(edep_t_tpc) >= max_events:
                     self.logger.info(f'reached max_events: {max_events} for input file {input_file}; returning.')
@@ -654,13 +691,16 @@ class Arrakis:
             edep_energy_tpc = np.array(edep_energy_tpc, dtype=object)
             edep_num_photons_tpc = np.array(edep_num_photons_tpc, dtype=object)
             edep_num_electrons_tpc = np.array(edep_num_electrons_tpc, dtype=object)
-            source_label_tpc = np.array(source_label_tpc, dtype=object)
-            topology_label_tpc = np.array(topology_label_tpc, dtype=object)
             particle_label_tpc = np.array(particle_label_tpc, dtype=object)
-            physics_label_tpc = np.array(physics_label_tpc, dtype=object)
-            unique_topology_label_tpc = np.array(unique_topology_label_tpc, dtype=object)
+            topology_label_tpc = np.array(topology_label_tpc, dtype=object) 
+            physics_micro_label_tpc = np.array(physics_micro_label_tpc, dtype=object)
+            physics_meso_label_tpc = np.array(physics_meso_label_tpc, dtype=object)
+            physics_macro_label_tpc = np.array(physics_macro_label_tpc, dtype=object)
             unique_particle_label_tpc = np.array(unique_particle_label_tpc, dtype=object)
-            unique_physics_label_tpc = np.array(unique_physics_label_tpc, dtype=object)
+            unique_topology_label_tpc = np.array(unique_topology_label_tpc, dtype=object) 
+            unique_physics_micro_label_tpc = np.array(unique_physics_micro_label_tpc, dtype=object)
+            unique_physics_meso_label_tpc = np.array(unique_physics_meso_label_tpc, dtype=object)
+            unique_physics_macro_label_tpc = np.array(unique_physics_macro_label_tpc, dtype=object)
 
             if len(edep_t_tpc.flatten()) == 0:
                 continue
@@ -678,38 +718,45 @@ class Arrakis:
             )
             classes = np.array([
                 np.vstack((
-                    source_label_tpc[ii],
-                    topology_label_tpc[ii],
                     particle_label_tpc[ii],
-                    physics_label_tpc[ii])).T
+                    topology_label_tpc[ii],
+                    physics_micro_label_tpc[ii],
+                    physics_meso_label_tpc[ii],
+                    physics_macro_label_tpc[ii])).T
                 for ii in range(len(edep_t_tpc))],
                 dtype=object
             )
             clusters = np.array([
                 np.vstack((
-                    unique_topology_label_tpc[ii],
                     unique_particle_label_tpc[ii],
-                    unique_physics_label_tpc[ii])).T
+                    unique_topology_label_tpc[ii],
+                    unique_physics_micro_label_tpc[ii],
+                    unique_physics_meso_label_tpc[ii],
+                    unique_physics_macro_label_tpc[ii])).T
                 for ii in range(len(edep_t_tpc))],
                 dtype=object
             )
 
             self.meta[tpc]["num_events"] = len(features)
-            self.meta[tpc]["edep_source_points"] = {
-                key: np.count_nonzero(np.concatenate(source_label_tpc) == key)
-                for key, value in classification_labels["source"].items()
+            self.meta[tpc]["edep_particle_points"] = {
+                key: np.count_nonzero(np.concatenate(particle_label_tpc) == key)
+                for key, value in classification_labels["particle"].items()
             }
             self.meta[tpc]["edep_topology_points"] = {
                 key: np.count_nonzero(np.concatenate(topology_label_tpc) == key)
                 for key, value in classification_labels["topology"].items()
             }
-            self.meta[tpc]["edep_particle_points"] = {
-                key: np.count_nonzero(np.concatenate(particle_label_tpc) == key)
-                for key, value in classification_labels["particle"].items()
+            self.meta[tpc]["edep_physics_micro_points"] = {
+                key: np.count_nonzero(np.concatenate(physics_micro_label_tpc) == key)
+                for key, value in classification_labels["physics_micro"].items()
             }
-            self.meta[tpc]["edep_physics_points"] = {
-                key: np.count_nonzero(np.concatenate(physics_label_tpc) == key)
-                for key, value in classification_labels["physics"].items()
+            self.meta[tpc]["edep_physics_meso_points"] = {
+                key: np.count_nonzero(np.concatenate(physics_meso_label_tpc) == key)
+                for key, value in classification_labels["physics_meso"].items()
+            }
+            self.meta[tpc]["edep_physics_macro_points"] = {
+                key: np.count_nonzero(np.concatenate(physics_macro_label_tpc) == key)
+                for key, value in classification_labels["physics_macro"].items()
             }
             self.meta[tpc]["edep_total_points"] = len(np.concatenate(features))
 
@@ -724,7 +771,9 @@ class Arrakis:
         unique_label:       str = 'topology',
         replace_topology_label:  int = -1,
         replace_particle_label:  int = -1,
-        replace_physics_label:  int = -1,
+        replace_physics_micro_label:  int = -1,
+        replace_physics_meso_label:  int = -1,
+        replace_physics_macro_label:  int = -1,
         limit_tpcs:     list = [],
         max_events:     int = 5000,
         make_gifs:      bool = False,
@@ -749,13 +798,17 @@ class Arrakis:
         adc = self.wire_plane_point_cloud['adc']
 
         # construct ids and names for source, topology and particle labels
-        source_label = self.wire_plane_point_cloud['source_label']
-        topology_label = self.wire_plane_point_cloud['topology_label']
         particle_label = self.wire_plane_point_cloud['particle_label']
-        physics_label = self.wire_plane_point_cloud['physics_label']
-        unique_topology_label = self.wire_plane_point_cloud['unique_topology']
-        unique_particle_label = self.wire_plane_point_cloud['unique_particle']
-        unique_physics_label = self.wire_plane_point_cloud['unique_physics']
+        topology_label = self.wire_plane_point_cloud['topology_label']
+        physics_micro_label = self.wire_plane_point_cloud['physics_micro_label']
+        physics_meso_label = self.wire_plane_point_cloud['physics_meso_label']
+        physics_macro_label = self.wire_plane_point_cloud['physics_macro_label']
+        unique_particle_label = self.wire_plane_point_cloud['unique_particle_label']
+        unique_topology_label = self.wire_plane_point_cloud['unique_topology_label']
+        unique_physics_micro_label = self.wire_plane_point_cloud['unique_physics_micro_label']
+        unique_physics_meso_label = self.wire_plane_point_cloud['unique_physics_meso_label']
+        unique_physics_macro_label = self.wire_plane_point_cloud['unique_physics_macro_label']
+
         hit_mean = self.wire_plane_point_cloud['hit_mean']
         hit_rms = self.wire_plane_point_cloud['hit_rms']
         hit_amplitude = self.wire_plane_point_cloud['hit_amplitude']
@@ -775,13 +828,16 @@ class Arrakis:
                 tdc_view = []
                 adc_view = []
                 energy_view = []
-                source_label_view = []
-                topology_label_view = []
                 particle_label_view = []
-                physics_label_view = []
-                unique_topology_label_view = []
+                topology_label_view = []
+                physics_micro_label_view = []
+                physics_meso_label_view = []
+                physics_macro_label_view = []
                 unique_particle_label_view = []
-                unique_physics_label_view = []
+                unique_topology_label_view = []
+                unique_physics_micro_label_view = []
+                unique_physics_meso_label_view = []
+                unique_physics_macro_label_view = []
                 hit_class_view = []
                 hit_mean_view = []
                 hit_rms_view = []
@@ -801,12 +857,16 @@ class Arrakis:
                     if np.sum(view_mask) > 0:
                         # if we want to separate out unique instances of event types
                         if separate_unique:
-                            if unique_label == 'topology':
-                                unique_labels = unique_topology_label[event]
-                            elif unique_label == 'particle':
+                            if unique_label == 'particle':
                                 unique_labels = unique_particle_label[event]
-                            elif unique_label == 'physics':
-                                unique_labels = unique_physics_label[event]
+                            elif unique_label == 'topology':
+                                unique_labels = unique_topology_label[event]
+                            elif unique_label == 'physics_micro':
+                                unique_labels = unique_physics_micro_label[event]
+                            elif unique_label == 'physics_meso':
+                                unique_labels = unique_physics_meso_label[event]
+                            elif unique_label == 'physics_macro':
+                                unique_labels = unique_physics_macro_label[event]
                             else:
                                 self.logger.error(f'specified unique_label type {unique_label} not allowed!')
                             for label in np.unique(unique_labels):
@@ -821,7 +881,11 @@ class Arrakis:
                                 tdc_view.append(tdc[event][unique_mask])
                                 adc_view.append(adc[event][unique_mask])
                                 energy_view.append(energy[event][unique_mask])
-                                source_label_view.append(source_label[event][unique_mask])
+                                # if we want to replace the particle label (temp solution for single gammas)
+                                if replace_particle_label != -1:
+                                    particle_label[event][unique_mask] = replace_particle_label
+
+                                particle_label_view.append(particle_label[event][unique_mask])
 
                                 # if we want to replace the topology label (temp solution for single gammas)
                                 if replace_topology_label != -1:
@@ -829,20 +893,29 @@ class Arrakis:
 
                                 topology_label_view.append(topology_label[event][unique_mask])
 
-                                # if we want to replace the particle label (temp solution for single gammas)
-                                if replace_particle_label != -1:
-                                    particle_label[event][unique_mask] = replace_particle_label
+                                # if we want to replace the physics label (temp solution for single gammas)
+                                if replace_physics_micro_label != -1:
+                                    physics_micro_label[event][unique_mask] = replace_physics_micro_label
 
-                                particle_label_view.append(particle_label[event][unique_mask])
+                                physics_micro_label_view.append(physics_micro_label[event][unique_mask])
 
                                 # if we want to replace the physics label (temp solution for single gammas)
-                                if replace_physics_label != -1:
-                                    physics_label[event][unique_mask] = replace_physics_label
+                                if replace_physics_meso_label != -1:
+                                    physics_meso_label[event][unique_mask] = replace_physics_meso_label
 
-                                physics_label_view.append(physics_label[event][unique_mask])
-                                unique_topology_label_view.append(unique_topology_label[event][unique_mask])
+                                physics_meso_label_view.append(physics_meso_label[event][unique_mask])
+
+                                # if we want to replace the physics label (temp solution for single gammas)
+                                if replace_physics_macro_label != -1:
+                                    physics_macro_label[event][unique_mask] = replace_physics_macro_label
+
+                                physics_macro_label_view.append(physics_macro_label[event][unique_mask])
+
                                 unique_particle_label_view.append(unique_particle_label[event][unique_mask])
-                                unique_physics_label_view.append(unique_physics_label[event][unique_mask])
+                                unique_topology_label_view.append(unique_topology_label[event][unique_mask])
+                                unique_physics_micro_label_view.append(unique_physics_micro_label[event][unique_mask])
+                                unique_physics_meso_label_view.append(unique_physics_meso_label[event][unique_mask])
+                                unique_physics_macro_label_view.append(unique_physics_macro_label[event][unique_mask])
 
                                 hit_class = np.zeros_like(hit_mean[event][unique_mask])
                                 hit_class[(hit_mean[event][unique_mask] != -1)] = 1
@@ -851,13 +924,6 @@ class Arrakis:
                                 hit_rms_view.append(hit_rms[event][unique_mask])
                                 hit_amplitude_view.append(hit_amplitude[event][unique_mask])
                                 hit_charge_view.append(hit_charge[event][unique_mask])
-
-                                print(channel[event][unique_mask])
-                                print(tdc[event][unique_mask])
-                                print(adc[event][unique_mask])
-                                print(unique_particle_label[event][unique_mask])
-                                print(unique_topology_label[event][unique_mask])
-                                print(particle_label[event][unique_mask])
 
                                 # create animated GIF of events
                                 if make_gifs:
@@ -896,13 +962,16 @@ class Arrakis:
                             tdc_view.append(tdc[event][view_mask])
                             adc_view.append(adc[event][view_mask])
                             energy_view.append(energy[event][view_mask])
-                            source_label_view.append(source_label[event][view_mask])
-                            topology_label_view.append(topology_label[event][view_mask])
                             particle_label_view.append(particle_label[event][view_mask])
-                            physics_label_view.append(physics_label[event][view_mask])
-                            unique_topology_label_view.append(unique_topology_label[event][view_mask])
+                            topology_label_view.append(topology_label[event][view_mask])
+                            physics_micro_label_view.append(physics_micro_label[event][view_mask])
+                            physics_meso_label_view.append(physics_meso_label[event][view_mask])
+                            physics_macro_label_view.append(physics_macro_label[event][view_mask])
                             unique_particle_label_view.append(unique_particle_label[event][view_mask])
-                            unique_physics_label_view.append(unique_physics_label[event][view_mask])
+                            unique_topology_label_view.append(unique_topology_label[event][view_mask])
+                            unique_physics_micro_label_view.append(unique_physics_micro_label[event][view_mask])
+                            unique_physics_meso_label_view.append(unique_physics_meso_label[event][view_mask])
+                            unique_physics_macro_label_view.append(unique_physics_macro_label[event][view_mask])
 
                             hit_class = np.zeros_like(hit_mean[event][view_mask])
                             hit_class[(hit_mean[event][view_mask] != -1)] = 1
@@ -929,13 +998,16 @@ class Arrakis:
                 tdc_view = np.array(tdc_view, dtype=object)
                 adc_view = np.array(adc_view, dtype=object)
                 energy_view = np.array(energy_view, dtype=object)
-                source_label_view = np.array(source_label_view, dtype=object)
-                topology_label_view = np.array(topology_label_view, dtype=object)
                 particle_label_view = np.array(particle_label_view, dtype=object)
-                physics_label_view = np.array(physics_label_view, dtype=object)
-                unique_topology_label_view = np.array(unique_topology_label_view, dtype=object)
+                topology_label_view = np.array(topology_label_view, dtype=object) 
+                physics_micro_label_view = np.array(physics_micro_label_view, dtype=object)
+                physics_meso_label_view = np.array(physics_meso_label_view, dtype=object)
+                physics_macro_label_view = np.array(physics_macro_label_view, dtype=object)
                 unique_particle_label_view = np.array(unique_particle_label_view, dtype=object)
-                unique_physics_label_view = np.array(unique_physics_label_view, dtype=object)
+                unique_topology_label_view = np.array(unique_topology_label_view, dtype=object) 
+                unique_physics_micro_label_view = np.array(unique_physics_micro_label_view, dtype=object)
+                unique_physics_meso_label_view = np.array(unique_physics_meso_label_view, dtype=object)
+                unique_physics_macro_label_view = np.array(unique_physics_macro_label_view, dtype=object)
                 hit_class_view = np.array(hit_class_view, dtype=object)
                 hit_mean_view = np.array(hit_mean_view, dtype=object)
                 hit_rms_view = np.array(hit_rms_view, dtype=object)
@@ -954,19 +1026,21 @@ class Arrakis:
                 )
                 classes = np.array([
                     np.vstack((
-                        source_label_view[ii],
-                        topology_label_view[ii],
                         particle_label_view[ii],
-                        physics_label_view[ii],
-                        hit_class_view[ii])).T
+                        topology_label_view[ii],
+                        physics_micro_label_view[ii],
+                        physics_meso_label_view[ii],
+                        physics_macro_label_view[ii])).T
                     for ii in range(len(channel_view))],
                     dtype=object
                 )
                 clusters = np.array([
                     np.vstack((
-                        unique_topology_label_view[ii],
                         unique_particle_label_view[ii],
-                        unique_physics_label_view[ii])).T
+                        unique_topology_label_view[ii],
+                        unique_physics_micro_label_view[ii],
+                        unique_physics_meso_label_view[ii],
+                        unique_physics_macro_label_view[ii])).T
                     for ii in range(len(channel_view))],
                     dtype=object
                 )
@@ -981,21 +1055,25 @@ class Arrakis:
                 )
 
                 self.meta[tpc]["num_events"] = len(features)
-                self.meta[tpc][f"view_{v}_source_points"] = {
-                    key: np.count_nonzero(np.concatenate(source_label_view) == key)
-                    for key, value in classification_labels["source"].items()
+                self.meta[tpc][f"view_{v}_particle_points"] = {
+                    key: np.count_nonzero(np.concatenate(particle_label_view) == key)
+                    for key, value in classification_labels["particle"].items()
                 }
                 self.meta[tpc][f"view_{v}_topology_points"] = {
                     key: np.count_nonzero(np.concatenate(topology_label_view) == key)
                     for key, value in classification_labels["topology"].items()
                 }
-                self.meta[tpc][f"view_{v}_particle_points"] = {
-                    key: np.count_nonzero(np.concatenate(particle_label_view) == key)
-                    for key, value in classification_labels["particle"].items()
+                self.meta[tpc][f"view_{v}_physics_micro_points"] = {
+                    key: np.count_nonzero(np.concatenate(physics_micro_label_view) == key)
+                    for key, value in classification_labels["physics_micro"].items()
                 }
-                self.meta[tpc][f"view_{v}_physics_points"] = {
-                    key: np.count_nonzero(np.concatenate(physics_label_view) == key)
-                    for key, value in classification_labels["physics"].items()
+                self.meta[tpc][f"view_{v}_physics_meso_points"] = {
+                    key: np.count_nonzero(np.concatenate(physics_meso_label_view) == key)
+                    for key, value in classification_labels["physics_meso"].items()
+                }
+                self.meta[tpc][f"view_{v}_physics_macro_points"] = {
+                    key: np.count_nonzero(np.concatenate(physics_macro_label_view) == key)
+                    for key, value in classification_labels["physics_macro"].items()
                 }
                 self.meta[tpc][f"view_{v}_total_points"] = len(np.concatenate(features))
                 self.meta[tpc][f"view_{v}_adc_sum"] = adc_view_sum
@@ -1009,7 +1087,11 @@ class Arrakis:
         input_file:         str = '',
         separate_unique:    bool = False,
         unique_label:       str = 'topology',
-        replace_physics_label:  int = -1,
+        replace_topology_label:  int = -1,
+        replace_particle_label:  int = -1,
+        replace_physics_micro_label:  int = -1,
+        replace_physics_meso_label:  int = -1,
+        replace_physics_macro_label:  int = -1,
         max_events:     int = 5000,
         limit_tpcs:     list = [],
         make_gifs:      bool = False
@@ -1029,7 +1111,9 @@ class Arrakis:
         unique_label:   str = 'topology',
         replace_topology_label:  int = -1,
         replace_particle_label:  int = -1,
-        replace_physics_label:  int = -1,
+        replace_physics_micro_label:  int = -1,
+        replace_physics_meso_label:  int = -1,
+        replace_physics_macro_label:  int = -1,
         max_events:     int = 5000,
         limit_tpcs:     list = [],
         make_gifs:      bool = False
@@ -1051,7 +1135,9 @@ class Arrakis:
                     unique_label=unique_label,
                     replace_topology_label=replace_topology_label,
                     replace_particle_label=replace_particle_label,
-                    replace_physics_label=replace_physics_label,
+                    replace_physics_micro_label=replace_physics_micro_label,
+                    replace_physics_meso_label=replace_physics_meso_label,
+                    replace_physics_macro_label=replace_physics_macro_label,
                     max_events=max_events,
                     limit_tpcs=limit_tpcs,
                     make_gifs=make_gifs
@@ -1063,7 +1149,9 @@ class Arrakis:
                     unique_label=unique_label,
                     replace_topology_label=replace_topology_label,
                     replace_particle_label=replace_particle_label,
-                    replace_physics_label=replace_physics_label,
+                    replace_physics_micro_label=replace_physics_micro_label,
+                    replace_physics_meso_label=replace_physics_meso_label,
+                    replace_physics_macro_label=replace_physics_macro_label,
                     max_events=max_events,
                     limit_tpcs=limit_tpcs,
                     make_gifs=make_gifs
@@ -1075,7 +1163,9 @@ class Arrakis:
                     unique_label=unique_label,
                     replace_topology_label=replace_topology_label,
                     replace_particle_label=replace_particle_label,
-                    replace_physics_label=replace_physics_label,
+                    replace_physics_micro_label=replace_physics_micro_label,
+                    replace_physics_meso_label=replace_physics_meso_label,
+                    replace_physics_macro_label=replace_physics_macro_label,
                     max_events=max_events,
                     limit_tpcs=limit_tpcs,
                     make_gifs=make_gifs
@@ -1091,7 +1181,9 @@ class Arrakis:
                     unique_label=unique_label,
                     replace_topology_label=replace_topology_label,
                     replace_particle_label=replace_particle_label,
-                    replace_physics_label=replace_physics_label,
+                    replace_physics_micro_label=replace_physics_micro_label,
+                    replace_physics_meso_label=replace_physics_meso_label,
+                    replace_physics_macro_label=replace_physics_macro_label,
                     max_events=max_events,
                     limit_tpcs=limit_tpcs,
                     make_gifs=make_gifs
@@ -1102,7 +1194,9 @@ class Arrakis:
                     unique_label=unique_label,
                     replace_topology_label=replace_topology_label,
                     replace_particle_label=replace_particle_label,
-                    replace_physics_label=replace_physics_label,
+                    replace_physics_micro_label=replace_physics_micro_label,
+                    replace_physics_meso_label=replace_physics_meso_label,
+                    replace_physics_macro_label=replace_physics_macro_label,
                     max_events=max_events,
                     limit_tpcs=limit_tpcs,
                     make_gifs=make_gifs
@@ -1113,7 +1207,9 @@ class Arrakis:
                     unique_label=unique_label,
                     replace_topology_label=replace_topology_label,
                     replace_particle_label=replace_particle_label,
-                    replace_physics_label=replace_physics_label,
+                    replace_physics_micro_label=replace_physics_micro_label,
+                    replace_physics_meso_label=replace_physics_meso_label,
+                    replace_physics_macro_label=replace_physics_macro_label,
                     max_events=max_events,
                     limit_tpcs=limit_tpcs,
                     make_gifs=make_gifs

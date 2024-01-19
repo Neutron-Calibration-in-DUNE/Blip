@@ -29,12 +29,12 @@ class BinaryCrossEntropyLoss(GenericLoss):
         self.sigmoid = sigmoid
         if sigmoid:
             self.cross_entropy_loss = {
-                key: nn.BCEWithLogitsLoss(reduction=self.reduction)
+                key: nn.BCEWithLogitsLoss(reduction=self.reduction, weight=self.meta['class_weights'][key])
                 for key in self.targets
             }
         else:
             self.cross_entropy_loss = {
-                key: nn.BCELoss(reduction=self.reduction)
+                key: nn.BCELoss(reduction=self.reduction, weight=self.meta['class_weights'][key])
                 for key in self.targets
             }
 

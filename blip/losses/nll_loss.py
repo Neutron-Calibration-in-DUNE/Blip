@@ -26,7 +26,7 @@ class NegativeLogLikelihoodLoss(GenericLoss):
         )
         self.reduction = reduction
         self.nll_loss = {
-            key: nn.NLLLoss(reduction=self.reduction)
+            key: nn.NLLLoss(reduction=self.reduction, weight=self.meta['class_weights'][key])
             for key in self.targets
         }
 

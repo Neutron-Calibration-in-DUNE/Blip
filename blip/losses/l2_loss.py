@@ -26,7 +26,7 @@ class L2Loss(GenericLoss):
         )
         self.reduction = reduction
         self.l2_loss = {
-            key: nn.MSELoss(reduction=reduction)
+            key: nn.MSELoss(reduction=reduction, weight=self.meta['class_weights'][key])
             for key in self.targets
         }
 

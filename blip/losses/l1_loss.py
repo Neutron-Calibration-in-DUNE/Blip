@@ -26,7 +26,7 @@ class L1Loss(GenericLoss):
         )
         self.reduction = reduction
         self.l1_loss = {
-            key: nn.L1Loss(reduction=reduction)
+            key: nn.L1Loss(reduction=reduction, weight=self.meta['class_weights'][key])
             for key in self.targets
         }
 

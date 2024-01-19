@@ -27,7 +27,7 @@ class NTXEntropyLoss(GenericLoss):
         )
         self.temperature = temperature
         self.ntx_entropy_loss = {
-            key: NTXentLoss(temperature=temperature)
+            key: NTXentLoss(temperature=temperature, weight=self.meta['class_weights'][key])
             for key in self.targets
         }
 

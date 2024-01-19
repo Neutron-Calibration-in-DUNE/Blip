@@ -329,6 +329,9 @@ class GenericDataset(InMemoryDataset):
             for label in self.meta['classes'].keys():
                 del self.meta[f'{label}_labels'][-1]
                 del self.meta[f'{label}_labels'][0]
+                if f"{label}_points" in self.meta.keys():
+                    del self.meta[f'{label}_points'][-1]
+                    del self.meta[f'{label}_points'][0]
 
         self.meta['classes_labels_names'] = {
             label:   list(self.meta[f'{label}_labels'].values())
@@ -631,8 +634,10 @@ class GenericDataset(InMemoryDataset):
         self.meta['use_sample_weights'] = False
         self.meta['sample_weights'] = None
         self.meta['use_class_weights'] = False
-        self.meta['class_weights'] = None
-        self.meta['class_weight_totals'] = None
+        self.meta['class_weights'] = {
+            key: None
+            for key in self.meta['blip_labels_values']
+        }
         if "weights" not in self.config.keys():
             self.logger.info('weights section not specified in config.  setting weights to None')
             return
@@ -650,22 +655,17 @@ class GenericDataset(InMemoryDataset):
             for classes in class_weights:
                 if f"{classes}_points" not in self.meta:
                     self.logger.error(f'{classes}_points not in meta! cant set weights properly!')
+                self.meta[f'{classes}_points_total'] = np.sum([
+                    self.meta[f'{classes}_points'][label]
+                    for label in self.meta[f'{classes}_points'].keys()
+                ])
             self.meta['class_weights'] = {
-                key: torch.tensor(np.sum([
-                    [self.meta[ii][f"{key}_points"][jj] for jj in self.meta[ii][f"{key}_points"].keys()]
-                    for ii in range(len(self.meta))
-                ], axis=0), dtype=torch.float)
+                key: torch.tensor([
+                    self.meta[f'{key}_points'][label] / self.meta[f'{key}_points_total']
+                    for label in self.meta[f'{key}_points'].keys()
+                ], device=self.device, dtype=torch.float)
                 for key in class_weights
             }
-            self.meta['class_weight_totals'] = {
-                key: float(torch.sum(value))
-                for key, value in self.meta['class_weights'].items()
-            }
-            for key, value in self.meta['class_weights'].items():
-                for ii, val in enumerate(value):
-                    if val != 0:
-                        self.meta['class_weights'][key][ii] = self.meta['class_weight_totals'][key] / float(len(value) * val)
-        self.logger.info(f"setting 'class_weights': {self.meta['class_weights']}.")
 
     def process_voxelization(self):
         if "voxelization" not in self.config["variables"]:

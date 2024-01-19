@@ -16,27 +16,16 @@ class MultiClassProbabilityLoss(GenericLoss):
         name:       str = 'probability_loss',
         classes:    list = [],
         reduction:  str = 'mean',
-        class_weights:  dict = {},
         meta:       dict = {}
     ):
         super(MultiClassProbabilityLoss, self).__init__(
             name, alpha, meta)
         self.reduction = reduction
         self.classes = classes
-        self.class_weights = class_weights
-        if len(class_weights.keys()) > 0:
-            self.cross_entropy_loss = {
-                key: nn.MSELoss(
-                    weight=self.class_weights[key].to(self.device),
-                    reduction=self.reduction
-                )
-                for key in self.class_weights.keys()
-            }
-        else:
-            self.cross_entropy_loss = {
-                key: nn.MSELoss(reduction=self.reduction)
-                for key in self.classes
-            }
+        self.cross_entropy_loss = {
+            key: nn.MSELoss(reduction=self.reduction, weight=self.meta['class_weights'][key])
+            for key in self.classes
+        }
 
     def loss(
         self,
