@@ -81,6 +81,7 @@ class nArInelasticModule(GenericModule):
             colour='green'
         )
         for ii, data in inference_loop:
+            predictions = self.meta["model"](data)
             if PhysicsMacroLabel.CCNue.value in data.category[:, 4]:
                 print(f"cc_nu_e: {ii}")
             elif PhysicsMacroLabel.CCNuMu.value in data.category[:, 4]:

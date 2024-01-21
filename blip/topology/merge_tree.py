@@ -43,9 +43,9 @@ class MergeTree:
         else:
             self.device = 'cpu'
         if meta['verbose']:
-            self.logger = Logger(name, output="both",   file_mode="w")
+            self.logger = Logger(self.name, output="both", file_mode="w")
         else:
-            self.logger = Logger(name, level='warning', file_mode="w")
+            self.logger = Logger(self.name, level='warning', file_mode="w")
 
         self.process_config()
 
@@ -59,39 +59,49 @@ class MergeTree:
         if point_cloud is None:
             self.logger.warning('input point_cloud is None!')
             return
-        # create the linkage from the distance matrix
-        point_cloud_linkage = hierarchy.linkage(point_cloud)
-        # create the dendogram from the linkage matrix
-        point_cloud_dendrogram = hierarchy.dendrogram(point_cloud_linkage)
-        num_leaves = point_cloud.shape[0]
-        # create cluster node object
-        rootnode, clusters = hierarchy.to_tree(point_cloud_linkage, rd=True)
-        # create graph with links
-        # graph = nx.Graph()
+        try:
+            # create the linkage from the distance matrix
+            point_cloud_linkage = hierarchy.linkage(point_cloud)
 
-        # height = dict()
-        # for j in range(num_leaves):
-        #     height[j] = 0
+            # create the dendogram from the linkage matrix
+            point_cloud_dendrogram = hierarchy.dendrogram(point_cloud_linkage)
+            num_leaves = point_cloud.shape[0]
 
-        # nodeIDs = np.unique(point_cloud_linkage[:,:2]).astype(int)
-        # graph.add_nodes_from(nodeIDs)
+            # create cluster node object
+            rootnode, clusters = hierarchy.to_tree(point_cloud_linkage, rd=True)
+            # create graph with links
+            # graph = nx.Graph()
 
-        # edge_list = []
-        # for j in range(point_cloud_linkage.shape[0]):
-        #     edge_list.append((int(point_cloud_linkage[j,0]),num_leaves+j))
-        #     edge_list.append((int(point_cloud_linkage[j,1]),num_leaves+j))
-        #     height[num_leaves+ j] = point_cloud_linkage[j,2]
-        # graph.add_edges_from(edge_list)
+            # height = dict()
+            # for j in range(num_leaves):
+            #     height[j] = 0
 
-        merge_tree = {
-            'linkage':      point_cloud_linkage,
-            # 'height':       height,
-            'dendrogram':   point_cloud_dendrogram,
-            # 'rootnode':     rootnode,
-            'clusters':     clusters[(num_leaves):],
-            # 'graph':        graph
-        }
-        return merge_tree
+            # nodeIDs = np.unique(point_cloud_linkage[:,:2]).astype(int)
+            # graph.add_nodes_from(nodeIDs)
+
+            # edge_list = []
+            # for j in range(point_cloud_linkage.shape[0]):
+            #     edge_list.append((int(point_cloud_linkage[j,0]),num_leaves+j))
+            #     edge_list.append((int(point_cloud_linkage[j,1]),num_leaves+j))
+            #     height[num_leaves+ j] = point_cloud_linkage[j,2]
+            # graph.add_edges_from(edge_list)
+            merge_tree = {
+                'linkage':      point_cloud_linkage,
+                # 'height':       height,
+                'dendrogram':   point_cloud_dendrogram,
+                # 'rootnode':     rootnode,
+                'clusters':     clusters[(num_leaves):],
+                # 'graph':        graph
+            }
+            return merge_tree
+        except Exception as exception:
+            self.logger.warn(f'error creating merge_tree: {exception}')
+            merge_tree = {
+                'linkage':      None,
+                'dendrogram':   None,
+                'clusters':     None
+            }
+            return merge_tree
 
     def fit_barcode(
         self,

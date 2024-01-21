@@ -4,9 +4,10 @@ from enum import Enum
 import numpy as np
 
 blip_datasets = [
-    'wire_view', 'wire_view_cluster', 'wire_view_tree',
-    'wire_views', 'edep', 'edep_cluster', 'edep_tree',
-    'tpc', 'segment', 'segment_cluster', 'segment_tree'
+    'wire_view', 'wire_view_cluster', 'wire_views',
+    'edep', 'edep_cluster',
+    'tpc', 'tpc_cluster',
+    'segment', 'segment_cluster',
 ]
 
 mssm_datasets = [

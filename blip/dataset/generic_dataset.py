@@ -87,7 +87,7 @@ class GenericDataset(InMemoryDataset):
         else:
             self.device = 'cpu'
         if meta['verbose']:
-            self.logger = Logger(self.name, output="both",   file_mode="w")
+            self.logger = Logger(self.name, output="both", file_mode="w")
         else:
             self.logger = Logger(self.name, level='warning', file_mode="w")
 
@@ -410,6 +410,14 @@ class GenericDataset(InMemoryDataset):
             self.meta['blip_hits'] = None
         self.logger.info(f"setting 'hits':      {self.meta['blip_hits']}.")
 
+        if "merge_tree" not in variables_config.keys():
+            self.config["variables"]["merge_tree"] = False
+        if not isinstance(self.config["variables"]["merge_tree"], bool):
+            self.logger.error(
+                f'merge_tree parameter set to {type(self.config["variables"]["merge_tree"])}, but should be bool!'
+            )
+        self.meta["merge_tree"] = self.config["variables"]["merge_tree"]
+
         if "consolidate_classes" in variables_config.keys():
             self.meta['consolidate_classes'] = variables_config["consolidate_classes"]
         else:
@@ -586,43 +594,41 @@ class GenericDataset(InMemoryDataset):
         if "clustering" not in self.config.keys():
             self.logger.warn('no clustering section in config!')
             return
-        if "cluster_method" not in self.config.keys():
-            self.logger.warn('no cluster_method specified in clustering section! setting to "unique_topology"')
-            self.config["clustering"]["cluster_method"] = "unique_topology"
+        if "cluster_method" not in self.config["clustering"].keys():
+            self.logger.warn('no cluster_method specified in clustering section! setting to "topology"')
+            self.config["clustering"]["cluster_method"] = "topology"
         self.cluster_method = self.config["clustering"]["cluster_method"]
-        if "unique" in self.config["clustering"]["cluster_method"]:
-            if self.config["clustering"]["cluster_method"] not in [
-                "unique_topology", "unique_particle", "unique_physics_micro",
-                "unique_physics_meso", "unique_physics_macro"
-            ]:
-                self.logger.error(
-                    f'specified "unique" cluster_method {self.config["clustering"]["cluster_method"]} not allowed!'
-                )
-        elif self.config["clustering"]["cluster_method"] == "dbscan":
-            if "dbscan_min_samples" not in self.config["clustering"]:
-                self.logger.warn('no dbscan_min_samples specified in clustering section! setting to "6"')
-                self.config["clustering"]["dbscan_min_samples"] = 6
-            if "dbscan_eps" not in self.config["clustering"]:
-                self.logger.warn('no dbscan_eps specified in clustering section! setting to "500.0"')
-                self.config["clustering"]["dbscan_eps"] = 500.0
-            if "cluster_positions" not in self.config["clustering"]:
-                self.logger.error('no cluster_positions specified in clustering section!')
-            self.dbscan_min_samples = self.config["dbscan_min_samples"]
-            self.dbscan_eps = self.config["dbscan_eps"]
-            self.meta['clustering_positions'] = self.config["cluster_positions"]
-            self.meta['cluster_position_indices'] = [
-                self.meta['blip_positions_indices_by_name'][position]
-                for position in self.meta['clustering_positions']
-            ]
-            self.dbscan = DBSCAN(
-                eps=self.dbscan_eps,
-                min_samples=self.dbscan_min_samples
-            )
-            self.logger.info(f"setting 'cluster_positions': {self.meta['clustering_positions']}")
-            self.logger.info(f"setting 'dbscan_min_samples': {self.dbscan_min_samples}.")
-            self.logger.info(f"setting 'dbscan_eps': {self.dbscan_eps}.")
-        else:
+        
+        if self.config["clustering"]["cluster_method"] not in [
+            "topology", "particle", "physics_micro",
+            "physics_meso", "physics_macro", "dbscan"
+        ]:
             self.logger.error(f'specified cluster_method {self.config["clustering"]["cluster_method"]} not allowed!')
+        if "cluster_positions" not in self.config["clustering"]:
+            self.logger.error('no cluster_positions specified in clustering section!')
+        if "dbscan_min_samples" not in self.config["clustering"]:
+            self.logger.warn('no dbscan_min_samples specified in clustering section! setting to "6"')
+            self.config["clustering"]["dbscan_min_samples"] = 6
+        if "dbscan_eps" not in self.config["clustering"]:
+            self.logger.warn('no dbscan_eps specified in clustering section! setting to "500.0"')
+            self.config["clustering"]["dbscan_eps"] = 500.0
+        if "cluster_positions" not in self.config["clustering"]:
+            self.logger.error('no cluster_positions specified in clustering section!')
+        self.dbscan_min_samples = self.config["clustering"]["dbscan_min_samples"]
+        self.dbscan_eps = self.config["clustering"]["dbscan_eps"]
+        self.meta['clustering_positions'] = self.config["clustering"]["cluster_positions"]
+        self.meta['cluster_position_indices'] = [
+            self.meta['blip_positions_indices_by_name'][position]
+            for position in self.meta['clustering_positions']
+        ]
+        self.dbscan = DBSCAN(
+            eps=self.dbscan_eps,
+            min_samples=self.dbscan_min_samples
+        )
+        self.logger.info(f"setting 'cluster_positions': {self.meta['clustering_positions']}")
+        self.logger.info(f"setting 'dbscan_min_samples': {self.dbscan_min_samples}.")
+        self.logger.info(f"setting 'dbscan_eps': {self.dbscan_eps}.")
+
         if "cluster_category_type" not in self.config["clustering"]:
             self.logger.warn('cluster_category_type not specified in clustering section! setting to "classification"')
             self.config["clustering"]["cluster_category_type"] = "classification"
