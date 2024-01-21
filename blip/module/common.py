@@ -29,6 +29,10 @@ module_aliases = {
     "machinelearning":  "MachineLearningModule",
     "MachineLearning":  "MachineLearningModule",
     "nar_inelastic":    "nArInelasticModule",
+    "efficiency_purity": "EfficiencyPurityModule",
+    "efficiencypurity":  "EfficiencyPurityModule",
+    "efficiency":        "EfficiencyPurityModule",
+    "purity":           "EfficiencyPurityModule",
     "clustering":       "ClusteringModule",
     "blip_net":         "BlipNetModule"
 }
