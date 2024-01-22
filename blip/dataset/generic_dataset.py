@@ -598,7 +598,7 @@ class GenericDataset(InMemoryDataset):
             self.logger.warn('no cluster_method specified in clustering section! setting to "topology"')
             self.config["clustering"]["cluster_method"] = "topology"
         self.cluster_method = self.config["clustering"]["cluster_method"]
-        
+
         if self.config["clustering"]["cluster_method"] not in [
             "topology", "particle", "physics_micro",
             "physics_meso", "physics_macro", "dbscan"
@@ -625,6 +625,11 @@ class GenericDataset(InMemoryDataset):
             eps=self.dbscan_eps,
             min_samples=self.dbscan_min_samples
         )
+
+        if "normalize_cluster" not in self.config["clustering"]:
+            self.logger.warn('normalize_cluster not in clustering config! setting to False')
+            self.config["clustering"]["normalize_cluster"] = False
+        self.meta["normalize_cluster"] = self.config["clustering"]["normalize_cluster"]
         self.logger.info(f"setting 'cluster_positions': {self.meta['clustering_positions']}")
         self.logger.info(f"setting 'dbscan_min_samples': {self.dbscan_min_samples}.")
         self.logger.info(f"setting 'dbscan_eps': {self.dbscan_eps}.")

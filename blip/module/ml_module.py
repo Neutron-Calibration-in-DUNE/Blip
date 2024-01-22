@@ -401,7 +401,7 @@ class MachineLearningModule(GenericModule):
                 skip_metrics=self.config['training']['skip_metrics']
             )
             if self.meta['model_analyzer'] is not None:
-                self.meta['model_analyzer'].analyze(self.meta['model'])
+                self.meta['model_analyzer'].analyze(self.meta['model'].model)
             self.save_iteration(f"iteration_{jj}")
 
     def run_contrastive_training(self):
@@ -424,7 +424,7 @@ class MachineLearningModule(GenericModule):
                 skip_metrics=self.config['training']['skip_metrics']
             )
             if self.meta['model_analyzer'] is not None:
-                self.meta['model_analyzer'].analyze(self.meta['model'])
+                self.meta['model_analyzer'].analyze(self.meta['model'].model)
             self.save_iteration(f"contrastive_iteration_{jj}")
             # linear evaluation
             self.meta['model'].linear_evaluation()
@@ -494,7 +494,7 @@ class MachineLearningModule(GenericModule):
                     skip_metrics=training_config['skip_metrics']
                 )
                 if self.meta['model_analyzer'] is not None:
-                    self.meta['model_analyzer'].analyze(self.meta['model'])
+                    self.meta['model_analyzer'].analyze(self.meta['model'].model)
                 self.save_iteration(f"hyper_parameter_{ii}_iteration_{jj}")
         np.savez(
             f"{self.meta['local_scratch']}/runs/{self.now}/hyper_parameters.npz",
@@ -538,7 +538,7 @@ class MachineLearningModule(GenericModule):
                     skip_metrics=training_config['skip_metrics']
                 )
                 if self.meta['model_analyzer'] is not None:
-                    self.meta['model_analyzer'].analyze(self.meta['model'])
+                    self.meta['model_analyzer'].analyze(self.meta['model'].model)
                 self.save_iteration(f"contrastive_hyper_parameter_{ii}_iteration_{jj}")
                 # linear evaluation
                 self.meta['model'].linear_evaluation()
@@ -599,5 +599,5 @@ class MachineLearningModule(GenericModule):
                     skip_metrics=self.config['training']['skip_metrics']
                 )
                 if self.meta['model_analyzer'] is not None:
-                    self.meta['model_analyzer'].analyze(self.meta['model'])
+                    self.meta['model_analyzer'].analyze(self.meta['model'].model)
                 self.save_iteration(f"linear_{ii}_iteration_{jj}")

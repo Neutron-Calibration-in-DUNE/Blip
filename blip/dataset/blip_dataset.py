@@ -41,10 +41,10 @@ blip_dataset_config = {
     },
     "clustering": {
         "cluster_method":     "unique_physics_meso",
-        "dbscan_min_samples": 10,
-        "dbscan_eps":         10.0,
         "cluster_positions":  [""],
         "cluster_category_type": "classification",
+        "dbscan_min_samples": 10,
+        "dbscan_eps":         10.0,
     },
 }
 
@@ -134,7 +134,7 @@ class BlipDataset(GenericDataset):
             self.clusters_name = 'clusters'
             self.hits_name = None
         elif self.meta['dataset_type'] == 'tpc_cluster':
-            self.meta['position_type'] = torch.int
+            self.meta['position_type'] = torch.float
             self.features_name = 'det_features'
             self.classes_name = 'classes'
             self.clusters_name = 'clusters'
@@ -341,7 +341,7 @@ class BlipDataset(GenericDataset):
             if kk == -1:
                 continue
             cluster_mask = (cluster_labels == kk)
-            if np.sum(cluster_mask) == 0:
+            if np.sum(cluster_mask) < 3:
                 continue
             cluster_positions = event_data["positions"][cluster_mask]
             cluster_features = event_data["features"][cluster_mask]
@@ -358,13 +358,17 @@ class BlipDataset(GenericDataset):
             max_positions = np.max(cluster_positions, axis=0)
             scale = max_positions - min_positions
             scale[(scale == 0)] = max_positions[(scale == 0)]
-            cluster_positions = 2 * (cluster_positions - min_positions) / scale - 1
+            if self.meta["normalize_cluster"]:
+                cluster_positions = 2 * (cluster_positions - min_positions) / scale - 1
 
             event = Data(
                 pos=torch.tensor(cluster_positions).type(self.meta['position_type']),
                 x=torch.tensor(cluster_features).type(self.meta['feature_type']),
                 category=torch.tensor(cluster_classes).type(self.meta['class_type']),
                 clusters=torch.tensor(cluster_clusters).type(self.meta['cluster_type']),
+                min_positions=torch.tensor(min_positions),
+                max_positions=torch.tensor(max_positions),
+                scale=torch.tensor(scale),
                 # Cluster ID is unique to clustering events
                 cluster_id=kk
             )

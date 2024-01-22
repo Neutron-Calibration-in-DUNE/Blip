@@ -163,6 +163,26 @@ class ModelHandler:
                 ' be used by the ModelHandler in BLIP.'
             )
 
+    def train(self):
+        if self.model_type == 'single':
+            self.model.train()
+        else:
+            for name, model in self.models.items():
+                try:
+                    model.train()
+                except:
+                    self.logger.warn(f'problem with setting train for model {name}')
+
+    def eval(self):
+        if self.model_type == 'single':
+            self.model.eval()
+        else:
+            for name, model in self.models.items():
+                try:
+                    model.eval()
+                except:
+                    self.logger.warn(f'problem with setting eval for model {name}')
+
     def contrastive_learning(self):
         if self.model_type == 'single':
             self.model.contrastive_learning()
