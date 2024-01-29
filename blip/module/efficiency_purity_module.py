@@ -84,7 +84,9 @@ class EfficiencyPurity(GenericModule):
             predictions = self.meta['model'](data)
             track_ids = data.clusters["unique_particle_label"]
             unique_track_ids = np.unique(track_ids)
-            precision = np.zeros(len(predictions))
+
+            # initialize efficiency and purity empty arrays
+            efficiency = np.zeros(len(predictions))
             purity = np.zeros(len(predictions))
             # compute efficiency and purity per track
             for track_id in unique_track_ids:
@@ -96,7 +98,7 @@ class EfficiencyPurity(GenericModule):
                 # compute purity
                 track_purity = np.sum(track_predictions == track_labels) / len(track_labels)
                 # store precision and purity
-                precision[track_mask] = track_efficiency
+                efficiency[track_mask] = track_efficiency
                 purity[track_mask] = track_purity
 
             # i guess we need to store the output somewhere
