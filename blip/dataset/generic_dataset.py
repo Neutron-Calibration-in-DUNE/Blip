@@ -23,6 +23,7 @@ generic_config = {
         "classes":      [],
         "clusters":     [],
         "hits":         [],
+        "scalars":      [],
         "positions_normalization":  [],
         "features_normalization":   [],
         "class_mask":   [""],
@@ -41,6 +42,13 @@ generic_config = {
         "cluster_positions":  [""],
         "cluster_category_type": "classification",
     },
+    "truth": {
+        "particles": None,
+        "interactions": None,
+        "tracks": None,
+        "showers": None,
+        "blips": None,
+    },
 }
 
 
@@ -53,7 +61,10 @@ class GenericDataset(InMemoryDataset):
 
         x   - a 'n x d_f' array of node features.
         pos - a 'n x d_p' array of node positions.
-        y   - a 'n x d_c' array of class labels.
+        category - a 'n x d_c' array of class labels.
+        clusters - a 'n x d_cl' array of cluster labels.
+        hits - a 'n x d_h' array of hit labels.
+        scalars - a 'd_s' list of event scalars.
         edge_index - a '2 x n_e' array of edge indices.
         edge_attr  - a 'n_e x d_e' array of edge_features.
 
@@ -137,6 +148,7 @@ class GenericDataset(InMemoryDataset):
         self.process_dataset_files()
         self.process_meta()
         self.process_variables()
+        self.process_truth()
         self.process_consolidate_classes()
         self.process_maps()
         self.process_clustering()
@@ -207,20 +219,20 @@ class GenericDataset(InMemoryDataset):
         if ("dataset_folder" in self.config.keys()):
             self.dataset_folder = self.config["dataset_folder"]
             self.logger.info(
-                "Set dataset path from Configuration." +
+                "set dataset path from Configuration." +
                 f" dataset_folder: {self.dataset_folder}"
             )
         elif ('BLIP_DATASET_PATH' in os.environ):
-            self.logger.debug('Found BLIP_DATASET_PATH in environment')
+            self.logger.debug('found BLIP_DATASET_PATH in environment')
             self.dataset_folder = os.environ['BLIP_DATASET_PATH']
             self.logger.info(
-                "Setting dataset path from Enviroment." +
+                "setting dataset path from Enviroment." +
                 f" BLIP_DATASET_PATH = {self.dataset_folder}"
             )
         else:
-            self.logger.error('No dataset_folder specified in environment or configuration file!')
+            self.logger.error('no dataset_folder specified in environment or configuration file!')
         if not os.path.isdir(self.dataset_folder):
-            self.logger.error(f'Specified dataset folder "{self.dataset_folder}" does not exist!')
+            self.logger.error(f'specified dataset folder "{self.dataset_folder}" does not exist!')
 
     def process_dataset_files(self):
         if "dataset_files" not in self.config.keys():
@@ -332,6 +344,11 @@ class GenericDataset(InMemoryDataset):
                 if f"{label}_points" in self.meta.keys():
                     del self.meta[f'{label}_points'][-1]
                     del self.meta[f'{label}_points'][0]
+        
+        if "compile_statistics" not in self.config.keys():
+            self.logger.warn('compile_statistics not specified in config! setting to "True"')
+            self.config["compile_statistics"] = True
+        self.meta["compile_statistics"] = self.config["compile_statistics"]
 
         self.meta['classes_labels_names'] = {
             label:   list(self.meta[f'{label}_labels'].values())
@@ -348,6 +365,14 @@ class GenericDataset(InMemoryDataset):
         self.meta['classes_labels_values_by_name'] = {
             label:   {val: key for key, val in self.meta[f'{label}_labels'].items()}
             for label in self.meta['classes'].keys()
+        }
+        self.meta['mc_truth_variables_names'] = {
+            truth: list(self.meta['mc_truth'][f'{truth}'].keys())
+            for truth in self.meta['mc_truth'].keys()
+        }
+        self.meta['mc_truth_variables_values'] = {
+            truth: list(self.meta['mc_truth'][f'{truth}'].values())
+            for truth in self.meta['mc_truth'].keys()
         }
 
     def process_variables(self):
@@ -409,6 +434,15 @@ class GenericDataset(InMemoryDataset):
         else:
             self.meta['blip_hits'] = None
         self.logger.info(f"setting 'hits':      {self.meta['blip_hits']}.")
+
+        if "scalars" in variables_config.keys():
+            self.meta['blip_scalars'] = variables_config["scalars"]
+            for ii, scalars in enumerate(self.meta['blip_scalars']):
+                if scalars not in self.meta['scalars']:
+                    self.logger.error(f'specified scalar "{scalars}" variable not in arrakis meta!')
+        else:
+            self.meta["blip_scalars"] = None
+        self.logger.info(f'setting "scalars":   {self.meta["blip_scalars"]}.')
 
         if "merge_tree" not in variables_config.keys():
             self.config["variables"]["merge_tree"] = False
@@ -590,6 +624,26 @@ class GenericDataset(InMemoryDataset):
         else:
             self.meta['blip_classes_labels_indices'] = {}
 
+        # process mc truth maps
+        if self.meta["mc_truth"]:
+            try:
+                self.meta['blip_truth_indices'] = {
+                    truth: [
+                        self.meta['mc_truth'][truth][label]
+                        for label in self.meta['blip_mc_truth'][truth]
+                    ]
+                    for truth in self.meta['blip_mc_truth']
+                }
+                self.meta['blip_truths_indices_by_name'] = {
+                    truth: {
+                        label: ii
+                        for ii, label in enumerate(self.meta['blip_mc_truth'][truth])
+                    }
+                    for truth in self.meta['blip_mc_truth']
+                }
+            except Exception as exception:
+                self.logger.error('failed to get truth indices from meta!')
+
     def process_clustering(self):
         if "clustering" not in self.config.keys():
             self.logger.warn('no clustering section in config!')
@@ -630,6 +684,12 @@ class GenericDataset(InMemoryDataset):
             self.logger.warn('normalize_cluster not in clustering config! setting to False')
             self.config["clustering"]["normalize_cluster"] = False
         self.meta["normalize_cluster"] = self.config["clustering"]["normalize_cluster"]
+
+        if "make_gifs" not in self.config["clustering"]:
+            self.logger.warn('make_gifs not in clustering config! setting to False')
+            self.config["clustering"]["make_gifs"] = False
+        self.meta["make_gifs"] = self.config["clustering"]["make_gifs"]
+
         self.logger.info(f"setting 'cluster_positions': {self.meta['clustering_positions']}")
         self.logger.info(f"setting 'dbscan_min_samples': {self.dbscan_min_samples}.")
         self.logger.info(f"setting 'dbscan_eps': {self.dbscan_eps}.")
@@ -678,6 +738,21 @@ class GenericDataset(InMemoryDataset):
                 for key in class_weights
             }
 
+    def process_truth(self):
+        """
+        """
+        if "truth" not in self.config.keys():
+            self.meta["mc_truth"] = False
+            return
+        self.meta["blip_mc_truth"] = self.config["truth"]
+        for truth in self.meta['blip_mc_truth']:
+            if truth not in self.meta['mc_truth'].keys():
+                self.logger.error(f'specified mc_truth "{truth}" variable not in arrakis meta!')
+            for label in self.meta['blip_mc_truth'][truth]:
+                if label not in self.meta['mc_truth'][truth].keys():
+                    self.logger.error(f'specified mc_truth variable "{truth}:{label}" not in arrakis meta!')
+        self.set_load_type(True)
+
     def process_voxelization(self):
         if "voxelization" not in self.config["variables"]:
             return
@@ -710,9 +785,24 @@ class GenericDataset(InMemoryDataset):
     def len(self):
         return len(self.processed_file_names)
 
+    def set_load_type(self, flag):
+        if flag:
+            self.get = self.get_with_truth
+        else:
+            self.get = self.get_base
+
     def get(self, idx):
         data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'))
         return data
+
+    def get_base(self, idx):
+        data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'))
+        return data
+
+    def get_with_truth(self, idx):
+        data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'))
+        truth = torch.load(os.path.join(self.processed_dir, f'truth_{idx}.pt'))
+        return data, truth
 
     def process_config(self):
         self.logger.error('"process_config" function not implemented in Dataset!')

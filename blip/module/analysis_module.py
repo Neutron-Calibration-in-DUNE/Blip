@@ -2,7 +2,10 @@
 """
 Analysis module code.
 """
+from tqdm import tqdm
+
 from blip.module import GenericModule
+from blip.analysis.analysis_handler import AnalysisHandler
 
 generic_config = {
     "no_params":    "no_values"
@@ -24,21 +27,41 @@ class AnalysisModule(GenericModule):
             self.name, config, mode, meta
         )
 
-    def set_device(
-        self,
-        device
-    ):
-        self.device = device
-
-    def set_config(
-        self,
-        config_file:    str
-    ):
-        self.config_file = config_file
-        self.parse_config()
+        self.consumes = ['dataset', 'loader']
+        self.produces = []
 
     def parse_config(self):
-        self.logger.error('"parse_config" not implemented in Module!')
+        self.check_config()
+
+        self.meta['analysis'] = None
+
+        self.parse_analysis()
+
+    def check_config(self):
+        if "analysis" not in self.config.keys():
+            self.logger.error('"analysis" section not specified in config!')
+
+    def parse_analysis(self):
+        self.logger.info("configuring analysis")
+        analysis_config = self.config["analysis"]
+        self.meta["analysis"] = AnalysisHandler(
+            self.name,
+            analysis_config,
+            meta=self.meta
+        )
 
     def run_module(self):
-        self.logger.error('"run_module" not implemented in Module!')
+        # self.meta["dataset"].set_load_type(True)
+        inference_loader = self.meta['loader'].inference_loader
+        inference_indices = self.meta['loader'].all_indices
+        inference_loop = tqdm(
+            enumerate(inference_loader, 0),
+            total=len(list(inference_indices)),
+            leave=True,
+            position=0,
+            colour='magenta'
+        )
+        for ii, data in inference_loop:
+            self.meta["analysis"].analyze_event(data)
+            inference_loop.set_description(f"Analysis: Event [{ii+1}/{len(list(inference_indices))}]")
+        self.meta["analysis"].analyze_events()

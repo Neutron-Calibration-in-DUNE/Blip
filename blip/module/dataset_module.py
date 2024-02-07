@@ -82,6 +82,15 @@ class DatasetModule(GenericModule):
             self.logger.error(
                 f"specified dataset_type {self.config['dataset']['dataset_type']} not an allowed type!"
             )
+        if "loader" in self.config.keys():
+            # Configure the loader
+            self.logger.info("configuring loader.")
+            self.loader = Loader(
+                self.name,
+                self.config['loader'],
+                self.meta
+            )
+            self.meta['loader'] = self.loader
 
     def run_dataset_load(self):
         self.logger.info("configuring dataset.")

@@ -111,6 +111,20 @@ class ModuleHandler:
             self.config["module"]["debug"] = False
         self.logger.info(f'setting debug to {self.config["module"]["debug"]}')
         self.meta['debug'] = self.config['module']['debug']
+
+        # process modules
+        for ii, item in enumerate(self.config["module"]["module_type"]):
+            if item in module_aliases.keys():
+                self.logger.info(f"converting module alias '{item}' to '{module_aliases[item]}'")
+                self.config["module"]["module_type"][ii] = module_aliases[item]
+            # check that module exists
+            if self.config["module"]["module_type"][ii] not in self.available_modules.keys():
+                self.logger.error(
+                    f"specified module '{item}' is not an available type! " +
+                    f"available types:\n{self.available_modules.keys()}"
+                )
+        self.modules = {}
+
         # check for dataset module.  If it doesn't exist, but there is a dataset and loader section
         # in the config, then add the dataset module to the list in the config.
         if 'DatasetModule' not in self.config['module']['module_type']:
@@ -125,19 +139,6 @@ class ModuleHandler:
         self.module_mode = self.config["module"]["module_mode"]
         if len(self.module_type) != len(self.module_mode):
             self.logger.error('module:module_type and module:module_mode must have the same number of entries!')
-
-        # process modules
-        for ii, item in enumerate(self.module_type):
-            if item in module_aliases.keys():
-                self.logger.info(f"converting module alias '{item}' to '{module_aliases[item]}'")
-                self.module_type[ii] = module_aliases[item]
-            # check that module exists
-            if self.module_type[ii] not in self.available_modules.keys():
-                self.logger.error(
-                    f"specified module '{item}' is not an available type! " +
-                    f"available types:\n{self.available_modules.keys()}"
-                )
-        self.modules = {}
 
         # set up modules
         for ii, item in enumerate(self.module_type):

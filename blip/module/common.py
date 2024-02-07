@@ -4,6 +4,7 @@ Module data
 
 module_types = {
     "clustering": ["parameter_scan"],
+    "analysis":   ["purity"],
     "arrakis":    ["larsoft", "ndlar_flow"],
     "dataset":    ["dataset_prep", "dataset_load"],
     "ml":   [
@@ -18,6 +19,8 @@ module_types = {
 }
 
 module_aliases = {
+    "analysis":         "AnalysisModule",
+    "Analysis":         "AnalysisModule",
     "arrakis":          "ArrakisModule",
     "Arrakis":          "ArrakisModule",
     "arrakis_module":   "ArrakisModule",

@@ -5,11 +5,13 @@ import os.path as osp
 import numpy   as np
 from tqdm import tqdm
 from dataclasses import dataclass
+from matplotlib import pyplot as plt
 
 from torch_geometric.data import Data
 
 from blip.dataset.generic_dataset import GenericDataset
 from blip.topology.merge_tree import MergeTree
+from blip.utils.utils import generate_plot_grid
 from blip.dataset.common import *
 
 
@@ -56,14 +58,19 @@ class BlipData:
     the BlipDataset functions.  Scalars should be a dictionary with
     keys and values on an event by event basis.
     """
-    positions:  torch.tensor = None
-    features:   torch.tensor = None
-    classes:    torch.tensor = None
-    clusters:   torch.tensor = None
+    positions:  torch.tensor = torch.tensor([])
+    features:   torch.tensor = torch.tensor([])
+    classes:    torch.tensor = torch.tensor([])
+    clusters:   torch.tensor = torch.tensor([])
     hits:       torch.tensor = None
     merge_tree: None = None
     mask:       None = None
     scalars:    dict = None
+    particles:  torch.tensor = torch.tensor([])
+    interactions: torch.tensor = torch.tensor([])
+    tracks:     torch.tensor = torch.tensor([])
+    showers:    torch.tensor = torch.tensor([])
+    blips:      torch.tensor = torch.tensor([])
     raw_path:   str = ''
 
     def __getitem__(self, key):
@@ -117,16 +124,17 @@ class BlipDataset(GenericDataset):
             self.classes_name = f'view_{self.meta["view"]}_classes'
             self.clusters_name = f'view_{self.meta["view"]}_clusters'
             self.hits_name = f'view_{self.meta["view"]}_hits'
-        elif self.meta['dataset_type'] == 'wire_view_tree':
-            if "view" not in self.config.keys():
-                self.logger.warn('view not specified in config for wire dataset! setting view=2!')
-                self.config['view'] = 2
-            self.meta['view'] = self.config['view']
+        elif self.meta['dataset_type'] == 'edep':
             self.meta['position_type'] = torch.float
-            self.features_name = f'view_{self.meta["view"]}_features'
-            self.classes_name = f'view_{self.meta["view"]}_classes'
-            self.clusters_name = f'view_{self.meta["view"]}_clusters'
-            self.hits_name = f'view_{self.meta["view"]}_hits'
+            self.features_name = 'edep_features'
+            self.classes_name = 'classes'
+            self.clusters_name = 'clusters'
+            self.hits_name = None
+        elif self.meta['dataset_type'] == 'edep_cluster':
+            self.meta['position_type'] = torch.float
+            self.features_name = 'edep_features'
+            self.classes_name = 'classes'
+            self.clusters_name = 'clusters'
         elif self.meta['dataset_type'] == 'tpc':
             self.meta['position_type'] = torch.int
             self.features_name = 'det_features'
@@ -139,8 +147,21 @@ class BlipDataset(GenericDataset):
             self.classes_name = 'classes'
             self.clusters_name = 'clusters'
             self.hits_name = None
+        elif self.meta['dataset_type'] == 'segment':
+            self.meta['position_type'] = torch.int
+            self.features_name = 'segment_features'
+            self.classes_name = 'classes'
+            self.clusters_name = 'clusters'
+            self.hits_name = None
+        elif self.meta['dataset_type'] == 'segment_cluster':
+            self.meta['position_type'] = torch.float
+            self.features_name = 'segment_features'
+            self.classes_name = 'classes'
+            self.clusters_name = 'clusters'
         else:
             self.meta['position_type'] = torch.float
+
+        self.particles_name = 'particles'
 
         self.meta['feature_type'] = torch.float
         self.meta['class_type'] = torch.long
@@ -237,6 +258,9 @@ class BlipDataset(GenericDataset):
         return event_data
 
     def process(self):
+        if self.skip_processing:
+            self.logger.info('skipping processing of data.')
+            return
         # Read data into huge `Data` list.
         self.meta['input_events'] = {
             raw_path: []
@@ -254,10 +278,20 @@ class BlipDataset(GenericDataset):
             raw_path: []
             for raw_path in self.dataset_files
         }
+        self.gifs = {
+            key: {
+                label: []
+                for label in self.meta["classes_labels_names"][key]
+            }
+            for key in self.meta["blip_classes"]
+        }
+        self.event_statistics = BlipData(
+            positions=[],
+            features=[],
+            classes=[],
+            clusters=[]
+        )
 
-        if self.skip_processing:
-            self.logger.info('skipping processing of data.')
-            return
         self.skipped_events = []
         self.index = 0
         self.logger.info(f"processing {len(self.dataset_files)} files.")
@@ -278,6 +312,7 @@ class BlipDataset(GenericDataset):
             features = data[self.features_name]
             classes = data[self.classes_name]
             clusters = data[self.clusters_name]
+            particles = data[self.particles_name]
             if self.hits_name is not None:
                 hits = data[self.hits_name]
             else:
@@ -287,6 +322,7 @@ class BlipDataset(GenericDataset):
                     features=features[ii],
                     classes=classes[ii],
                     clusters=clusters[ii],
+                    particles=particles[ii],
                     raw_path=raw_path
                 )
                 if hits is not None:
@@ -315,6 +351,7 @@ class BlipDataset(GenericDataset):
             dataset_file_loop.set_description("Processing BlipDataset")
             dataset_file_loop.set_postfix_str(f"file={raw_path}")
         self.meta['number_of_events'] = self.index
+
         self.logger.info(f"processed {self.meta['number_of_events']} events.")
 
     def process_event_cluster(
@@ -361,6 +398,9 @@ class BlipDataset(GenericDataset):
             if self.meta["normalize_cluster"]:
                 cluster_positions = 2 * (cluster_positions - min_positions) / scale - 1
 
+            if self.meta["make_gifs"]:
+                pass
+
             event = Data(
                 pos=torch.tensor(cluster_positions).type(self.meta['position_type']),
                 x=torch.tensor(cluster_features).type(self.meta['feature_type']),
@@ -391,29 +431,29 @@ class BlipDataset(GenericDataset):
         event_data: BlipData = None
     ):
         if event_data["hits"] is not None:
-            event = Data(
-                pos=torch.tensor(event_data["positions"]).type(self.meta['position_type']),
-                x=torch.tensor(event_data["features"]).type(self.meta['feature_type']),
-                category=torch.tensor(event_data["classes"]).type(self.meta['class_type']),
-                clusters=torch.tensor(event_data["clusters"]).type(self.meta['cluster_type']),
-                hits=torch.tensor(event_data["hits"]).type(self.meta['hit_type']),
-                merge_tree=event_data["merge_tree"]
-            )
+            hits = torch.tensor(event_data["hits"]).type(self.meta['hit_type'])
         else:
-            event = Data(
-                pos=torch.tensor(event_data["positions"]).type(self.meta['position_type']),
-                x=torch.tensor(event_data["features"]).type(self.meta['feature_type']),
-                category=torch.tensor(event_data["classes"]).type(self.meta['class_type']),
-                clusters=torch.tensor(event_data["clusters"]).type(self.meta['cluster_type']),
-                hits=None,
-                merge_tree=event_data["merge_tree"]
-            )
+            hits = None
+        event = Data(
+            pos=torch.tensor(event_data["positions"]).type(self.meta['position_type']),
+            x=torch.tensor(event_data["features"]).type(self.meta['feature_type']),
+            category=torch.tensor(event_data["classes"]).type(self.meta['class_type']),
+            clusters=torch.tensor(event_data["clusters"]).type(self.meta['cluster_type']),
+            hits=hits,
+            merge_tree=event_data["merge_tree"]
+        )
+
+        truth = Data(
+            particles=event_data['particles']
+        )
+
         if self.pre_filter is not None:
             event = self.pre_filter(event)
         if self.pre_transform is not None:
             event = self.pre_transform(event)
 
         torch.save(event, osp.join(self.processed_dir, f'data_{self.index}.pt'))
+        torch.save(truth, osp.join(self.processed_dir, f'truth_{self.index}.pt'))
         self.meta['input_events'][event_data["raw_path"]].append([self.index])
         self.index += 1
 
