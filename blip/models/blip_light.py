@@ -8,6 +8,8 @@ from blip.models import GenericModel
 
 class CNNLivio(nn.Module):
     """
+    Basically you want for each flash to fill a (2,24) array with the intensity of each SiPM as input and then extract the center
+    of gravity of the charge hits as truth variable
     """
     def __init__(self, dropout=0.2, kernel_size = 2,n_filters=32):
         super(CNNLivio, self).__init__()
