@@ -4,7 +4,7 @@ Simple model from Livio Calivers
 import numpy as np
 import torch.nn as nn
 
-from blip.models import generic_model
+from blip.models import GenericModel
 
 class CNNLivio(nn.Module):
     """
