@@ -230,7 +230,7 @@ class BlipDataset(GenericDataset):
         self,
         event_data: BlipData = None
     ):
-        voxelized_positions = np.round(event_data["positions"] * 10 / self.meta['voxelization'])
+        voxelized_positions = np.round(event_data["positions"] / self.meta['voxelization'])
         unique_elements, inverse_indices = np.unique(voxelized_positions, return_inverse=True, axis=0)
         unique_counts = np.bincount(inverse_indices)
         duplicate_indices = np.where(unique_counts > 1)[0]

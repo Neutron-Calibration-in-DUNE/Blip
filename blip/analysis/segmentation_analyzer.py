@@ -1,6 +1,6 @@
 
 """
-Purity analyzer code.
+Segmentation analyzer code.
 """
 from blip.analysis.generic_analyzer import GenericAnalyzer
 
@@ -9,7 +9,7 @@ generic_config = {
 }
 
 
-class PurityAnalyzer(GenericAnalyzer):
+class SegmentationAnalyzer(GenericAnalyzer):
     """
     """
     def __init__(
@@ -18,7 +18,7 @@ class PurityAnalyzer(GenericAnalyzer):
         config: dict = {},
         meta:   dict = {},
     ):
-        super(PurityAnalyzer, self).__init__(
+        super(SegmentationAnalyzer, self).__init__(
             name, config, meta
         )
 
@@ -32,11 +32,6 @@ class PurityAnalyzer(GenericAnalyzer):
         self,
         event
     ):
-        data = event[0]
-        truth = event[1]
-        print(truth[0])
-        pion_mask = (truth.particles[:, 1] == 211)
-        print(pion_mask)
         self.logger.info("analyze_event")
 
     def analyze_events(
