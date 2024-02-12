@@ -52,7 +52,7 @@ class AnalysisModule(GenericModule):
 
     def run_module(self):
         # self.meta["dataset"].set_load_type(True)
-        inference_loader = self.meta['loader'].inference_loader
+        inference_loader = self.meta['loader'].mc_truth_loader
         inference_indices = self.meta['loader'].all_indices
         inference_loop = tqdm(
             enumerate(inference_loader, 0),

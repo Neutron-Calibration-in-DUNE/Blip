@@ -344,7 +344,7 @@ class GenericDataset(InMemoryDataset):
                 if f"{label}_points" in self.meta.keys():
                     del self.meta[f'{label}_points'][-1]
                     del self.meta[f'{label}_points'][0]
-        
+
         if "compile_statistics" not in self.config.keys():
             self.logger.warn('compile_statistics not specified in config! setting to "True"')
             self.config["compile_statistics"] = True
@@ -372,6 +372,14 @@ class GenericDataset(InMemoryDataset):
         }
         self.meta['mc_truth_variables_values'] = {
             truth: list(self.meta['mc_truth'][f'{truth}'].values())
+            for truth in self.meta['mc_truth'].keys()
+        }
+        self.meta['mc_truth_names_by_value'] = {
+            truth: {key: val for key, val in self.meta['mc_truth'][f'{truth}'].items()}
+            for truth in self.meta['mc_truth'].keys()
+        }
+        self.meta['mc_truth_values_by_name'] = {
+            truth: {val: key for key, val in self.meta['mc_truth'][f'{truth}'].items()}
             for truth in self.meta['mc_truth'].keys()
         }
 
@@ -751,7 +759,6 @@ class GenericDataset(InMemoryDataset):
             for label in self.meta['blip_mc_truth'][truth]:
                 if label not in self.meta['mc_truth'][truth].keys():
                     self.logger.error(f'specified mc_truth variable "{truth}:{label}" not in arrakis meta!')
-        self.set_load_type(True)
 
     def process_voxelization(self):
         if "voxelization" not in self.config["variables"]:
@@ -785,24 +792,9 @@ class GenericDataset(InMemoryDataset):
     def len(self):
         return len(self.processed_file_names)
 
-    def set_load_type(self, flag):
-        if flag:
-            self.get = self.get_with_truth
-        else:
-            self.get = self.get_base
-
     def get(self, idx):
         data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'))
         return data
-
-    def get_base(self, idx):
-        data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'))
-        return data
-
-    def get_with_truth(self, idx):
-        data = torch.load(os.path.join(self.processed_dir, f'data_{idx}.pt'))
-        truth = torch.load(os.path.join(self.processed_dir, f'truth_{idx}.pt'))
-        return data, truth
 
     def process_config(self):
         self.logger.error('"process_config" function not implemented in Dataset!')

@@ -2,9 +2,13 @@
 Generic data loader class for blip.
 """
 import torch
+import pickle
+import os.path as osp
 import MinkowskiEngine as ME
 from torch.utils.data import Subset, random_split
-from torch_geometric.loader import DataLoader
+from torch.utils.data import DataLoader
+from torch_geometric.data import Batch
+from torch_geometric.data import DataLoader as GeometricDataLoader
 
 from blip.utils.common import quantization_modes, minkowski_algorithms
 from blip.utils.logger import Logger
@@ -49,6 +53,20 @@ class Loader:
         self.process_config()
 
     def process_config(self):
+        self.process_meta()
+        self.process_datasets()
+        self.process_loaders()
+
+    def mc_truth_collate(self, data_list):
+        # Load the dictionary from disk
+        with open(osp.join(self.meta['dataset'].processed_dir, f'truth_{data_list[0].truth_index}.pt'), 'rb') as file:
+            truth = pickle.load(file)
+        # Now, batch the Data objects as usual
+        batch = Batch.from_data_list(data_list)
+        # You can now use `my_dict` as needed, for example, pass it along with the batch
+        return batch, truth
+
+    def process_meta(self):
         # check for parameter compatability
         self.logger.info("processing config")
         if "batch_size" not in self.config.keys():
@@ -88,6 +106,7 @@ class Loader:
         self.meta['minkowski_algorithm'] = minkowski_algorithms[self.config['minkowski_algorithm']]
         self.logger.info(f'setting MinkowskiEngine minkowski_algorithm to {self.config["minkowski_algorithm"]}')
 
+    def process_datasets(self):
         # setting validation split
         if "validation_split" not in self.config.keys():
             self.logger.warn("'validation_split' not specified in config! setting to '0'.")
@@ -282,46 +301,54 @@ class Loader:
             )
         self.all_indices = range(len(self.meta['dataset']))
 
+    def process_loaders(self):
         # set up dataloaders for each set
-        self.train_loader = DataLoader(
+        self.train_loader = GeometricDataLoader(
             self.train,
             batch_size=self.batch_size,
             pin_memory=True,
             num_workers=self.num_workers,
             collate_fn=self.collate_fn
         )
-        self.validation_loader = DataLoader(
+        self.validation_loader = GeometricDataLoader(
             self.validation,
             batch_size=self.batch_size,
             pin_memory=True,
             num_workers=self.num_workers,
             collate_fn=self.collate_fn
         )
-        self.total_train_loader = DataLoader(
+        self.total_train_loader = GeometricDataLoader(
             self.total_train,
             batch_size=self.batch_size,
             pin_memory=True,
             num_workers=self.num_workers,
             collate_fn=self.collate_fn
         )
-        self.test_loader = DataLoader(
+        self.test_loader = GeometricDataLoader(
             self.test,
             batch_size=self.batch_size,
             pin_memory=True,
             num_workers=self.num_workers,
             collate_fn=self.collate_fn
         )
-        self.all_loader = DataLoader(
+        self.all_loader = GeometricDataLoader(
             self.meta['dataset'],
             batch_size=self.batch_size,
             pin_memory=True,
             num_workers=self.num_workers,
             collate_fn=self.collate_fn
         )
-        self.inference_loader = DataLoader(
+        self.inference_loader = GeometricDataLoader(
             self.meta['dataset'],
             batch_size=1,
             pin_memory=True,
             num_workers=self.num_workers,
             collate_fn=self.collate_fn
+        )
+        self.mc_truth_loader = DataLoader(
+            self.meta['dataset'],
+            batch_size=1,
+            pin_memory=True,
+            num_workers=self.num_workers,
+            collate_fn=self.mc_truth_collate
         )

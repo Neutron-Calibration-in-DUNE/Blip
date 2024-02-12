@@ -32,12 +32,13 @@ class PurityAnalyzer(GenericAnalyzer):
         self,
         event
     ):
-        data = event[0]
-        truth = event[1]
-        print(truth[0])
-        pion_mask = (truth.particles[:, 1] == 211)
-        print(pion_mask)
-        self.logger.info("analyze_event")
+        data, truth = event
+        particles = truth["particles"]
+
+        proton_track_ids = particles["traj_id"][(particles["pdg_id"] == 2212)]
+        print(proton_track_ids)
+
+        self.logger.info("processing mc_truth")
 
     def analyze_events(
         self

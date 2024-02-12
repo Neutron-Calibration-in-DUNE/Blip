@@ -6,6 +6,7 @@ import numpy   as np
 from tqdm import tqdm
 from dataclasses import dataclass
 from matplotlib import pyplot as plt
+import pickle
 
 from torch_geometric.data import Data
 
@@ -66,11 +67,11 @@ class BlipData:
     merge_tree: None = None
     mask:       None = None
     scalars:    dict = None
-    particles:  torch.tensor = torch.tensor([])
-    interactions: torch.tensor = torch.tensor([])
-    tracks:     torch.tensor = torch.tensor([])
-    showers:    torch.tensor = torch.tensor([])
-    blips:      torch.tensor = torch.tensor([])
+    particles:  dict = None
+    interactions: dict = None
+    tracks:     dict = None
+    showers:    dict = None
+    blips:      dict = None
     raw_path:   str = ''
 
     def __getitem__(self, key):
@@ -222,6 +223,11 @@ class BlipDataset(GenericDataset):
         if event_data["hits"] is not None:
             event_data["hits"] = event_data["hits"][:, self.meta['blip_hits_indices']]
 
+        event_data['particles'] = {
+            label:  event_data['particles'][self.meta['mc_truth_names_by_value']['particles'][label]]
+            for label in self.meta['mc_truth_names_by_value']['particles']
+        }
+
         event_data["mask"] = mask
 
         return event_data
@@ -294,6 +300,7 @@ class BlipDataset(GenericDataset):
 
         self.skipped_events = []
         self.index = 0
+        self.truth_index = 0
         self.logger.info(f"processing {len(self.dataset_files)} files.")
         merge_tree = MergeTree(
             self.name,
@@ -410,7 +417,8 @@ class BlipDataset(GenericDataset):
                 max_positions=torch.tensor(max_positions),
                 scale=torch.tensor(scale),
                 # Cluster ID is unique to clustering events
-                cluster_id=kk
+                cluster_id=kk,
+                truth_index=self.truth_index
             )
 
             if self.pre_filter is not None:
@@ -422,6 +430,15 @@ class BlipDataset(GenericDataset):
             cluster_indices.append(self.index)
             input_events.append(self.index)
             self.index += 1
+
+        with open(osp.join(self.processed_dir, f'truth_{self.truth_index}.pt'), 'wb') as file:
+            pickle.dump(
+                {
+                    "particles": event_data["particles"]
+                },
+                file
+            )
+        self.truth_index += 1
 
         self.meta['input_events'][event_data["raw_path"]].append(input_events)
         self.meta['cluster_indices'][event_data["raw_path"]].append(cluster_indices)
@@ -440,12 +457,18 @@ class BlipDataset(GenericDataset):
             category=torch.tensor(event_data["classes"]).type(self.meta['class_type']),
             clusters=torch.tensor(event_data["clusters"]).type(self.meta['cluster_type']),
             hits=hits,
-            merge_tree=event_data["merge_tree"]
+            merge_tree=event_data["merge_tree"],
+            truth_index=self.truth_index
         )
 
-        truth = Data(
-            particles=event_data['particles']
-        )
+        with open(osp.join(self.processed_dir, f'truth_{self.truth_index}.pt'), 'wb') as file:
+            pickle.dump(
+                {
+                    "particles": event_data["particles"]
+                },
+                file
+            )
+        self.truth_index += 1
 
         if self.pre_filter is not None:
             event = self.pre_filter(event)
@@ -453,7 +476,7 @@ class BlipDataset(GenericDataset):
             event = self.pre_transform(event)
 
         torch.save(event, osp.join(self.processed_dir, f'data_{self.index}.pt'))
-        torch.save(truth, osp.join(self.processed_dir, f'truth_{self.index}.pt'))
+        # torch.save(truth, osp.join(self.processed_dir, f'truth_{self.index}.pt'))
         self.meta['input_events'][event_data["raw_path"]].append([self.index])
         self.index += 1
 
