@@ -154,15 +154,15 @@ class PixelLArTPCPanelDisplay:
         self.available_merge_tree_truth_labels = ["cluster_particle", "MergeTree"]
         self.available_merge_tree_prediction_labels = ["None"]
 
-        self.first_figure_label = "adc"
+        self.figure1_label = "adc"
         self.first_scatter = {}
-        self.first_figure_plot_type = "TPC"
+        self.figure1_plot_type = "TPC"
 
         # parameters for second plot
         self.available_prediction_labels = []
-        self.second_figure_label = ""
+        self.figure2_label = ""
         self.second_scatter = {}
-        self.second_figure_plot_type = "TPC"
+        self.figure2_plot_type = "TPC"
 
         self.document = document
 
@@ -211,17 +211,17 @@ class PixelLArTPCPanelDisplay:
         if len(self.available_events) > 0:
             self.event = 0
 
-    def update_first_figure_taptool(self, event):
+    def update_figure1_taptool(self, event):
         print(event.x, event.y)
 
-    def update_second_figure_taptool(self):
+    def update_figure2_taptool(self):
         pass
 
     def construct_widgets(self, document):
         # Left hand column
         self.construct_left_hand_column()
-        self.construct_first_figure_column()
-        self.construct_second_figure_column()
+        self.construct_figure1_column()
+        self.construct_figure2_column()
 
     def construct_left_hand_column(self):
         # Folder select
@@ -270,12 +270,12 @@ class PixelLArTPCPanelDisplay:
         self.link_axes_toggle.on_click(self.update_link_axes)
 
         # First plot column
-    def construct_first_figure_column(self):
-        self.first_figure_event_features = []
-        self.first_figure_event_classes = []
-        self.first_figure_event_clusters = []
-        self.first_figure_event_hits = []
-        self.first_figure = go.Figure(
+    def construct_figure1_column(self):
+        self.figure1_event_features = []
+        self.figure1_event_classes = []
+        self.figure1_event_clusters = []
+        self.figure1_event_hits = []
+        self.figure1 = go.Figure(
             layout=dict(
                 template="presentation",
                 title="Plot I [TPC Truth]",
@@ -287,72 +287,72 @@ class PixelLArTPCPanelDisplay:
                 coloraxis=dict(colorbar=dict(title=""), colorscale="Viridis"),
             )
         )
-        self.first_figure = self.first_figure.add_trace(go.Scatter3d())
-        self.first_figure.data[0].on_click(self.update_first_figure_taptool)
-        self.first_figure_adc_slider_option = Checkbox(
+        self.figure1 = self.figure1.add_trace(go.Scatter3d())
+        self.figure1.data[0].on_click(self.update_figure1_taptool)
+        self.figure1_adc_slider_option = Checkbox(
             name="Use ADC Slider", value=False
         )
-        self.first_figure_adc_slider_option.param.watch(
-            self.update_first_figure_adc_slider_option, "value"
+        self.figure1_adc_slider_option.param.watch(
+            self.update_figure1_adc_slider_option, "value"
         )
-        self.first_figure_adc_slider_option_bool = False
-        self.first_figure_slider = Slider(start=0.1, end=1, step=0.1, value=0.1)
+        self.figure1_adc_slider_option_bool = False
+        self.figure1_slider = Slider(start=0.1, end=1, step=0.1, value=0.1)
         # Plot type radio group
-        self.first_figure_plot_type = "TPC"
-        self.first_figure_radio_text = PreText(text="Plot I type:")
-        self.first_figure_radio_group = RadioButtonGroup(options=self.plot_types)
-        self.first_figure_radio_group.param.watch(
-            self.update_first_figure_radio_group, "value"
+        self.figure1_plot_type = "TPC"
+        self.figure1_radio_text = PreText(text="Plot I type:")
+        self.figure1_radio_group = RadioButtonGroup(options=self.plot_types)
+        self.figure1_radio_group.param.watch(
+            self.update_figure1_radio_group, "value"
         )
         # Plot type labeling options
-        self.first_figure_color_select = Select(
+        self.figure1_color_select = Select(
             name="Plot I labeling:",
             value="",
             options=self.available_truth_labels,
             width_policy="fixed",
             width=150,
         )
-        self.first_figure_color_select.param.watch(
-            self.update_first_figure_color, "value"
+        self.figure1_color_select.param.watch(
+            self.update_figure1_color, "value"
         )
         # Plot options (truth/predictions)
-        self.first_figure_plot_option = "Truth"
-        self.first_figure_plot_option_text = PreText(text="Truth/Predictions:")
-        self.first_figure_plot_options = RadioButtonGroup(
+        self.figure1_plot_option = "Truth"
+        self.figure1_plot_option_text = PreText(text="Truth/Predictions:")
+        self.figure1_plot_options = RadioButtonGroup(
             options=self.plot_options, value=0
         )
-        self.first_figure_plot_options.param.watch(
-            self.update_first_figure_radio_group, "value"
+        self.figure1_plot_options.param.watch(
+            self.update_figure1_radio_group, "value"
         )
         # Plot type options
-        self.first_figure_plot_type_options = Select(
+        self.figure1_plot_type_options = Select(
             name="Plot I options:",
             value="",
             options=self.options,
             width_policy="fixed",
             width=150,
         )
-        self.first_figure_plot_type_options.param.watch(
-            self.update_first_figure_plot_type_options, "value"
+        self.figure1_plot_type_options.param.watch(
+            self.update_figure1_plot_type_options, "value"
         )
         # Plot button
-        self.first_figure_plot_button = Button(
+        self.figure1_plot_button = Button(
             name="Plot event", button_type="primary", width_policy="fixed", width=100
         )
-        self.first_figure_plot_button.on_click(self.plot_first_event)
+        self.figure1_plot_button.on_click(self.plot_first_event)
         # Plot text information
         self.simulation_wrangler_pretext = PreText(
             text=self.simulation_wrangler_string, width=200, height=200
         )
-        self.first_figure_pane = pn.pane.Plotly(self.first_figure)
+        self.figure1_pane = pn.pane.Plotly(self.figure1)
 
         # Second plot column
-    def construct_second_figure_column(self):
-        self.second_figure_event_features = []
-        self.second_figure_event_classes = []
-        self.second_figure_event_clusters = []
-        self.second_figure_event_hits = []
-        self.second_figure = go.Figure(
+    def construct_figure2_column(self):
+        self.figure2_event_features = []
+        self.figure2_event_classes = []
+        self.figure2_event_clusters = []
+        self.figure2_event_hits = []
+        self.figure2 = go.Figure(
             layout=dict(
                 template="presentation",
                 title="Plot II [Predictions]",
@@ -364,74 +364,67 @@ class PixelLArTPCPanelDisplay:
                 coloraxis=dict(colorbar=dict(title=""), colorscale="Viridis"),
             )
         )
-        # Defining properties of color mapper
-        # self.second_figure_color_mapper = LinearColorMapper(palette = "Viridis256")
-        # self.second_figure_color_bar    = ColorBar(
-        #     color_mapper   = self.second_figure_color_mapper,
-        #     label_standoff = 12,
-        #     location       = (0,0),
-        #     title          = ''
-        # )
-        self.second_figure = self.second_figure.add_trace(go.Scatter3d())
-        self.second_figure.data[0].on_click(self.update_second_figure_taptool)
 
-        self.second_figure_adc_slider_option = Checkbox(
+        self.figure2 = self.figure2.add_trace(go.Scatter3d())
+        self.figure2.data[0].on_click(self.update_figure2_taptool)
+
+        self.figure2_adc_slider_option = Checkbox(
             name="Use ADC Slider", value=False
         )
-        self.second_figure_adc_slider_option.param.watch(
-            self.update_second_figure_adc_slider_option, "value"
+        self.figure2_adc_slider_option.param.watch(
+            self.update_figure2_adc_slider_option, "value"
         )
-        self.second_figure_adc_slider_option_bool = False
-        self.second_figure_slider = Slider(start=0.1, end=1, step=0.1, value=0.1)
-        # self.second_figure.legend.click_policy="hide"
+        self.figure2_adc_slider_option_bool = False
+        self.figure2_slider = Slider(start=0.1, end=1, step=0.1, value=0.1)
+        # self.figure2.legend.click_policy="hide"
         # Plot II type
-        self.second_figure_plot_type = "TPC"
-        self.second_figure_radio_text = PreText(text="Plot II type:")
-        self.second_figure_radio_group = RadioButtonGroup(
+        self.figure2_plot_type = "TPC"
+        self.figure2_radio_text = PreText(text="Plot II type:")
+        self.figure2_radio_group = RadioButtonGroup(
             options=self.plot_types, value=1
         )
-        self.second_figure_radio_group.param.watch(
-            self.update_second_figure_radio_group, "value"
+        self.figure2_radio_group.param.watch(
+            self.update_figure2_radio_group, "value"
         )
         # Plot II labeling
-        self.second_figure_color_select = Select(
+        self.figure2_color_select = Select(
             name="Plot II labeling:",
             value="",
             options=self.available_prediction_labels,
             width_policy="fixed",
             width=150,
         )
-        self.second_figure_color_select.param.watch(
-            self.update_second_figure_color, "value"
+        self.figure2_color_select.param.watch(
+            self.update_figure2_color, "value"
         )
         # Plot options (truth/predictions)
-        self.second_figure_plot_option = "Truth"
-        self.second_figure_plot_option_text = PreText(text="Truth/Predictions:")
-        self.second_figure_plot_options = RadioButtonGroup(
+        self.figure2_plot_option = "Truth"
+        self.figure2_plot_option_text = PreText(text="Truth/Predictions:")
+        self.figure2_plot_options = RadioButtonGroup(
             options=self.plot_options, value=0
         )
-        self.second_figure_plot_options.param.watch(
-            self.update_second_figure_radio_group, "value"
+        self.figure2_plot_options.param.watch(
+            self.update_figure2_radio_group, "value"
         )
         # Plot type options
-        self.second_figure_plot_type_options = Select(
+        self.figure2_plot_type_options = Select(
             name="Plot I options:",
             value="",
             options=self.options,
             width_policy="fixed",
             width=150,
         )
-        self.second_figure_plot_type_options.param.watch(
-            self.update_second_figure_plot_type_options, "value"
+        self.figure2_plot_type_options.param.watch(
+            self.update_figure2_plot_type_options, "value"
         )
-        self.second_figure_plot_button = Button(
+        self.figure2_plot_button = Button(
             name="Plot event", button_type="primary", width_policy="fixed", width=100
         )
-        self.second_figure_plot_button = Button(
+        self.figure2_plot_button = Button(
             name="Plot event", button_type="primary", width_policy="fixed", width=100
         )
-        self.second_figure_plot_button.on_click(self.plot_second_event)
-        self.second_figure_pane = pn.pane.Plotly(self.second_figure)
+        self.figure2_plot_button.on_click(self.plot_second_event)
+        self.figure2_pane = pn.pane.Plotly(self.figure2)
 
         # construct the TPC layout
         self.layout = Row(
@@ -446,22 +439,22 @@ class PixelLArTPCPanelDisplay:
                 self.simulation_wrangler_pretext,
             ),
             Column(
-                self.first_figure_pane,
+                self.figure1_pane,
                 Row(
-                    self.first_figure_adc_slider_option,
-                    self.first_figure_slider,
+                    self.figure1_adc_slider_option,
+                    self.figure1_slider,
                     width_policy="fixed",
                     width=600,
                 ),
                 Row(
                     Column(
-                        self.first_figure_radio_text,
-                        self.first_figure_radio_group,
-                        self.first_figure_plot_option_text,
-                        self.first_figure_plot_options,
-                        self.first_figure_color_select,
-                        self.first_figure_plot_type_options,
-                        self.first_figure_plot_button,
+                        self.figure1_radio_text,
+                        self.figure1_radio_group,
+                        self.figure1_plot_option_text,
+                        self.figure1_plot_options,
+                        self.figure1_color_select,
+                        self.figure1_plot_type_options,
+                        self.figure1_plot_button,
                         width_policy="fixed",
                         width=300,
                     ),
@@ -472,22 +465,22 @@ class PixelLArTPCPanelDisplay:
                 height=1000,
             ),
             Column(
-                self.second_figure_pane,
+                self.figure2_pane,
                 Row(
-                    self.second_figure_adc_slider_option,
-                    self.second_figure_slider,
+                    self.figure2_adc_slider_option,
+                    self.figure2_slider,
                     width_policy="fixed",
                     width=600,
                 ),
                 Row(
                     Column(
-                        self.second_figure_radio_text,
-                        self.second_figure_radio_group,
-                        self.second_figure_plot_option_text,
-                        self.second_figure_plot_options,
-                        self.second_figure_color_select,
-                        self.second_figure_plot_type_options,
-                        self.second_figure_plot_button,
+                        self.figure2_radio_text,
+                        self.figure2_radio_group,
+                        self.figure2_plot_option_text,
+                        self.figure2_plot_options,
+                        self.figure2_color_select,
+                        self.figure2_plot_type_options,
+                        self.figure2_plot_button,
                         width_policy="fixed",
                         width=300,
                     ),
@@ -550,172 +543,172 @@ class PixelLArTPCPanelDisplay:
 
     def update_link_axes(self, new):
         if self.link_axes_toggle.value:
-            self.second_figure.x_range = self.first_figure.x_range
-            self.second_figure.y_range = self.first_figure.y_range
+            self.figure2.x_range = self.figure1.x_range
+            self.figure2.y_range = self.figure1.y_range
 
     """
     functions here are for updating the TPC display plots.
     """
 
-    def update_first_figure_adc_slider_option(self, new):
-        if self.first_figure_adc_slider_option.value == True:
-            self.first_figure_adc_slider_option_bool = True
+    def update_figure1_adc_slider_option(self, new):
+        if self.figure1_adc_slider_option.value == True:
+            self.figure1_adc_slider_option_bool = True
         else:
-            self.first_figure_adc_slider_option_bool = False
+            self.figure1_adc_slider_option_bool = False
 
-    def update_first_figure_radio_group(self, figure):
-        if self.first_figure_radio_group.value == "TPC":
-            self.first_figure_plot_type = "TPC"
-            self.first_figure_plot_type_options.options = self.options
-            if self.first_figure_plot_options.value == "Truth":
-                self.first_figure_plot_option = "Truth"
-                self.first_figure_color_select.options = (
+    def update_figure1_radio_group(self, figure):
+        if self.figure1_radio_group.value == "TPC":
+            self.figure1_plot_type = "TPC"
+            self.figure1_plot_type_options.options = self.options
+            if self.figure1_plot_options.value == "Truth":
+                self.figure1_plot_option = "Truth"
+                self.figure1_color_select.options = (
                     self.available_truth_labels
                 )
-                self.first_figure_color_select.value = (
+                self.figure1_color_select.value = (
                     self.available_truth_labels[0]
                 )
-                self.first_figure_label = self.available_truth_labels[0]
-            elif self.first_figure_plot_options.value == "Predictions":
-                self.first_figure_plot_option = "Predictions"
-                self.first_figure_color_select.options = (
+                self.figure1_label = self.available_truth_labels[0]
+            elif self.figure1_plot_options.value == "Predictions":
+                self.figure1_plot_option = "Predictions"
+                self.figure1_color_select.options = (
                     self.available_prediction_labels
                 )
                 if len(self.available_prediction_labels) > 0:
-                    self.first_figure_color_select.value = (
+                    self.figure1_color_select.value = (
                         self.available_prediction_labels[0]
                     )
-                    self.first_figure_label = (
+                    self.figure1_label = (
                         self.available_prediction_labels[0]
                     )
 
-        elif self.first_figure_radio_group.value == "Merge Tree":
-            self.first_figure_plot_type = "Merge Tree"
-            self.first_figure_plot_type_options.options = self.merge_tree_options
-            if self.first_figure_plot_options.value == "Truth":
-                self.first_figure_plot_option = "Truth"
-                self.first_figure_color_select.options = (
+        elif self.figure1_radio_group.value == "Merge Tree":
+            self.figure1_plot_type = "Merge Tree"
+            self.figure1_plot_type_options.options = self.merge_tree_options
+            if self.figure1_plot_options.value == "Truth":
+                self.figure1_plot_option = "Truth"
+                self.figure1_color_select.options = (
                     self.available_merge_tree_truth_labels
                 )
-                self.first_figure_color_select.value = (
+                self.figure1_color_select.value = (
                     self.available_merge_tree_truth_labels[0]
                 )
-                self.first_figure_label = self.available_merge_tree_truth_labels[0]
-            elif self.first_figure_plot_options.value == "Predictions":
-                self.first_figure_plot_option = "Predictions"
-                self.first_figure_color_select.options = (
+                self.figure1_label = self.available_merge_tree_truth_labels[0]
+            elif self.figure1_plot_options.value == "Predictions":
+                self.figure1_plot_option = "Predictions"
+                self.figure1_color_select.options = (
                     self.available_merge_tree_prediction_labels
                 )
                 if len(self.available_merge_tree_prediction_labels) > 0:
-                    self.first_figure_color_select.value = (
+                    self.figure1_color_select.value = (
                         self.available_merge_tree_prediction_labels[0]
                     )
-                    self.first_figure_label = (
+                    self.figure1_label = (
                         self.available_merge_tree_prediction_labels[0]
                     )
 
-        self.first_figure["layout"].update(
+        self.figure1["layout"].update(
             template="presentation",
-            title=f"Plot I [{self.first_figure_plot_type} {self.first_figure_plot_option}]:",
+            title=f"Plot I [{self.figure1_plot_type} {self.figure1_plot_option}]:",
         )
 
-    def update_first_figure_color(self, new):
-        self.first_figure_label = self.first_figure_color_select.value
+    def update_figure1_color(self, new):
+        self.figure1_label = self.figure1_color_select.value
 
-    def update_first_figure_plot_type_options(self, new):
-        self.first_figure_plot_type_option = self.first_figure_plot_type_options.value
+    def update_figure1_plot_type_options(self, new):
+        self.figure1_plot_type_option = self.figure1_plot_type_options.value
 
-        if self.first_figure_plot_type == "TPC":
-            self.first_figure_event_features = self.features[self.event]
-            self.first_figure_event_classes = self.classes[self.event]
-            self.first_figure_event_clusters = self.clusters[self.event]
-            self.first_figure_event_hits = []
+        if self.figure1_plot_type == "TPC":
+            self.figure1_event_features = self.features[self.event]
+            self.figure1_event_classes = self.classes[self.event]
+            self.figure1_event_clusters = self.clusters[self.event]
+            self.figure1_event_hits = []
 
-        elif self.first_figure_plot_type == "Merge Tree":
-            self.first_figure_event_features = []
-            self.first_figure_event_classes = []
-            self.first_figure_event_clusters = []
-            self.first_figure_event_hits = []
+        elif self.figure1_plot_type == "Merge Tree":
+            self.figure1_event_features = []
+            self.figure1_event_classes = []
+            self.figure1_event_clusters = []
+            self.figure1_event_hits = []
 
-    def update_second_figure_adc_slider_option(self, new):
-        if self.second_figure_adc_slider_option.value == True:
-            self.second_figure_adc_slider_option_bool = True
+    def update_figure2_adc_slider_option(self, new):
+        if self.figure2_adc_slider_option.value == True:
+            self.figure2_adc_slider_option_bool = True
         else:
-            self.second_figure_adc_slider_option_bool = False
+            self.figure2_adc_slider_option_bool = False
 
-    def update_second_figure_radio_group(self, figure):
-        if self.second_figure_radio_group.value == "TPC":
-            self.second_figure_plot_type = "TPC"
-            self.second_figure_plot_type_options.options = self.options
-            if self.second_figure_plot_options.value == "Truth":
-                self.second_figure_plot_option = "Truth"
-                self.second_figure_color_select.options = (
+    def update_figure2_radio_group(self, figure):
+        if self.figure2_radio_group.value == "TPC":
+            self.figure2_plot_type = "TPC"
+            self.figure2_plot_type_options.options = self.options
+            if self.figure2_plot_options.value == "Truth":
+                self.figure2_plot_option = "Truth"
+                self.figure2_color_select.options = (
                     self.available_truth_labels
                 )
-                self.second_figure_color_select.value = (
+                self.figure2_color_select.value = (
                     self.available_truth_labels[0]
                 )
-                self.second_figure_label = self.available_truth_labels[0]
-            elif self.second_figure_plot_options.value == "Predictions":
-                self.second_figure_plot_option = "Predictions"
-                self.second_figure_color_select.options = (
+                self.figure2_label = self.available_truth_labels[0]
+            elif self.figure2_plot_options.value == "Predictions":
+                self.figure2_plot_option = "Predictions"
+                self.figure2_color_select.options = (
                     self.available_prediction_labels
                 )
                 if len(self.available_prediction_labels) > 0:
-                    self.second_figure_color_select.value = (
+                    self.figure2_color_select.value = (
                         self.available_prediction_labels[0]
                     )
-                    self.second_figure_label = (
+                    self.figure2_label = (
                         self.available_prediction_labels[0]
                     )
 
-        if self.second_figure_radio_group.value == "Merge Tree":
-            self.second_figure_plot_type = "Merge Tree"
-            self.second_figure_plot_type_options.options = self.merge_tree_options
-            if self.second_figure_plot_options.value == "Truth":
-                self.second_figure_plot_option = "Truth"
-                self.second_figure_color_select.options = (
+        if self.figure2_radio_group.value == "Merge Tree":
+            self.figure2_plot_type = "Merge Tree"
+            self.figure2_plot_type_options.options = self.merge_tree_options
+            if self.figure2_plot_options.value == "Truth":
+                self.figure2_plot_option = "Truth"
+                self.figure2_color_select.options = (
                     self.available_merge_tree_truth_labels
                 )
-                self.second_figure_color_select.value = (
+                self.figure2_color_select.value = (
                     self.available_merge_tree_truth_labels[0]
                 )
-                self.second_figure_label = self.available_merge_tree_truth_labels[0]
-            elif self.second_figure_plot_options.value == "Predictions":
-                self.second_figure_plot_option = "Predictions"
-                self.second_figure_color_select.options = (
+                self.figure2_label = self.available_merge_tree_truth_labels[0]
+            elif self.figure2_plot_options.value == "Predictions":
+                self.figure2_plot_option = "Predictions"
+                self.figure2_color_select.options = (
                     self.available_merge_tree_prediction_labels
                 )
                 if len(self.available_merge_tree_prediction_labels) > 0:
-                    self.second_figure_color_select.value = (
+                    self.figure2_color_select.value = (
                         self.available_merge_tree_prediction_labels[0]
                     )
-                    self.second_figure_label = (
+                    self.figure2_label = (
                         self.available_merge_tree_prediction_labels[0]
                     )
 
-        self.first_figure["layout"].update(
+        self.figure1["layout"].update(
             template="presentation",
-            title=f"Plot II [{self.second_figure_plot_type} {self.second_figure_plot_option}]:",
+            title=f"Plot II [{self.figure2_plot_type} {self.figure2_plot_option}]:",
         )
 
-    def update_second_figure_color(self, new):
-        self.second_figure_label = self.second_figure_color_select.value
+    def update_figure2_color(self, new):
+        self.figure2_label = self.figure2_color_select.value
 
-    def update_second_figure_plot_type_options(self, new):
-        self.second_figure_plot_type_option = self.second_figure_plot_type_options.value
+    def update_figure2_plot_type_options(self, new):
+        self.figure2_plot_type_option = self.figure2_plot_type_options.value
 
-        if self.second_figure_plot_type == "TPC":
-            self.second_figure_event_features = self.features[self.event]
-            self.second_figure_event_classes = self.classes[self.event]
-            self.second_figure_event_clusters = self.clusters[self.event]
-            self.second_figure_event_hits = []
+        if self.figure2_plot_type == "TPC":
+            self.figure2_event_features = self.features[self.event]
+            self.figure2_event_classes = self.classes[self.event]
+            self.figure2_event_clusters = self.clusters[self.event]
+            self.figure2_event_hits = []
 
-        elif self.second_figure_plot_type == "Merge Tree":
-            self.second_figure_event_features = []
-            self.second_figure_event_classes = []
-            self.second_figure_event_clusters = []
-            self.second_figure_event_hits = []
+        elif self.figure2_plot_type == "Merge Tree":
+            self.figure2_event_features = []
+            self.figure2_event_classes = []
+            self.figure2_event_clusters = []
+            self.figure2_event_hits = []
 
     def load_input_file(self, event):
         """
@@ -792,24 +785,24 @@ class PixelLArTPCPanelDisplay:
         if "physics" in input_file.files:
             self.predictions["physics"] = input_file["physics"]
             self.available_prediction_labels.append("physics")
-        if self.first_figure_plot_type == "Predictions":
-            self.first_figure_color_select.options = (
+        if self.figure1_plot_type == "Predictions":
+            self.figure1_color_select.options = (
                 self.available_prediction_labels
             )
             if len(self.available_prediction_labels) > 0:
-                self.first_figure_color_select.value = (
+                self.figure1_color_select.value = (
                     self.available_prediction_labels[0]
                 )
-                self.first_figure_label = self.available_prediction_labels[0]
-        if self.second_figure_plot_type == "Predictions":
-            self.second_figure_color_select.options = (
+                self.figure1_label = self.available_prediction_labels[0]
+        if self.figure2_plot_type == "Predictions":
+            self.figure2_color_select.options = (
                 self.available_prediction_labels
             )
             if len(self.available_prediction_labels) > 0:
-                self.second_figure_color_select.value = (
+                self.figure2_color_select.value = (
                     self.available_prediction_labels[0]
                 )
-                self.second_figure_label = self.available_prediction_labels[
+                self.figure2_label = self.available_prediction_labels[
                     0
                 ]
 
@@ -818,14 +811,14 @@ class PixelLArTPCPanelDisplay:
 
     def load_event(self, event):
         if str(self.event) in self.available_events:
-            self.first_figure_event_features = self.view_0_features[self.event]
-            self.first_figure_event_classes = self.view_0_classes[self.event]
-            self.first_figure_event_clusters = self.view_0_clusters[self.event]
-            self.first_figure_event_hits = self.view_0_hits[self.event]
-            self.second_figure_event_features = self.view_0_features[self.event]
-            self.second_figure_event_classes = self.view_0_classes[self.event]
-            self.second_figure_event_clusters = self.view_0_clusters[self.event]
-            self.second_figure_event_hits = self.view_0_hits[self.event]
+            self.figure1_event_features = self.view_0_features[self.event]
+            self.figure1_event_classes = self.view_0_classes[self.event]
+            self.figure1_event_clusters = self.view_0_clusters[self.event]
+            self.figure1_event_hits = self.view_0_hits[self.event]
+            self.figure2_event_features = self.view_0_features[self.event]
+            self.figure2_event_classes = self.view_0_classes[self.event]
+            self.figure2_event_clusters = self.view_0_clusters[self.event]
+            self.figure2_event_hits = self.view_0_hits[self.event]
             self.event_predictions = {
                 key: val[self.event][0] for key, val in self.predictions.items()
             }
@@ -844,10 +837,10 @@ class PixelLArTPCPanelDisplay:
             pass
 
     def plot_first_event(self, event):
-        if self.first_figure_label == "adc":
+        if self.figure1_label == "adc":
             print("Plotting adc (in progress)")
             pass
-        if self.first_figure_label == "MergeTree":
+        if self.figure1_label == "MergeTree":
             print("Plotting MergeTree computed")
             # Load the saved data
             try:
@@ -910,9 +903,9 @@ class PixelLArTPCPanelDisplay:
             yaxis = dict(title="Height")
 
         else:
-            label_index = self.tpc_meta["classes"][self.first_figure_label]
+            label_index = self.tpc_meta["classes"][self.figure1_label]
             print(label_index)
-            label_vals = self.tpc_meta[f"{self.first_figure_label}_labels"]
+            label_vals = self.tpc_meta[f"{self.figure1_label}_labels"]
             print(label_vals)
 
             self.first_scatter_random_colors = [ii for ii in range(256)]
@@ -922,72 +915,72 @@ class PixelLArTPCPanelDisplay:
                 for ii, val in enumerate(label_vals.values())
             }
             for key, val in label_vals.items():
-                if self.first_figure_plot_option == "Truth":
-                    mask = self.first_figure_event_classes[:, label_index] == key
+                if self.figure1_plot_option == "Truth":
+                    mask = self.figure1_event_classes[:, label_index] == key
                 else:
                     if (
-                        self.first_figure_label
+                        self.figure1_label
                         not in self.available_prediction_labels
                     ):
                         continue
                     labels = np.argmax(
-                        self.event_predictions[self.first_figure_label], axis=1
+                        self.event_predictions[self.figure1_label], axis=1
                     )
                     mask = labels == key
                 if np.sum(mask) == 0:
                     continue
-                if self.first_figure_adc_slider_option_bool is True:
+                if self.figure1_adc_slider_option_bool is True:
                     self.first_scatter[str(val)] = go.Scatter3d(
-                        x=self.first_figure_event_features[:, 0][mask],
-                        y=self.first_figure_event_features[:, 1][mask],
-                        z=self.first_figure_event_features[:, 2][mask],
+                        x=self.figure1_event_features[:, 0][mask],
+                        y=self.figure1_event_features[:, 1][mask],
+                        z=self.figure1_event_features[:, 2][mask],
                         mode="markers",
                         marker=dict(
-                            size=abs(self.first_figure_event_features[:, 2][mask])
+                            size=abs(self.figure1_event_features[:, 2][mask])
                             * 1000,
                             color=self.first_scatter_colors[val],
                         ),
                         name=str(val),
                     )
-                    self.first_figure_slider = pn.widgets.FloatSlider()
+                    self.figure1_slider = pn.widgets.FloatSlider()
 
-                    def update_first_figure_marker_size(event):
-                        for trace in self.first_figure.object.data:
+                    def update_figure1_marker_size(event):
+                        for trace in self.figure1.object.data:
                             trace.marker.size = event.new * 1000
-                        self.first_figure.param.trigger("object")
+                        self.figure1.param.trigger("object")
 
-                    self.first_figure_slider.param.watch(
-                        update_first_figure_marker_size, "value"
+                    self.figure1_slider.param.watch(
+                        update_figure1_marker_size, "value"
                     )
                 else:
                     self.first_scatter[str(val)] = go.Scatter3d(
-                        x=self.first_figure_event_features[:, 0][mask],
-                        y=self.first_figure_event_features[:, 1][mask],
-                        z=self.first_figure_event_features[:, 2][mask],
+                        x=self.figure1_event_features[:, 0][mask],
+                        y=self.figure1_event_features[:, 1][mask],
+                        z=self.figure1_event_features[:, 2][mask],
                         mode="markers",
                         marker=dict(size=10, color=self.first_scatter_colors[val]),
                         name=str(val),
                     )
 
             plotly_figure = go.Figure(data=list(self.first_scatter.values()))
-            title = f"Plot I [{self.first_figure_plot_type} {self.first_figure_plot_option}]:"
+            title = f"Plot I [{self.figure1_plot_type} {self.figure1_plot_option}]:"
             xaxis = dict(title="Channel [n]")
             yaxis = dict(title="TDC [10ns]")
 
-        self.first_figure = plotly_figure.to_dict()
-        self.first_figure["layout"].update(
+        self.figure1 = plotly_figure.to_dict()
+        self.figure1["layout"].update(
             template="presentation",
             title=title,
             xaxis=xaxis,
             yaxis=yaxis,
             showlegend=True,
         )
-        self.first_figure_pane.object = self.first_figure
+        self.figure1_pane.object = self.figure1
 
     def plot_second_event(self, event):
-        if self.second_figure_label == "adc":
+        if self.figure2_label == "adc":
             pass
-        if self.second_figure_label == "MergeTree":
+        if self.figure2_label == "MergeTree":
             print("Plotting MergeTree computed")
             # Load the saved data
             try:
@@ -1050,8 +1043,8 @@ class PixelLArTPCPanelDisplay:
             yaxis = dict(title="Height")
 
         else:
-            label_index = self.tpc_meta["classes"][self.second_figure_label]
-            label_vals = self.tpc_meta[f"{self.second_figure_label}_labels"]
+            label_index = self.tpc_meta["classes"][self.figure2_label]
+            label_vals = self.tpc_meta[f"{self.figure2_label}_labels"]
             self.second_scatter_random_colors = [ii for ii in range(256)]
             random.shuffle(self.second_scatter_random_colors)
             self.second_scatter_colors = {
@@ -1059,64 +1052,64 @@ class PixelLArTPCPanelDisplay:
                 for ii, val in enumerate(label_vals.values())
             }
             for key, val in label_vals.items():
-                if self.second_figure_plot_option == "Truth":
-                    mask = self.second_figure_event_classes[:, label_index] == key
+                if self.figure2_plot_option == "Truth":
+                    mask = self.figure2_event_classes[:, label_index] == key
                 else:
                     if (
-                        self.second_figure_label
+                        self.figure2_label
                         not in self.available_prediction_labels
                     ):
                         continue
                     labels = np.argmax(
-                        self.event_predictions[self.second_figure_label], axis=1
+                        self.event_predictions[self.figure2_label], axis=1
                     )
                     mask = labels == key
                 if np.sum(mask) == 0:
                     continue
-                if self.second_figure_adc_slider_option_bool == True:
+                if self.figure2_adc_slider_option_bool == True:
                     self.second_scatter[str(val)] = go.Scatter3d(
-                        x=self.second_figure_event_features[:, 0][mask],
-                        y=self.second_figure_event_features[:, 1][mask],
-                        z=self.second_figure_event_features[:, 2][mask],
+                        x=self.figure2_event_features[:, 0][mask],
+                        y=self.figure2_event_features[:, 1][mask],
+                        z=self.figure2_event_features[:, 2][mask],
                         mode="markers",
                         marker=dict(
-                            size=abs(self.second_figure_event_features[:, 2][mask]),
+                            size=abs(self.figure2_event_features[:, 2][mask]),
                             color=self.second_scatter_colors[val],
                         ),
                         name=str(val),
                     )
-                    self.second_figure_slider = pn.widgets.FloatSlider()
+                    self.figure2_slider = pn.widgets.FloatSlider()
 
-                    def update_second_figure_marker_size(event):
-                        for trace in self.second_figure.object.data:
+                    def update_figure2_marker_size(event):
+                        for trace in self.figure2.object.data:
                             trace.marker.size = event.new
-                        self.second_figure.param.trigger("object")
+                        self.figure2.param.trigger("object")
 
-                    self.second_figure_slider.param.watch(
-                        update_second_figure_marker_size, "value"
+                    self.figure2_slider.param.watch(
+                        update_figure2_marker_size, "value"
                     )
 
                 else:
                     self.second_scatter[str(val)] = go.Scatter3d(
-                        x=self.second_figure_event_features[:, 0][mask],
-                        y=self.second_figure_event_features[:, 1][mask],
-                        z=self.second_figure_event_features[:, 2][mask],
+                        x=self.figure2_event_features[:, 0][mask],
+                        y=self.figure2_event_features[:, 1][mask],
+                        z=self.figure2_event_features[:, 2][mask],
                         mode="markers",
                         marker=dict(size=10, color=self.second_scatter_colors[val]),
                         name=str(val),
                     )
 
             plotly_figure = go.Figure(data=list(self.second_scatter.values()))
-            title = f"Plot II [{self.second_figure_plot_type} {self.second_figure_plot_option}]:"
+            title = f"Plot II [{self.figure2_plot_type} {self.figure2_plot_option}]:"
             xaxis = dict(title="Channel [n]")
             yaxis = dict(title="TDC [10ns]")
 
-        self.second_figure = plotly_figure.to_dict()
-        self.second_figure["layout"].update(
+        self.figure2 = plotly_figure.to_dict()
+        self.figure2["layout"].update(
             template="presentation",
             title=title,
             xaxis=xaxis,
             yaxis=yaxis,
             showlegend=True,
         )
-        self.second_figure_pane.object = self.second_figure
+        self.figure2_pane.object = self.figure2
