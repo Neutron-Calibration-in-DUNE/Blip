@@ -1,518 +1,317 @@
-
-
 import torch
-import os.path as osp
-import numpy   as np
-from tqdm import tqdm
-from dataclasses import dataclass
-from matplotlib import pyplot as plt
-import pickle
+import h5py
+import os
+import glob
+import numpy as np
+from torch.utils.data import Dataset
 
-from torch_geometric.data import Data
-
-from blip.dataset.generic_dataset import GenericDataset
-from blip.topology.merge_tree import MergeTree
-from blip.utils.utils import generate_plot_grid
-from blip.dataset.common import *
+from blip.utils.utils import profiler
+from blip.utils.logger import BlipError
 
 
-blip_dataset_config = {
-    "name":             "default",
-    "root":             ".",
-    "transform":        None,
-    "pre_transform":    None,
-    "pre_filter":       None,
-    "dataset_type":     "wire_view",
-    "dataset_folder":   "data/",
-    "dataset_files":    [""],
-    "view":             2,
-    "variables": {
-        "positions":    [],
-        "features":     [],
-        "classes":      [],
-        "clusters":     [],
-        "hits":         [],
-        "positions_normalization":  [],
-        "features_normalization":   [],
-        "class_mask":   [""],
-        "label_mask":   [[""]],
-        "voxelization": [],
-    },
-    "weights": {
-        "class_weights":    [],
-        "sample_weights":   [],
-    },
-    "clustering": {
-        "cluster_method":     "unique_physics_meso",
-        "cluster_positions":  [""],
-        "cluster_category_type": "classification",
-        "dbscan_min_samples": 10,
-        "dbscan_eps":         10.0,
-    },
-}
-
-
-@dataclass
-class BlipData:
-    """
-    This class holds event level data that can be passed around within
-    the BlipDataset functions.  Scalars should be a dictionary with
-    keys and values on an event by event basis.
-    """
-    positions:  torch.tensor = torch.tensor([])
-    features:   torch.tensor = torch.tensor([])
-    classes:    torch.tensor = torch.tensor([])
-    clusters:   torch.tensor = torch.tensor([])
-    hits:       torch.tensor = None
-    merge_tree: None = None
-    mask:       None = None
-    scalars:    dict = None
-    particles:  dict = None
-    interactions: dict = None
-    tracks:     dict = None
-    showers:    dict = None
-    blips:      dict = None
-    raw_path:   str = ''
-
-    def __getitem__(self, key):
-        return getattr(self, key)
-
-    def __setitem__(self, key, value):
-        setattr(self, key, value)
-
-
-class BlipDataset(GenericDataset):
+class BlipDataset(Dataset):
     """
     """
     def __init__(
         self,
-        name:   str = "blip",
-        config: dict = blip_dataset_config,
+        config: dict = {},
         meta:   dict = {}
     ):
-        GenericDataset.__init__(
-            self, name, config, meta
-        )
-
-    def process_config(self):
-        self.process_dataset_type()
-
-    def process_dataset_type(self):
-        # set dataset type
-        if "dataset_type" not in self.config.keys():
-            self.logger.error('no dataset_type specified in config!')
-
-        self.meta['dataset_type'] = self.config["dataset_type"]
-        self.logger.info(f"setting 'dataset_type: {self.meta['dataset_type']}.")
-
-        if self.meta['dataset_type'] == 'wire_view':
-            if "view" not in self.config.keys():
-                self.logger.warn('view not specified in config for wire dataset! setting view=2!')
-                self.config['view'] = 2
-            self.meta['view'] = self.config['view']
-            self.meta['position_type'] = torch.int
-            self.features_name = f'view_{self.meta["view"]}_features'
-            self.classes_name = f'view_{self.meta["view"]}_classes'
-            self.clusters_name = f'view_{self.meta["view"]}_clusters'
-            self.hits_name = f'view_{self.meta["view"]}_hits'
-        elif self.meta['dataset_type'] == 'wire_view_cluster':
-            if "view" not in self.config.keys():
-                self.logger.warn('view not specified in config for wire dataset! setting view=2!')
-                self.config['view'] = 2
-            self.meta['view'] = self.config['view']
-            self.meta['position_type'] = torch.float
-            self.features_name = f'view_{self.meta["view"]}_features'
-            self.classes_name = f'view_{self.meta["view"]}_classes'
-            self.clusters_name = f'view_{self.meta["view"]}_clusters'
-            self.hits_name = f'view_{self.meta["view"]}_hits'
-        elif self.meta['dataset_type'] == 'edep':
-            self.meta['position_type'] = torch.float
-            self.features_name = 'edep_features'
-            self.classes_name = 'classes'
-            self.clusters_name = 'clusters'
-            self.hits_name = None
-        elif self.meta['dataset_type'] == 'edep_cluster':
-            self.meta['position_type'] = torch.float
-            self.features_name = 'edep_features'
-            self.classes_name = 'classes'
-            self.clusters_name = 'clusters'
-        elif self.meta['dataset_type'] == 'tpc':
-            self.meta['position_type'] = torch.int
-            self.features_name = 'det_features'
-            self.classes_name = 'classes'
-            self.clusters_name = 'clusters'
-            self.hits_name = None
-        elif self.meta['dataset_type'] == 'tpc_cluster':
-            self.meta['position_type'] = torch.float
-            self.features_name = 'det_features'
-            self.classes_name = 'classes'
-            self.clusters_name = 'clusters'
-            self.hits_name = None
-        elif self.meta['dataset_type'] == 'segment':
-            self.meta['position_type'] = torch.int
-            self.features_name = 'segment_features'
-            self.classes_name = 'classes'
-            self.clusters_name = 'clusters'
-            self.hits_name = None
-        elif self.meta['dataset_type'] == 'segment_cluster':
-            self.meta['position_type'] = torch.float
-            self.features_name = 'segment_features'
-            self.classes_name = 'classes'
-            self.clusters_name = 'clusters'
+        self.config = config
+        self.meta = meta
+        
+        self.parse_config()
+        
+    @profiler
+    def parse_config(self):
+        self.parse_folders_and_files()
+        self.parse_dataset_variables()
+        self.parse_dataset_parameters()
+        self.calculate_event_id_mapping()
+        
+    @profiler 
+    def parse_folders_and_files(self):
+        """Check dataset_mode.  Should be simulation or data"""
+        if 'dataset_mode' not in self.config.keys():
+            self.dataset_mode = 'simulation'
         else:
-            self.meta['position_type'] = torch.float
-
-        self.particles_name = 'particles'
-
-        self.meta['feature_type'] = torch.float
-        self.meta['class_type'] = torch.long
-        self.meta['cluster_type'] = torch.long
-        self.meta['hit_type'] = torch.float
-        self.logger.info(f'setting position_type to {self.meta["position_type"]}')
-        self.logger.info(f'setting feature_type to {self.meta["feature_type"]}')
-        self.logger.info(f'setting class_type to {self.meta["class_type"]}')
-
-    def apply_event_masks(
-        self,
-        event_data: BlipData = None,
-    ):
-        """
-        Here we ...
-        """
-        mask = np.array([True for ii in range(len(event_data["features"]))])
-        # Apply mask for 'labels'
-        for classes in self.meta['blip_classes']:
-            class_index = self.meta["classes"][classes]
-            for jj, label_value in enumerate(self.meta['blip_labels_values'][classes]):
-                mask |= (event_data["classes"][:, class_index] == label_value)
-        if "classes_mask" in self.config["variables"]:
-            # Apply 'classes_mask' and 'labels_mask'
-            for classes, class_index in self.meta['blip_classes_mask_indices'].items():
-                for jj, label_value in enumerate(self.meta['blip_classes_labels_mask_values'][classes]):
-                    mask &= (event_data["classes"][:, class_index] == label_value)
-        if self.meta['skip_undefined'] is True:
-            for classes in self.meta['blip_classes']:
-                class_index = self.meta["classes"][classes]
-                mask &= (event_data["classes"][:, class_index] != -1)
-                mask &= (event_data["classes"][:, class_index] != 0)
-
-        # Apply masks
-        event_data["features"] = event_data["features"][mask].astype(np.float)
-        event_data["classes"] = event_data["classes"][mask].astype(np.int64)
-        event_data["clusters"] = event_data["clusters"][mask].astype(np.int64)
-        if event_data["hits"] is not None:
-            event_data["hits"] = event_data["hits"][mask].astype(np.float)
-
-        # Separate positions and features
-        event_data["positions"] = event_data["features"][:, self.meta['blip_position_indices']]
-        if len(self.meta['blip_features_indices']) != 0:
-            event_data["features"] = event_data["features"][:, self.meta['blip_features_indices']]
+            self.dataset_mode = self.config['dataset_mode']
+        
+        """Check for flow_folder"""
+        if 'flow_folder' not in self.config.keys():
+            raise BlipError('flow_folder not specified in config!')
         else:
-            event_data["features"] = np.ones((len(event_data["features"]), 1))
+            self.flow_folder = self.config['flow_folder']
+            
+        """Check for arrakis_folder if dataset_mode is simulation"""
+        if self.dataset_mode == 'simulation':
+            if 'arrakis_folder' not in self.config.keys():
+                raise BlipError('arrakis_folder not specified in config! maybe "dataset_mode" should be "data"?')
+            else:
+                self.arrakis_folder = self.config['arrakis_folder']
+        else:
+            self.arrakis_folder == None
+        
+        """Check for flow_files"""
+        if 'flow_files' not in self.config.keys():
+            raise BlipError('flow_files not specified in config!')
+        else:
+            self.flow_files = self.config['flow_files']
+            
+        """Check for skip_files"""
+        if 'skip_files' not in self.config.keys():
+            self.skip_files = []
+        else:
+            self.skip_files = self.config['skip_files']   
+        
+        """Check that flow folder exists"""
+        if not os.path.isdir(self.flow_folder):
+            raise BlipError(f'specified flow_folder "{self.flow_folder}" does not exist!')
+        
+        """Check that arrakis folder exists"""
+        if self.arrakis_folder is not None:
+            if not os.path.isdir(self.arrakis_folder):
+                raise BlipError(f'specified arrakis_folder "{self.arrakis_folder}" does not exist!')
 
-        # Convert class labels to ordered list
-        temp_classes = event_data["classes"].copy()
-        for classes in self.meta['blip_classes']:
-            class_index = self.meta["classes"][classes]
-            for key, val in self.meta['blip_labels_values_map'][classes].items():
-                temp_mask = (temp_classes[:, class_index] == key)
-                event_data["classes"][temp_mask, class_index] = val
-        event_data["classes"] = event_data["classes"][:, self.meta['blip_classes_indices']]
-        event_data["clusters"] = event_data["clusters"][:, self.meta['blip_clusters_indices']]
+        """Check that flow folder has a '/' at the end"""
+        if self.flow_folder[-1] != '/':
+            self.flow_folder += '/'
 
-        if event_data["hits"] is not None:
-            event_data["hits"] = event_data["hits"][:, self.meta['blip_hits_indices']]
+        """Check that arrakis folder has a '/' at the end"""
+        if self.arrakis_folder is not None:
+            if self.arrakis_folder[-1] != '/':
+                self.arrakis_folder += '/'
 
-        event_data['particles'] = {
-            label:  event_data['particles'][self.meta['mc_truth_names_by_value']['particles'][label]]
-            for label in self.meta['mc_truth_names_by_value']['particles']
-        }
+        if isinstance(self.flow_files, list):
+            """
+            If the flow_files parameter is a list, look through
+            the list and make sure each specified file actually exists
+            in the flow_folder.
+            """
+            flow_files = [
+                input_file for input_file in self.flow_files
+                if input_file not in self.skip_files
+            ]
+            for flow_file in flow_files:
+                if not os.path.isfile(self.flow_folder + flow_file):
+                    raise BlipError(
+                        f"specified file {flow_file} does not exist in directory {self.flow_folder}!"
+                    )
+        elif isinstance(self.flow_files, str):
+            """
+            If the flow_files parameter is a string, check if its
+            the phrase 'all', and if so, recursively grab all h5
+            flow_files in the flow_folder.
 
-        event_data["mask"] = mask
+            Otherwise, assume that the flow_files parameter is a
+            file extension, and search recursively for all flow_files
+            with that extension.
+            """
+            if self.flow_files == "all":
+                flow_files = [
+                    os.path.basename(input_file) for input_file in glob.glob(
+                        f"{self.flow_folder}*.hdf5", recursive=True
+                    )
+                    if 'FLOW' in input_file and input_file not in self.skip_files
+                ]
+            else:
+                try:
+                    flow_files = [
+                        os.path.basename(input_file) for input_file in glob.glob(
+                            f'{self.flow_folder}/*.{self.flow_files}',
+                            recursive=True,
+                        )
+                        if input_file not in self.skip_files
+                    ]
+                except Exception as exception:
+                    raise BlipError(
+                        f'specified "files" parameter: {self.config["files"]} incompatible!'
+                        + f" exception: {exception}"
+                    )
+        else:
+            raise BlipError(
+                f'specified "flow_files" parameter: {self.config["files"]} incompatible!'
+            )
+        
+        """Set arrakis files from flow files"""
+        if self.dataset_mode == 'simulation':
+            arrakis_files = [
+                flow_file.replace('FLOW', 'ARRAKIS').replace('flow', 'arrakis')
+                for flow_file in flow_files
+            ]
+            """Check that each corresponding arrakis file exists"""
+            for (flow_file, arrakis_file) in zip(flow_files, arrakis_files):
+                if not os.path.isfile(self.arrakis_folder + arrakis_file):
+                    flow_files.remove(flow_file)
+                    arrakis_files.remove(arrakis_file)
+        
+        self.flow_files = flow_files
+        if self.dataset_mode == 'simulation':
+            self.arrakis_files = arrakis_files
 
-        return event_data
-
+    @profiler
+    def parse_dataset_variables(self):
+        """Check for dataset_name"""
+        if 'dataset_name' not in self.config.keys():
+            raise BlipError('dataset_name not specified in config!')
+        else:
+            self.dataset_name = self.config['dataset_name']
+        
+        """Check for positions"""
+        if 'positions' not in self.config.keys():
+            raise BlipError('positions not specified in config!')
+        else:
+            self.positions = self.config['positions']
+        
+        """Check for features"""
+        if 'features' not in self.config.keys():
+            raise BlipError('features not specified in config!')
+        else:
+            self.features = self.config['features']
+        
+        """Check for labels"""
+        if 'labels' not in self.config.keys():
+            raise BlipError('labels not specified in config!')
+        else:
+            self.labels = self.config['labels']
+    
+    @profiler
+    def parse_dataset_parameters(self):
+        """Check for voxelization"""
+        if 'voxelization' not in self.config.keys():
+            self.voxelization = torch.tensor([1.0 for ii in range(len(self.positions))]).reshape(1, -1)
+        else:
+            if len(self.config['voxelization']) != len(self.positions):
+                raise BlipError('number of entries in "voxelization" does not match number of position variables!')
+            else:
+                self.voxelization = torch.tensor(self.config['voxelization']).reshape(1, -1)
+        """Check for chunk_size"""
+        if 'chunk_size' not in self.config.keys():
+            self.config['chunk_size'] = 25
+        self.chunk_size = self.config['chunk_size']
+            
+    @profiler
     def apply_voxelization(
         self,
-        event_data: BlipData = None
+        output
     ):
-        voxelized_positions = np.round(event_data["positions"] / self.meta['voxelization'])
-        unique_elements, inverse_indices = np.unique(voxelized_positions, return_inverse=True, axis=0)
-        unique_counts = np.bincount(inverse_indices)
-        duplicate_indices = np.where(unique_counts > 1)[0]
-        duplicates = []
-        elements_to_remove = []
-        for idx in duplicate_indices:
-            indices = np.where(inverse_indices == idx)[0]
-            duplicates.append(indices.tolist())
-            elements_to_remove.append(indices[1:])
-            max_feature_index = np.argmax(event_data["features"][indices])
-            event_data["features"][indices[0]] = event_data["features"][max_feature_index]
-            event_data["classes"][indices[0]] = event_data["classes"][max_feature_index]
-            event_data["clusters"][indices[0]] = event_data["clusters"][max_feature_index]
+        """
+        This function applies a voxelization to the position variables,
+        and then prunes duplicates from the other variables while also
+        creating a map so that one can map values back to the original
+        indices where the variables were before voxelization.  This is
+        an important step for ensuring that MinkowskiEngine, and other
+        algorithms play nicely with the dataset.
+        
+        The voxelization is applied by dividing by the value for each 
+        specified coordinate.  Fow now this is done globally for the
+        detector, but in the future we will do this detector by 
+        detector.
+        
+        Original coordinates are in cm, so to get to mm just use
+        a voxelization of 0.1.
 
-        self.meta['voxelized_duplicates'].append(duplicates)
-        if len(duplicates) > 0:
-            elements_to_remove = np.concatenate(elements_to_remove)
-            mask = np.ones(len(event_data["positions"]), dtype=bool)
-            mask[elements_to_remove] = False
-            event_data["positions"] = voxelized_positions[mask]
-            event_data["features"] = event_data["features"][mask]
-            event_data["classes"] = event_data["classes"][mask]
-            event_data["clusters"] = event_data["clusters"][mask]
+        Args:
+            output (_type_): _description_
 
-        return event_data
+        Returns:
+            _type_: _description_
+        """
+        """Step 1: Apply the voxelization to positions"""
+        output['positions'] = (output['positions'].clone() / self.voxelization).to(torch.int32)
+        
+        return output
 
-    def process(self):
-        if self.skip_processing:
-            self.logger.info('skipping processing of data.')
-            return
-        # Read data into huge `Data` list.
-        self.meta['input_events'] = {
-            raw_path: []
-            for raw_path in self.dataset_files
-        }
-        self.meta['event_mask'] = {
-            raw_path: []
-            for raw_path in self.dataset_files
-        }
-        self.meta['cluster_indices'] = {
-            raw_path: []
-            for raw_path in self.dataset_files
-        }
-        self.meta['cluster_ids'] = {
-            raw_path: []
-            for raw_path in self.dataset_files
-        }
-        self.gifs = {
-            key: {
-                label: []
-                for label in self.meta["classes_labels_names"][key]
-            }
-            for key in self.meta["blip_classes"]
-        }
-        self.event_statistics = BlipData(
-            positions=[],
-            features=[],
-            classes=[],
-            clusters=[]
-        )
+    @profiler
+    def calculate_event_id_mapping(self):
+        """
+        Calculate the mapping of chunks based on unique event_ids in each file.
+        """
+        self.file_indices = []
+        self.event_start_indices = []
+        self.event_end_indices = []
+        for ii, arrakis_file in enumerate(self.arrakis_files):
+            with h5py.File(self.arrakis_folder + arrakis_file, 'r') as f:
+                event_ids = f[self.dataset_name]['event_id'][:]
+                unique_values, start_indices = np.unique(event_ids, return_index=True)
+                end_indices = start_indices[1:] + [len(event_ids)]
+                for jj in range(0, len(unique_values), self.chunk_size):
+                    self.file_indices.append(ii)
+                    self.event_start_indices.append(start_indices[jj])
+                    self.event_end_indices.append(end_indices[min(jj + self.chunk_size - 1, len(end_indices) - 1)])
 
-        self.skipped_events = []
-        self.index = 0
-        self.truth_index = 0
-        self.logger.info(f"processing {len(self.dataset_files)} files.")
-        merge_tree = MergeTree(
-            self.name,
-            meta=self.meta
-        )
-
-        dataset_file_loop = tqdm(
-            enumerate(self.dataset_files, 0),
-            total=len(self.dataset_files),
-            leave=False,
-            position=0,
-            colour='blue'
-        )
-        for jj, raw_path in dataset_file_loop:
-            data = np.load(raw_path, allow_pickle=True)
-            features = data[self.features_name]
-            classes = data[self.classes_name]
-            clusters = data[self.clusters_name]
-            particles = data[self.particles_name]
-            if self.hits_name is not None:
-                hits = data[self.hits_name]
+    @profiler
+    def __len__(self):
+        """Calculate total number of chunks"""
+        return len(self.file_indices)
+    
+    @profiler
+    def __getitem__(self, idx):
+        file_idx = self.file_indices[idx]
+        chunk_start_idx = self.event_start_indices[idx]
+        chunk_end_idx = self.event_end_indices[idx]
+        if self.dataset_mode == 'simulation':
+            return self.get_simulation(file_idx, chunk_start_idx, chunk_end_idx)
+        else:
+            return self.get_data(file_idx, chunk_start_idx, chunk_end_idx)
+    
+    @profiler
+    def get_simulation(self, file_idx, chunk_start_idx, chunk_end_idx):
+        flow_file = self.flow_files[file_idx]
+        arrakis_file = self.arrakis_files[file_idx]
+        output = {
+            'positions': None,
+            'features': None,
+            'batch_id': None,
+            'labels': None,
+        }
+        with h5py.File(self.flow_folder + flow_file, 'r') as flow, \
+             h5py.File(self.arrakis_folder + arrakis_file, 'r') as arrakis:
+            
+            """Get charge data from flow and arrakis files"""
+            charge_flow = flow[self.dataset_name]
+            charge_arrakis = arrakis[self.dataset_name]
+            
+            """Get positions from charge_flow"""
+            charge_positions = tuple(
+                charge_flow[position][chunk_start_idx:chunk_end_idx]
+                for position in self.positions
+            )
+            output['positions'] = torch.tensor(
+                np.vstack(charge_positions), 
+                dtype=torch.float32
+            ).transpose(0, 1)
+            
+            """Get event_id as batch_id"""
+            output['batch_id'] = torch.tensor(
+                charge_arrakis['event_id'][chunk_start_idx:chunk_end_idx], 
+                dtype=torch.int32
+            ).unsqueeze(1)
+            
+            """Get features from charge_flow"""
+            if self.features == []:
+                output['features'] = torch.ones_like(output['batch_id'])
             else:
-                hits = None
-            for ii in range(len(features)):
-                event_data = BlipData(
-                    features=features[ii],
-                    classes=classes[ii],
-                    clusters=clusters[ii],
-                    particles=particles[ii],
-                    raw_path=raw_path
+                charge_features = tuple(
+                    charge_flow[feature][chunk_start_idx:chunk_end_idx]
+                    for feature in self.features
                 )
-                if hits is not None:
-                    event_data["hits"] = hits[ii]
-
-                event_data = self.apply_event_masks(event_data)
-                if not np.any(event_data["mask"]):
-                    self.skipped_events.append(ii)
-                    continue
-
-                if "voxelization" in self.meta.keys():
-                    event_data = self.apply_voxelization(event_data)
-
-                self.meta['event_mask'][event_data["raw_path"]].append(event_data["mask"])
-
-                if self.meta["merge_tree"]:
-                    event_data["merge_tree"] = merge_tree.create_merge_tree(event_data["positions"])
-                else:
-                    event_data["merge_tree"] = None
-
-                if self.meta['dataset_type'] in ['wire_view', 'tpc', 'edep', 'segment']:
-                    self.process_event(event_data)
-                elif self.meta['dataset_type'] in ['wire_view_cluster', 'tpc_cluster', 'edep_cluster', 'segment_cluster']:
-                    self.process_event_cluster(event_data)
-
-            dataset_file_loop.set_description("Processing BlipDataset")
-            dataset_file_loop.set_postfix_str(f"file={raw_path}")
-        self.meta['number_of_events'] = self.index
-
-        self.logger.info(f"processed {self.meta['number_of_events']} events.")
-
-    def process_event_cluster(
-        self,
-        event_data: BlipData = None
-    ):
-        # create clusters using DBSCAN
-        if self.cluster_method == "dbscan":
-            cluster_labels = self.dbscan.fit(
-                event_data["positions"][:, self.meta['cluster_position_indices']]
-            ).labels_
-            unique_labels = np.unique(cluster_labels)
-        else:
-            cluster_labels = event_data["clusters"][:, self.meta["blip_clusters_indices_by_name"][self.cluster_method]]
-            unique_labels = np.unique(cluster_labels)
-
-        self.meta['cluster_ids'][event_data["raw_path"]].append(cluster_labels)
-        input_events = []
-        cluster_indices = []
-
-        # for each unique cluster label,
-        # create a separate dataset.
-        for kk in unique_labels:
-            if kk == -1:
-                continue
-            cluster_mask = (cluster_labels == kk)
-            if np.sum(cluster_mask) < 3:
-                continue
-            cluster_positions = event_data["positions"][cluster_mask]
-            cluster_features = event_data["features"][cluster_mask]
-            cluster_classes = event_data["classes"][cluster_mask]
-            cluster_clusters = event_data["clusters"][cluster_mask]
-            if self.meta['cluster_category_type'] == 'classification':
-                cluster_classes = [[
-                    np.bincount(cluster_classes[:, ll]).argmax()
-                    for ll in range(len(self.meta['blip_classes_indices']))
-                ]]
-
-            # Normalize cluster
-            min_positions = np.min(cluster_positions, axis=0)
-            max_positions = np.max(cluster_positions, axis=0)
-            scale = max_positions - min_positions
-            scale[(scale == 0)] = max_positions[(scale == 0)]
-            if self.meta["normalize_cluster"]:
-                cluster_positions = 2 * (cluster_positions - min_positions) / scale - 1
-
-            if self.meta["make_gifs"]:
-                pass
-
-            event = Data(
-                pos=torch.tensor(cluster_positions).type(self.meta['position_type']),
-                x=torch.tensor(cluster_features).type(self.meta['feature_type']),
-                category=torch.tensor(cluster_classes).type(self.meta['class_type']),
-                clusters=torch.tensor(cluster_clusters).type(self.meta['cluster_type']),
-                min_positions=torch.tensor(min_positions),
-                max_positions=torch.tensor(max_positions),
-                scale=torch.tensor(scale),
-                # Cluster ID is unique to clustering events
-                cluster_id=kk,
-                truth_index=self.truth_index
+                output['features'] = torch.tensor(
+                    np.vstack(charge_features),
+                    dtype=torch.float32
+                ).transpose(0, 1)
+            
+            """Get labels from charge_arrakis"""
+            charge_labels = tuple(
+                charge_arrakis[label][chunk_start_idx:chunk_end_idx]
+                for label in self.labels
             )
-
-            if self.pre_filter is not None:
-                event = self.pre_filter(event)
-            if self.pre_transform is not None:
-                event = self.pre_transform(event)
-
-            torch.save(event, osp.join(self.processed_dir, f'data_{self.index}.pt'))
-            cluster_indices.append(self.index)
-            input_events.append(self.index)
-            self.index += 1
-
-        with open(osp.join(self.processed_dir, f'truth_{self.truth_index}.pt'), 'wb') as file:
-            pickle.dump(
-                {
-                    "particles": event_data["particles"]
-                },
-                file
-            )
-        self.truth_index += 1
-
-        self.meta['input_events'][event_data["raw_path"]].append(input_events)
-        self.meta['cluster_indices'][event_data["raw_path"]].append(cluster_indices)
-
-    def process_event(
-        self,
-        event_data: BlipData = None
-    ):
-        if event_data["hits"] is not None:
-            hits = torch.tensor(event_data["hits"]).type(self.meta['hit_type'])
-        else:
-            hits = None
-        event = Data(
-            pos=torch.tensor(event_data["positions"]).type(self.meta['position_type']),
-            x=torch.tensor(event_data["features"]).type(self.meta['feature_type']),
-            category=torch.tensor(event_data["classes"]).type(self.meta['class_type']),
-            clusters=torch.tensor(event_data["clusters"]).type(self.meta['cluster_type']),
-            hits=hits,
-            merge_tree=event_data["merge_tree"],
-            truth_index=self.truth_index
-        )
-
-        with open(osp.join(self.processed_dir, f'truth_{self.truth_index}.pt'), 'wb') as file:
-            pickle.dump(
-                {
-                    "particles": event_data["particles"]
-                },
-                file
-            )
-        self.truth_index += 1
-
-        if self.pre_filter is not None:
-            event = self.pre_filter(event)
-        if self.pre_transform is not None:
-            event = self.pre_transform(event)
-
-        torch.save(event, osp.join(self.processed_dir, f'data_{self.index}.pt'))
-        # torch.save(truth, osp.join(self.processed_dir, f'truth_{self.index}.pt'))
-        self.meta['input_events'][event_data["raw_path"]].append([self.index])
-        self.index += 1
-
-    def append_dataset_files(
-        self,
-        dict_name,
-        input_dict,
-        indices
-    ):
-        for jj, raw_path in enumerate(self.dataset_files):
-            loaded_file = np.load(raw_path, allow_pickle=True)
-            loaded_arrays = {
-                key: loaded_file[key]
-                for key in loaded_file.files
-            }
-            events = [
-                [ii for ii in list(indices) if ii in self.meta['input_events'][raw_path][jj]]
-                for jj in range(len(self.meta['input_events'][raw_path]))
-            ]
-            classes_prefix = ""
-            if self.meta['dataset_type'] == "cluster":
-                classes_prefix = f"{self.dbscan_eps}_{self.dbscan_min_samples}_"
-            output = {
-                f"{classes_prefix}{classes}": [input_dict[classes][event] for event in events]
-                for classes in input_dict.keys()
-            }
-            output['event_mask'] = self.meta['event_mask'][raw_path]
-            output['blip_labels_values_map'] = self.meta['blip_labels_values_map']
-            output['blip_labels_values_inverse_map'] = self.meta['blip_labels_values_inverse_map']
-            if self.meta['dataset_type'] == "cluster":
-                output[f'{self.dbscan_eps}_{self.dbscan_min_samples}_cluster_ids'] = self.meta['cluster_ids'][raw_path]
-                output[f'{self.dbscan_eps}_{self.dbscan_min_samples}_cluster_indices'] = self.meta['cluster_indices'][raw_path]
-            # otherwise add the array and save
-            loaded_arrays.update(output)
-            # loaded_arrays.update(self.cluster_labels[raw_path])
-            np.savez(
-                raw_path,
-                **loaded_arrays
-            )
+            output['labels'] = torch.tensor(
+                np.vstack(charge_labels),
+                dtype=torch.int32
+            ).transpose(0, 1)
+            
+            """Apply voxelization"""
+            output = self.apply_voxelization(output)
+        
+        return output

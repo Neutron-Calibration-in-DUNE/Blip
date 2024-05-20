@@ -3,7 +3,7 @@ Generic losses for blip.
 """
 import torch
 
-from blip.utils.logger import Logger
+from blip.utils.logger import BlipError
 
 
 class GenericLoss:
@@ -20,73 +20,19 @@ class GenericLoss:
     def __init__(
         self,
         name:           str = 'generic_loss',
-        alpha:          float = 0.0,
-        target_type:    str = 'classes',
-        targets:        list = [],
-        outputs:        list = [],
-        augmentations:  int = 0,
+        alpha:          float = 1.0,
         meta:           dict = {}
     ):
-        self.name = name
-        self.logger = Logger(self.name, output="both", file_mode="w")
-        if not isinstance(alpha, list):
-            self.alpha = [alpha for ii in range(len(targets))]
-        else:
-            if len(alpha) != len(targets):
-                self.logger.error(f'specified alpha list {alpha} is not the same length as the number of targets ({targets})!')
-            self.alpha = alpha
-        self.target_type = target_type
-        self.targets = targets
-        self.outputs = outputs
-        self.augmentations = augmentations
+        self.name = name        
+        self.alpha = alpha
         self.meta = meta
         if "device" in self.meta:
             self.device = self.meta['device']
 
-        if len(self.targets) != len(self.outputs):
-            self.logger.error(f'number of targets {self.targets} does not match number of outputs {self.outputs}!')
-
-        if target_type == 'positions':
-            self.loss = self.position_loss
-            self.number_of_target_labels = [-1 for target in self.targets]
-            self.target_indicies = [
-                self.meta['dataset'].meta['blip_position_indices_by_name'][target] for target in self.targets
-            ]
-        elif target_type == 'features':
-            self.loss = self.feature_loss
-            self.number_of_target_labels = [-1 for target in self.targets]
-            self.target_indicies = [
-                self.meta['dataset'].meta['blip_features_indices_by_name'][target] for target in self.targets
-            ]
-        elif target_type == 'classes':
-            self.loss = self.classes_loss
-            self.number_of_target_labels = [
-                len(self.meta['dataset'].meta['blip_labels_values'][target]) for target in self.targets
-            ]
-            self.target_indicies = [
-                self.meta['dataset'].meta['blip_classes_indices_by_name'][target] for target in self.targets
-            ]
-        elif target_type == 'clusters':
-            self.loss = self.cluster_loss
-            self.number_of_target_labels = [-1 for target in self.targets]
-            self.target_indicies = [
-                self.meta['dataset'].meta['blip_clusters_indices_by_name'][target] for target in self.targets
-            ]
-        elif target_type == 'hit':
-            self.loss = self.hit_loss
-            self.number_of_target_labels = [-1 for target in self.targets]
-            self.target_indicies = [
-                self.meta['dataset'].meta['blip_hits_indices_by_name'][target] for target in self.targets
-            ]
-        elif target_type == 'augment_batch':
-            self.loss = self.augment_batch_loss
-        else:
-            self.logger.error(f'specified target_type "{target_type}" not allowed!')
-
         # construct batch loss dictionaries
         self.batch_loss = {
             key: torch.empty(size=(0, 1), dtype=torch.float, device=self.device)
-            for key in self.targets
+            for key in ['topology', 'physics']
         }
 
     def reset_batch(self):
@@ -101,104 +47,8 @@ class GenericLoss:
         for key in self.batch_loss.keys():
             self.batch_loss[key] = torch.empty(size=(0, 1), dtype=torch.float, device=self.device)
 
-    def _loss(
+    def loss(
         self,
-        target,
-        outputs
+        data
     ):
-        self.logger.error('"_loss" not implemented in Loss!')
-
-    def position_loss(
-        self,
-        outputs,
-        data,
-    ):
-        target = {
-            key: data.pos[:, self.target_indicies[ii]]
-            for ii, key in enumerate(self.targets)
-        }
-        if self.augmentations > 0:
-            target = {
-                key: torch.cat([target[key] for ii in range(outputs['augmentations'])])
-                for key in self.targets
-            }
-        return self._loss(target, outputs)
-
-    def feature_loss(
-        self,
-        outputs,
-        data,
-    ):
-        target = {
-            key: data.x[:, self.target_indicies[ii]]
-            for ii, key in enumerate(self.targets)
-        }
-        if self.augmentations > 0:
-            target = {
-                key: torch.cat([target[key] for ii in range(outputs['augmentations'])])
-                for key in self.targets
-            }
-        return self._loss(target, outputs)
-
-    def classes_loss(
-        self,
-        outputs,
-        data,
-    ):
-        target = {
-            key: data.category[:, self.target_indicies[ii]]
-            for ii, key in enumerate(self.targets)
-        }
-        if self.augmentations > 0:
-            target = {
-                key: torch.cat([target[key] for ii in range(outputs['augmentations'])])
-                for key in self.targets
-            }
-        return self._loss(target, outputs)
-
-    def cluster_loss(
-        self,
-        outputs,
-        data,
-    ):
-        target = {
-            key: data.clusters[:, self.target_indicies[ii]]
-            for ii, key in enumerate(self.targets)
-        }
-        if self.augmentations > 0:
-            target = {
-                key: torch.cat([target[key] for ii in range(outputs['augmentations'])])
-                for key in self.targets
-            }
-        return self._loss(target, outputs)
-
-    def hit_loss(
-        self,
-        outputs,
-        data,
-    ):
-        target = {
-            key: data.hits[:, self.target_indicies[ii]]
-            for ii, key in enumerate(self.targets)
-        }
-        if self.augmentations > 0:
-            target = {
-                key: torch.cat([target[key] for ii in range(outputs['augmentations'])])
-                for key in self.targets
-            }
-        return self._loss(target, outputs)
-
-    def augment_batch_loss(
-        self,
-        outputs,
-        data,
-    ):
-        indices = torch.arange(0, len(data.category), device=self.device)
-        target = {
-            key: torch.cat([
-                indices
-                for ii in range(int(len(outputs[key])/len(data.category)))
-            ])
-            for ii, key in enumerate(self.outputs)
-        }
-        return self._loss(target, outputs)
+        raise BlipError('"loss" not implemented in Loss!')

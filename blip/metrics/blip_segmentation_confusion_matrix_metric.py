@@ -1,0 +1,103 @@
+"""
+Generic metrics for blip.
+"""
+import torch
+import torch.nn as nn
+from matplotlib import pyplot as plt
+from torchmetrics.classification import MulticlassConfusionMatrix
+
+from blip.utils.logger import BlipError
+from blip.utils.utils import fig_to_array
+from blip.metrics.generic_metric import GenericMetric
+
+
+class BlipSegmentationConfusionMatrix(GenericMetric):
+    """
+    Abstract base class for Blip metrics.  The inputs are
+        1. name - a unique name for the metric function.
+        2. meta - meta information from the module.
+    """
+    def __init__(
+        self,
+        name:           str = 'blip_segmentation_confusion_matrix_metric',
+        meta:           dict = {}
+    ):
+        self.name = name
+        self.meta = meta
+        if "device" in self.meta:
+            self.device = self.meta['device']
+        self.num_classes = {
+            'topology': 3,
+            'physics': 9
+        }
+        self.labels = {
+            'topology': ['Track', 'Shower', 'Blip'],
+            'physics': [
+                'MIP',
+                'HIP',
+                'Electron Ionization',
+                'Delta Electron',
+                'Michel Electron',
+                'Gamma Compton',
+                'Gamma Conversion',
+                'Nuclear Recoil',
+                'Electron Recoil',
+            ]
+        }
+
+        # construct batch metric dictionaries
+        self.confusion_matrix = {
+            key: MulticlassConfusionMatrix(
+                num_classes=self.num_classes[key]
+            ).to(self.device)
+            for key in ['topology', 'physics']
+        }
+
+    def reset_batch(self):
+        for key in self.confusion_matrix.keys():
+            self.confusion_matrix[key] = MulticlassConfusionMatrix(
+                num_classes=self.num_classes[key]
+            ).to(self.device)
+
+    def set_device(
+        self,
+        device
+    ):
+        self.device = device
+        for key in self.confusion_matrix.keys():
+            self.confusion_matrix[key].to(self.device)
+
+    def report_tensorboard(
+        self,
+        iterations,
+        train_type
+    ):
+        for ii, output in enumerate(self.confusion_matrix.keys()):
+            fig, axs = plt.subplots(figsize=(10, 10))
+            axs.set_title(f"{output.capitalize()} ({train_type.capitalize()})")
+            self.confusion_matrix[output].plot(ax=axs, labels=self.labels[output])
+            fig_array = fig_to_array(fig)
+            self.meta['tensorboard'].add_image(
+                f'{self.name}: {output} ({train_type})',
+                fig_array,
+                iterations,
+                dataformats='HWC'
+            )
+
+    def update(
+        self,
+        data
+    ):
+        for ii, output in enumerate(self.confusion_matrix.keys()):
+            self.confusion_matrix[output].update(
+                nn.functional.softmax(data['outputs'][output].to(self.device), dim=1, dtype=torch.float),
+                data['labels'].squeeze(0)[:, ii].long().to(self.device)
+            )
+
+    def compute(
+        self,
+    ):
+        return {
+            output: self.confusion_matrix[output].compute()
+            for output in self.confusion_matrix.keys()
+        }

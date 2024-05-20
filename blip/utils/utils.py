@@ -2,6 +2,7 @@
 Various utility functions
 """
 import os
+import io
 import torch
 import zipfile
 import copy
@@ -12,11 +13,26 @@ import pandas as pd
 import random
 import requests
 import tarfile
+import psutil
+import time
+import functools
+from PIL import Image
 from matplotlib import pyplot as plt
 from os import listdir
+from collections import defaultdict
 from os.path import isfile, join
 from itertools import product
 from datetime import datetime
+
+
+def fig_to_array(fig):
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', bbox_inches='tight')
+    buf.seek(0)
+    image = Image.open(buf)
+    image_array = np.array(image)
+    buf.close()
+    return image_array
 
 
 def tar_single_file(
@@ -505,3 +521,63 @@ def generate_random_dictionaries(
             new_dicts.append(sample_dict)
 
     return new_dicts
+
+class TimingManager:
+    """_summary_
+    """
+    def __init__(self):
+        self.timings = defaultdict(list)
+
+    def record_timing(self, func_name, elapsed):
+        self.timings[func_name].append(elapsed)
+
+
+class MemoryManager:
+    """_summary_
+    """
+    def __init__(self):
+        self.memory = defaultdict(list)
+
+    def record_memory(self, func_name, elapsed):
+        self.memory[func_name].append(elapsed)
+
+
+# Global instance to store timings
+timing_manager = TimingManager()
+# Global instance to store profiles
+memory_manager = MemoryManager()
+
+
+def profiler(func):
+    """_summary_
+
+    Args:
+        func (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        process = psutil.Process(os.getpid())
+        mem_before = process.memory_info().rss / 1024 ** 2  # Convert bytes to MB
+
+        start_time = time.time()
+        result = func(*args, **kwargs)
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+
+        mem_after = process.memory_info().rss / 1024 ** 2  # Convert bytes to MB
+        mem_used = mem_after - mem_before
+
+        # Capture the memory profile output
+        try:
+            memory_manager.record_memory(func.__qualname__, mem_used)
+            timing_manager.record_timing(func.__qualname__, elapsed_time)
+        except Exception:
+            memory_manager.record_memory(func.__name__, mem_used)
+            timing_manager.record_timing(func.__name__, elapsed_time)
+
+        return result
+    return wrapper

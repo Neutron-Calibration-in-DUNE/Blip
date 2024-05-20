@@ -1,7 +1,6 @@
 """
 BlipSegmentation implementation using MinkowskiEngine
 """
-import numpy as np
 import torch
 import torch.nn as nn
 import torchvision.transforms.functional as F
@@ -9,7 +8,8 @@ import MinkowskiEngine as ME
 from collections import OrderedDict
 import time
 
-from blip.models import GenericModel
+from blip.utils.logger import BlipError
+from blip.models.generic_model import GenericModel
 from blip.models.common import Identity, activations, sparse_activations
 
 
@@ -159,35 +159,24 @@ class BlipSegmentation(GenericModel):
     def __init__(
         self,
         name:   str = 'blip_segmentation',      # name of the model
-        config: dict = blip_segmentation_params,
+        config: dict = {},
         meta:   dict = {}
     ):
         super(BlipSegmentation, self).__init__(name, config, meta)
-        self.name = name
         self.config = config
-        # check config
-        self.logger.info(f"checking BlipSegmentation architecture using config: {self.config}")
         for item in blip_segmentation_params.keys():
             if item not in self.config:
-                self.logger.error(f"parameter {item} was not specified in config file {self.config}")
-                raise AttributeError
+                raise BlipError(f"parameter {item} was not specified in config file {self.config}")
         if (
             (self.config["sparse_conv_params"]["dimension"] != self.config["conv_transpose_params"]["dimension"]) or
             (self.config["sparse_conv_params"]["dimension"] != self.config["max_pooling_params"]["dimension"])
         ):
-            self.logger.error(
+            raise BlipError(
                 "dimensions for 'sparse_conv_params', 'conv_transpose_params' and" +
                 f"'max_pooling_params' (with values {self.config['sparse_conv_params']['dimension']}" +
                 f", {self.config['conv_transpose_params']['dimension']} and " +
                 f"{self.config['max_pooling_params']['dimension']}) do not match!"
             )
-            raise AttributeError
-
-        if "out_channels" not in self.config:
-            out_channels = []
-            for classification in self.config["classifications"]:
-                out_channels.append(len(self.meta['classes_labels_names'][classification]))
-            self.config['out_channels'] = out_channels
 
         # construct the model
         self.construct_model()
@@ -294,15 +283,25 @@ class BlipSegmentation(GenericModel):
         object to a ME.SparseTensor(feats, coords).
         Iterate over the module dictionary.
         """
+        features = data['features'].squeeze(0).to(self.device)
+        batch_ids = data['batch_id'].squeeze(0).to(self.device)
+        positions = data['positions'].squeeze(0).to(self.device)
+        coordinates = torch.cat(
+            (batch_ids, positions), 
+            dim=1
+        ).to(self.device)
+        """Step 3: Find unique rows"""
+        unique_coordinates, inverse_indices = torch.unique(
+            coordinates, 
+            dim=0, 
+            return_inverse=True, 
+            sorted=True
+        )
         x = ME.SparseTensor(
-            features=data.x,
-            coordinates=torch.cat(
-                (data.batch.unsqueeze(1), data.pos),
-                dim=1
-            ).int(),
+            features=features.float(), 
+            coordinates=coordinates,
             quantization_mode=self.meta['quantization_mode'],
             minkowski_algorithm=self.meta['minkowski_algorithm'],
-            device=self.device
         )
         # record the skip connections
         skip_connections = {}
@@ -322,8 +321,8 @@ class BlipSegmentation(GenericModel):
                 x = F.resize(x, size=skip_connection.shape[2:])
             concat_skip = ME.cat(skip_connection, x)
             x = self.module_up_dict[f'up_filter_double_conv{filter}'](concat_skip)
-
-        return {
-            classifications: self.classification_dict[classifications](x).features
+        outputs = {
+            classifications: self.classification_dict[classifications](x).features[inverse_indices]
             for classifications in self.classification_dict.keys()
         }
+        return outputs

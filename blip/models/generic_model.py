@@ -1,4 +1,3 @@
-
 """
 Generic model code.
 """
@@ -11,7 +10,7 @@ import numpy as np
 from datetime import datetime
 from collections import OrderedDict
 
-from blip.utils.logger import Logger
+from blip.utils.logger import BlipError
 
 generic_config = {
     "no_params":    "no_values"
@@ -31,8 +30,6 @@ class GenericModel(nn.Module):
         super(GenericModel, self).__init__()
         self.name = name
         self.config = config
-        self.logger = Logger(self.name, file_mode='w')
-        self.logger.info("configuring model.")
 
         # forward view maps
         self.forward_views = {}
@@ -45,6 +42,8 @@ class GenericModel(nn.Module):
         self.meta = meta
         if "device" in self.meta:
             self.device = self.meta['device']
+        else:
+            self.device = 'cpu'
         self.to(self.device)
 
     def set_device(
@@ -78,18 +77,11 @@ class GenericModel(nn.Module):
         dictionary and fill it with individual modules.
 
         """
-        self.logger.info(f"Attempting to build GenericModel architecture using config: {self.config}")
-
         _model_dict = OrderedDict()
         self.model_dict = nn.ModuleDict(_model_dict)
 
-        # record the info
-        self.logger.info(
-            "Constructed GenericModel with dictionaries:"
-        )
-
     def forward(self, x):
-        self.logger.error('"forward" not implemented in Model!')
+        raise BlipError('"forward" not implemented in Model!')
 
     def save_model(
         self,
@@ -107,10 +99,6 @@ class GenericModel(nn.Module):
             'user':     getpass.getuser(),
             'user_id':  os.getuid()
         }
-        system_info = self.logger.get_system_info()
-        if len(system_info) > 0:
-            for item in system_info:
-                meta_info[item] = system_info[item]
         meta_info['model_config'] = self.config
         meta_info['num_parameters'] = self.total_parameters()
         meta_info['state_dict'] = self.state_dict()
@@ -146,7 +134,6 @@ class GenericModel(nn.Module):
         self,
         model_file:   str = ''
     ):
-        self.logger.info(f"attempting to load model checkpoint from file {model_file}.")
         try:
             checkpoint = torch.load(model_file)
             self.config = checkpoint['model_config']
@@ -155,6 +142,4 @@ class GenericModel(nn.Module):
             self.register_forward_hooks()
             self.load_state_dict(checkpoint['model_state_dict'])
         except Exception as e:
-            self.logger.error(f"unable to load model file {model_file}: {e}.")
-            raise ValueError(f"unable to load model file {model_file}: {e}.")
-        self.logger.info("successfully loaded model checkpoint.")
+            raise BlipError(f"unable to load model file {model_file}: {e}.")
