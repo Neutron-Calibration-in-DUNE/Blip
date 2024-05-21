@@ -216,7 +216,8 @@ class BlipTrainer:
                         total=self.meta['num_iterations'],
                         leave=self.rewrite_bar,
                         position=0,
-                        colour='green'
+                        colour='green',
+                        initial=iterations
                     )
                 else:
                     training_loop = enumerate(self.meta['loader'].train_loader, 0)
@@ -415,6 +416,8 @@ class BlipTrainer:
             """
             Validation stage.
             """
+            if self.metrics is not None:
+                self.metrics.reset_batch()
 
             """Set the step_count for tensorboard"""
             step_count = 0
@@ -541,6 +544,8 @@ class BlipTrainer:
         loop stage, since it is generally quick
         and doesn't need to be optimized for any reason.
         """
+        if self.metrics is not None:
+            self.metrics.reset_batch()
         try:
             if self.progress_bar in ['all', 'test']:
                 test_loop = tqdm(

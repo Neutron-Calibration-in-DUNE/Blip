@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 from matplotlib import pyplot as plt
 from torchmetrics.classification import MulticlassConfusionMatrix
+import seaborn as sns
 
 from blip.utils.logger import BlipError
 from blip.utils.utils import fig_to_array
@@ -50,7 +51,7 @@ class BlipSegmentationConfusionMatrix(GenericMetric):
             key: MulticlassConfusionMatrix(
                 num_classes=self.num_classes[key]
             ).to(self.device)
-            for key in ['topology', 'physics']
+            for key in self.labels
         }
 
     def reset_batch(self):
@@ -76,6 +77,7 @@ class BlipSegmentationConfusionMatrix(GenericMetric):
             fig, axs = plt.subplots(figsize=(10, 10))
             axs.set_title(f"{output.capitalize()} ({train_type.capitalize()})")
             self.confusion_matrix[output].plot(ax=axs, labels=self.labels[output])
+            axs.set_xticklabels(axs.get_xticklabels(), rotation=45, ha='right', rotation_mode='anchor')
             fig_array = fig_to_array(fig)
             self.meta['tensorboard'].add_image(
                 f'{self.name}: {output} ({train_type})',
@@ -83,6 +85,34 @@ class BlipSegmentationConfusionMatrix(GenericMetric):
                 iterations,
                 dataformats='HWC'
             )
+            plt.close()
+
+            """Same plot with percentages"""
+            conf_matrix = self.confusion_matrix[output].compute()
+            conf_matrix_percentages = conf_matrix / conf_matrix.sum(axis=1, keepdims=True) * 100
+            fig, axs = plt.subplots()
+            sns.heatmap(
+                conf_matrix_percentages.cpu(),
+                annot=True,
+                fmt='.2f',
+                cmap='Blues',
+                ax=axs,
+                cbar_kws={'format': '%.0f%%'}
+            )
+
+            axs.set_xlabel('Predicted class')
+            axs.set_ylabel('True class')
+            axs.set_title(f"{output.capitalize()} ({train_type.capitalize()})")
+            axs.set_xticklabels(self.labels[output], rotation=45, ha='right', rotation_mode='anchor')
+            axs.set_yticklabels(self.labels[output], rotation=45, ha='right', rotation_mode='anchor')
+            fig_array = fig_to_array(fig)
+            self.meta['tensorboard'].add_image(
+                f'{self.name}: {output} ({train_type}) (percentages)',
+                fig_array,
+                iterations,
+                dataformats='HWC'
+            )
+            plt.close()
 
     def update(
         self,

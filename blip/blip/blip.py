@@ -87,6 +87,9 @@ class Blip:
         self.event_plugin_tb_strs = []
         self.event_plugin_traceback_details = []
 
+        time = datetime.now()
+        self.now = f"{time.hour}:{time.minute}:{time.second} [{time.day}/{time.month}/{time.year}]"
+
         """Parse config"""
         try:
             self.parse_config()
@@ -119,8 +122,6 @@ class Blip:
         """Try to grab system info and display to the logger"""
         if self.meta["local_rank"] == 0:
             system_info = self.logger.get_system_info()
-            time = datetime.now()
-            self.now = f"{time.hour}:{time.minute}:{time.second} [{time.day}/{time.month}/{time.year}]"
             self.logger.info(f'system_info - local time: {self.now}')
             for key, value in system_info.items():
                 self.logger.info(f"system_info - {key}: {value}")
@@ -566,6 +567,8 @@ class Blip:
     def set_up_tensorboard(
         self,
     ):
+        if self.meta["world_rank"] == 0:
+            self.logger.info("setting up tensorboard")
         self.meta['tensorboard'] = SummaryWriter(
             log_dir=os.path.join(
                 self.meta["experiment_directory"], "logs/", self.now

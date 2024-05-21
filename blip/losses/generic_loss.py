@@ -32,7 +32,7 @@ class GenericLoss:
         # construct batch loss dictionaries
         self.batch_loss = {
             key: torch.empty(size=(0, 1), dtype=torch.float, device=self.device)
-            for key in ['topology', 'physics']
+            for key in self.meta['dataset'].labels
         }
 
     def reset_batch(self):

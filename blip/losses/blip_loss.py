@@ -123,6 +123,12 @@ class BlipLoss:
                     self.batch_loss[name][ii],
                     iteration
                 )
+                for jj, label in enumerate(loss.batch_loss.keys()):
+                    self.meta['tensorboard'].add_scalar(
+                        f"{name}:{label} ({train_type})",
+                        loss.batch_loss[label][ii],
+                        iteration
+                    )
         self.reset_batch()
 
     def set_device(

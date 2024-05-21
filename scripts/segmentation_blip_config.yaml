@@ -37,7 +37,7 @@ loader:
   test_seed:        100
   validation_split: 0.3
   validation_seed:  100
-  num_workers:      16
+  num_workers:      4
 
 scheduler:
   lr_schedule: 'cosine'
