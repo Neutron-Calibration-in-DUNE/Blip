@@ -22,18 +22,6 @@ def run():
     with the "create_hyperparameter_runs" program,
     """
 
-    """Check if the script is run interactively or as an sbatch job"""
-    is_sbatch_job = 'SLURM_JOB_ID' in os.environ
-    
-    """Check if MPI is initialized"""
-    mpi_initialized = MPI.Is_initialized()
-
-    """If not running under MPI and not an sbatch job, re-execute with mpirun"""
-    if not is_sbatch_job and not mpi_initialized:
-        command = ['mpirun', '-np', '1', sys.executable] + sys.argv
-        result = subprocess.run(command)
-        sys.exit(result.returncode)
-
     """
     We do a preliminary check to ensure that MPI is available
     and that the number of processes is at least 1.  Assuming
