@@ -6,7 +6,6 @@ import torch.nn as nn
 import torchvision.transforms.functional as F
 import MinkowskiEngine as ME
 from collections import OrderedDict
-import time
 
 from blip.utils.logger import BlipError
 from blip.models.generic_model import GenericModel
@@ -119,6 +118,52 @@ class SparseConv(ME.MinkowskiNetwork):
         return x
 
 
+class SpatialAttention(nn.Module):
+    def __init__(self, in_channels, kernel_size=7):
+        super(SpatialAttention, self).__init__()
+        self.conv = ME.MinkowskiConvolution(
+            in_channels=in_channels,
+            out_channels=in_channels,
+            kernel_size=kernel_size,
+            stride=1,
+            dilation=1,
+            bias=False,
+            dimension=3
+        )
+        self.sigmoid = ME.MinkowskiSigmoid()
+
+    def forward(self, x):
+        # Extract features
+        features = x.F
+
+        # Compute average and max pooling along the channel dimension
+        avg_out = torch.mean(features, dim=1, keepdim=True)
+        max_out, _ = torch.max(features, dim=1, keepdim=True)
+
+        # Concatenate along the channel dimension
+        x_cat = torch.cat([avg_out, max_out], dim=1)
+
+        # Create a new sparse tensor for the concatenated features
+        x_cat_sparse = ME.SparseTensor(
+            features=x_cat,
+            coordinate_map_key=x.coordinate_map_key,
+            coordinate_manager=x.coordinate_manager
+        )
+
+        # Apply convolution and sigmoid
+        x_cat_sparse = self.conv(x_cat_sparse)
+        attention_map = self.sigmoid(x_cat_sparse)
+
+        # Apply the attention map to the original features
+        x_out = ME.SparseTensor(
+            features=features * attention_map.F,
+            coordinate_map_key=x.coordinate_map_key,
+            coordinate_manager=x.coordinate_manager
+        )
+
+        return x_out
+
+
 """
 Here are a set of standard UNet parameters, which must be
 adjusted by the user for each application
@@ -190,7 +235,10 @@ class BlipSegmentation(GenericModel):
         _bottleneck_dict = OrderedDict()
         _classification_dict = OrderedDict()
 
-        # iterate over the down part
+        """Create spatial attention module"""
+        # self.spatial_attention = SpatialAttention(in_channels=2*self.config['filtrations'][-1])
+
+        """Iterate over the down part"""
         in_channels = self.config['in_channels']
         for filter in self.config['filtrations']:
             _down_dict[f'down_filter_double_conv{filter}'] = SparseConv(
@@ -207,10 +255,9 @@ class BlipSegmentation(GenericModel):
                 dropout=self.config['sparse_conv_params']['dropout'],
                 residual=self.config['residual']
             )
-            # set new in channel to current filter size
             in_channels = filter
 
-        # iterate over the up part
+        """Iterate over the up part"""
         for filter in reversed(self.config['filtrations']):
             _up_dict[f'up_filter_transpose{filter}'] = ME.MinkowskiConvolutionTranspose(
                 in_channels=2*filter,   # adding the skip connection, so the input doubles
@@ -235,7 +282,7 @@ class BlipSegmentation(GenericModel):
                 residual=self.config['residual']
             )
 
-        # create bottleneck layer
+        """Create bottleneck layer"""
         _bottleneck_dict['bottleneck'] = SparseConv(
             name=f"bottleneck_{self.config['filtrations'][-1]}",
             in_channels=self.config['filtrations'][-1],
@@ -251,7 +298,7 @@ class BlipSegmentation(GenericModel):
             residual=self.config['residual']
         )
 
-        # create output layer
+        """Create output layer"""
         for ii, classification in enumerate(self.config['classifications']):
             _classification_dict[f"{classification}"] = ME.MinkowskiConvolution(
                 in_channels=self.config['filtrations'][0],      # to match first filtration
@@ -260,7 +307,7 @@ class BlipSegmentation(GenericModel):
                 dimension=self.config['sparse_conv_params']['dimension'],
             )
 
-        # create the max pooling layer
+        """Create the max pooling layer"""
         self.max_pooling = ME.MinkowskiMaxPooling(
             kernel_size=self.config['max_pooling_params']['kernel_size'],
             stride=self.config['max_pooling_params']['stride'],
@@ -268,7 +315,7 @@ class BlipSegmentation(GenericModel):
             dimension=self.config['max_pooling_params']['dimension']
         )
 
-        # create the dictionaries
+        """Create the dictionaries"""
         self.module_down_dict = nn.ModuleDict(_down_dict)
         self.module_up_dict = nn.ModuleDict(_up_dict)
         self.bottleneck_dict = nn.ModuleDict(_bottleneck_dict)
@@ -287,40 +334,50 @@ class BlipSegmentation(GenericModel):
         batch_ids = data['batch_id'].squeeze(0).to(self.device)
         positions = data['positions'].squeeze(0).to(self.device)
         coordinates = torch.cat(
-            (batch_ids, positions), 
+            (batch_ids, positions),
             dim=1
         ).to(self.device)
-        """Step 3: Find unique rows"""
+
+        """Step 1: Find unique rows"""
         unique_coordinates, inverse_indices = torch.unique(
-            coordinates, 
-            dim=0, 
-            return_inverse=True, 
+            coordinates,
+            dim=0,
+            return_inverse=True,
             sorted=True
         )
+
+        """Step 2: Generate sparse tensor"""
         x = ME.SparseTensor(
-            features=features.float(), 
+            features=features.float(),
             coordinates=coordinates,
             quantization_mode=self.meta['quantization_mode'],
             minkowski_algorithm=self.meta['minkowski_algorithm'],
         )
-        # record the skip connections
+
+        """Record the skip connections"""
         skip_connections = {}
-        # iterate over the down part
+        """Step 3: Iterate over the downward part"""
         for filter in self.config['filtrations']:
             x = self.module_down_dict[f'down_filter_double_conv{filter}'](x)
             skip_connections[f'{filter}'] = x
             x = self.max_pooling(x)
-        # through the bottleneck layer
+
+        """Step 4: Step through the bottleneck layer"""
         x = self.bottleneck_dict['bottleneck'](x)
+
+        """Step 5: Pass through spatial attention layer"""
+        # x = self.spatial_attention(x)
+
+        """Step 5: Iterate over the upward part"""
         for filter in reversed(self.config['filtrations']):
             x = self.module_up_dict[f'up_filter_transpose{filter}'](x)
-            # concatenate the skip connections
             skip_connection = skip_connections[f'{filter}']
-            # check for compatibility
             if x.shape != skip_connection.shape:
                 x = F.resize(x, size=skip_connection.shape[2:])
             concat_skip = ME.cat(skip_connection, x)
             x = self.module_up_dict[f'up_filter_double_conv{filter}'](concat_skip)
+
+        """Step 6: Evaluate the classification output"""
         outputs = {
             classifications: self.classification_dict[classifications](x).features[inverse_indices]
             for classifications in self.classification_dict.keys()

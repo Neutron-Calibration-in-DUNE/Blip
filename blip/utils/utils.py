@@ -228,7 +228,7 @@ def get_method_arguments(method):
                 default_params[ii] = value
         argdict = {item: default_params[ii] for ii, item in enumerate(args)}
         return argdict
-    except:
+    except Exception:
         return {}
 
 
@@ -250,7 +250,7 @@ def get_shape_dictionary(
     for item in dataset_values:
         try:
             data_shapes[item] = getattr(dataset, item)
-        except:
+        except Exception:
             data_shapes[item] = 'missing'
     # list of desired dataloader values
     dataset_loader_values = [
@@ -265,7 +265,7 @@ def get_shape_dictionary(
     for item in dataset_loader_values:
         try:
             data_shapes[item] = getattr(dataset_loader, item)
-        except:
+        except Exception:
             data_shapes[item] = 'missing'
     # list of desired model values
     model_values = [
@@ -275,7 +275,7 @@ def get_shape_dictionary(
     for item in model_values:
         try:
             data_shapes[item] = getattr(model, item)
-        except:
+        except Exception:
             data_shapes[item] = 'missing'
     return data_shapes
 
@@ -310,7 +310,7 @@ def get_base_classes(derived):
     try:
         for base in derived.__class__.__bases__:
             bases.append(base.__name__)
-    except:
+    except Exception:
         pass
     return bases
 
@@ -521,6 +521,7 @@ def generate_random_dictionaries(
             new_dicts.append(sample_dict)
 
     return new_dicts
+
 
 class TimingManager:
     """_summary_

@@ -22,6 +22,7 @@ class BlipOptimizer:
 
         self.parse_config()
 
+    @profiler
     def parse_config(self):
         if "model" not in self.meta:
             raise BlipError('no model specified in meta!')
@@ -66,7 +67,6 @@ class BlipOptimizer:
             nn.utils.clip_grad_norm_(self.meta['model'].model.parameters(), max_norm=self.max_norm)
         return self.optimizer.step()
 
-    @profiler
     def report_tensorboard(self, iterations, train_type):
         """Report learning rate to tensorboard"""
         self.meta['tensorboard'].add_scalar(

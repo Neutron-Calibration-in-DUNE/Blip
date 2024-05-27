@@ -9,7 +9,7 @@ import torch
 
 from blip.utils.logger import BlipError
 from blip.metrics.generic_metric import GenericMetric
-from blip.utils.utils import get_method_arguments, profiler
+from blip.utils.utils import profiler
 
 
 class BlipMetric:
@@ -68,6 +68,7 @@ class BlipMetric:
             if issubclass(obj, GenericMetric) and obj.__module__ == full_module_name:
                 self.available_metrics[name] = obj
 
+    @profiler
     def parse_config(self):
         # list of available criterions
         self.collect_metrics()
@@ -105,7 +106,6 @@ class BlipMetric:
             self.batch_metric[item] = torch.empty(size=(0, 1), dtype=torch.float, device=self.device)
             self.batch_iteration[item] = []
 
-    @profiler
     def report_tensorboard(
         self,
         iterations,

@@ -7,7 +7,6 @@ from matplotlib import pyplot as plt
 from torchmetrics.classification import MulticlassConfusionMatrix
 import seaborn as sns
 
-from blip.utils.logger import BlipError
 from blip.utils.utils import fig_to_array
 from blip.metrics.generic_metric import GenericMetric
 

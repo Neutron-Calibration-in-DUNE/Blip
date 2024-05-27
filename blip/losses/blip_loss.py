@@ -9,7 +9,7 @@ import torch
 
 from blip.utils.logger import BlipError
 from blip.losses.generic_loss import GenericLoss
-from blip.utils.utils import get_method_arguments, profiler
+from blip.utils.utils import profiler
 
 
 class BlipLoss:
@@ -36,7 +36,7 @@ class BlipLoss:
         self.available_losses = {}
         for filename in os.listdir(loss_dir):
             if filename.endswith(".py") and filename not in {
-                "__init__.py", 
+                "__init__.py",
                 "__pycache__.py",
                 "generic_loss.py"
             }:

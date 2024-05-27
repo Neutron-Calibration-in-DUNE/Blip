@@ -8,9 +8,7 @@ from blip.utils.logger import BlipError
 
 class GenericMetric:
     """
-    Abstract base class for Blip metrics.  The inputs are
-        1. name - a unique name for the metric function.
-        2. meta - meta information from the module.
+    Abstract base class for Blip metrics.
     """
     def __init__(
         self,

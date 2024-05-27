@@ -21,7 +21,7 @@ class BlipModel:
     ):
         self.config = config
         self.meta = meta
-        
+
         self.parse_config()
 
     @profiler
@@ -31,7 +31,7 @@ class BlipModel:
         self.available_models = {}
         for filename in os.listdir(model_dir):
             if filename.endswith(".py") and filename not in {
-                "__init__.py", 
+                "__init__.py",
                 "__pycache__.py",
                 "generic_model.py"
             }:
@@ -63,6 +63,7 @@ class BlipModel:
             if issubclass(obj, GenericModel) and obj.__module__ == full_module_name:
                 self.available_models[name] = obj
 
+    @profiler
     def parse_config(self):
         # list of available models
         self.collect_models()
@@ -71,7 +72,7 @@ class BlipModel:
             if os.path.isfile(self.config["custom_model_file"]):
                 try:
                     self.load_model(self.config["custom_model_file"])
-                except:
+                except Exception:
                     raise BlipError(
                         f'loading classes from file {self.config["custom_model_file"]} failed!'
                     )
@@ -105,6 +106,8 @@ class BlipModel:
                 raise BlipError('model_type set to "single", but multiple models have been registered!')
             else:
                 self.model = list(self.models.values())[0]
+        if 'load_model' in self.config.keys():
+            self.model.load_model(self.config['load_model'])
 
     def set_device(
         self,
@@ -134,7 +137,7 @@ class BlipModel:
             for name, model in self.models.items():
                 try:
                     model.train()
-                except:
+                except Exception:
                     self.logger.warn(f'problem with setting train for model {name}')
 
     def eval(self):
@@ -144,7 +147,7 @@ class BlipModel:
             for name, model in self.models.items():
                 try:
                     model.eval()
-                except:
+                except Exception:
                     self.logger.warn(f'problem with setting eval for model {name}')
 
     def contrastive_learning(self):
@@ -154,7 +157,7 @@ class BlipModel:
             for name, model in self.models.items():
                 try:
                     model.contrastive_learning()
-                except:
+                except Exception:
                     self.logger.warn(f'problem with setting contrastive learning for model {name}')
 
     def linear_evaluation(self):
@@ -164,7 +167,7 @@ class BlipModel:
             for name, model in self.models.items():
                 try:
                     model.linear_evaluation()
-                except:
+                except Exception:
                     self.logger.warn(f'problem with setting linear_evaluation for model {name}')
 
     def parameters(self):

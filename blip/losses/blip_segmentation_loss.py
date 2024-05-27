@@ -65,6 +65,13 @@ class BlipSegmentationLoss(GenericLoss):
                     / self.meta['dataset'].class_weights['fragment_end'][0]
                 ).to(self.device)
             ),
+            'shower_begin': nn.BCEWithLogitsLoss(
+                reduction=self.reduction,
+                pos_weight=(
+                    self.meta['dataset'].class_weights['shower_begin'][1]
+                    / self.meta['dataset'].class_weights['shower_begin'][0]
+                ).to(self.device)
+            ),
         }
 
     def loss(

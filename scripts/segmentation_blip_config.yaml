@@ -20,14 +20,15 @@ blip:
 
 dataset:
   dataset_mode: 'simulation'
-  flow_folder:  '/global/cfs/cdirs/dune/www/data/2x2/simulation/productions/MiniRun5_1E19_RHC/MiniRun5_1E19_RHC.flow.beta1/FLOW/0000000'
-  arrakis_folder: '/local_scratch/MiniRun5_1E19_RHC/MiniRun5_1E19_RHC.arrakis/ARRAKIS'
+  flow_folder:  '/local_data/segmentation_test/'
+  arrakis_folder: '/local_data/segmentation_test/'
   flow_files: 'all'
   dataset_name: 'charge/calib_final_hits/data'
   chunk_size: 10
   positions: ['x', 'y', 'z']
   features: []
-  labels: ['topology', 'physics']
+  labels: ['topology', 'physics', 'vertex', 'tracklette_begin', 'tracklette_end', 'fragment_begin', 'fragment_end']
+  class_weights: ['topology', 'physics', 'vertex', 'tracklette_begin', 'tracklette_end', 'fragment_begin', 'fragment_end']
 
 loader:
   quantization_mode:    "random_subsample"
@@ -37,7 +38,7 @@ loader:
   test_seed:        100
   validation_split: 0.3
   validation_seed:  100
-  num_workers:      4
+  num_workers:      16
 
 scheduler:
   lr_schedule: 'cosine'
@@ -52,8 +53,8 @@ model:
   model_type:       "single"    
   BlipSegmentation:
     in_channels:      1
-    out_channels:     [3, 9]
-    classifications:  ['topology', 'physics']
+    out_channels:     [3, 9, 1, 1, 1, 1, 1]
+    classifications:  ['topology', 'physics', 'vertex', 'tracklette_begin', 'tracklette_end', 'fragment_begin', 'fragment_end']
     filtrations:      [64, 128, 256, 512]
     residual:         true
     sparse_conv_params:
@@ -81,6 +82,7 @@ criterion:
   
 metrics:
   BlipSegmentationConfusionMatrix:
+  BlipSegmentationROC:
 
 optimizer:
   optimizer_type: "Adam"

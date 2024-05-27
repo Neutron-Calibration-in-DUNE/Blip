@@ -4,6 +4,8 @@ import os
 import glob
 import numpy as np
 from torch.utils.data import Dataset
+from mpi4py import MPI
+from tqdm import tqdm
 
 from blip.utils.utils import profiler
 from blip.utils.logger import BlipError
@@ -20,6 +22,8 @@ class BlipDataset(Dataset):
         self.config = config
         self.meta = meta
 
+        self.comm = MPI.COMM_WORLD
+
         self.label_values = {
             'topology': [0, 1, 2],
             'physics': [0, 1, 2, 3, 4, 5, 6, 7, 8],
@@ -28,6 +32,7 @@ class BlipDataset(Dataset):
             'tracklette_end': [0, 1],
             'fragment_begin': [0, 1],
             'fragment_end': [0, 1],
+            'shower_begin': [0, 1],
         }
 
         self.parse_config()
@@ -37,8 +42,6 @@ class BlipDataset(Dataset):
         self.parse_folders_and_files()
         self.parse_dataset_variables()
         self.parse_dataset_parameters()
-        self.calculate_event_id_mapping()
-        self.calculate_class_weights()
 
     @profiler
     def parse_folders_and_files(self):
@@ -63,6 +66,12 @@ class BlipDataset(Dataset):
         else:
             self.arrakis_folder = None
 
+        """Check for blip_folder"""
+        if 'blip_folder' not in self.config.keys():
+            raise BlipError('blip_folder not specified in config!')
+        else:
+            self.blip_folder = self.config['blip_folder']
+
         """Check for flow_files"""
         if 'flow_files' not in self.config.keys():
             raise BlipError('flow_files not specified in config!')
@@ -84,6 +93,10 @@ class BlipDataset(Dataset):
             if not os.path.isdir(self.arrakis_folder):
                 raise BlipError(f'specified arrakis_folder "{self.arrakis_folder}" does not exist!')
 
+        """Check that blip folder exists"""
+        if not os.path.isdir(self.blip_folder):
+            raise BlipError(f'specified blip_folder "{self.blip_folder}" does not exist!')
+
         """Check that flow folder has a '/' at the end"""
         if self.flow_folder[-1] != '/':
             self.flow_folder += '/'
@@ -92,6 +105,10 @@ class BlipDataset(Dataset):
         if self.arrakis_folder is not None:
             if self.arrakis_folder[-1] != '/':
                 self.arrakis_folder += '/'
+
+        """Check that blip folder has a '/' at the end"""
+        if self.blip_folder[-1] != '/':
+            self.blip_folder += '/'
 
         if isinstance(self.flow_files, list):
             """
@@ -206,7 +223,60 @@ class BlipDataset(Dataset):
             self.config['class_weights'] = []
         self.class_weights_to_use = self.config['class_weights']
 
+        """Check for feature normalization"""
+        if 'feature_normalization' not in self.config.keys():
+            self.feature_normalization = 1
+        else:
+            if self.config['feature_normalization'] == 'min_max':
+                self.feature_normalization = 0
+            else:
+                self.feature_normalization = 1
+
     @profiler
+    def create_blip_files(
+        self
+    ):
+        """
+        This function generates output Blip files
+        which will contain predictions from the output of blip.
+        """
+        self.blip_files = []
+        flow_file_loop = tqdm(
+            enumerate(self.flow_files, 0),
+            total=len(self.flow_files),
+            leave=True,
+            colour='green',
+        )
+        for ii, flow_file in flow_file_loop:
+            flow_file_loop.set_description(
+                f"Creating blip files [{ii+1}]"
+            )
+            blip_file = flow_file.replace('FLOW', 'BLIP').replace('flow', 'blip')
+            self.blip_files.append(blip_file)
+            with h5py.File(self.flow_folder + flow_file, 'r') as flow, \
+                 h5py.File(self.blip_folder + blip_file, 'a') as blip:
+                """Get dataset size from flow file"""
+
+                dataset_size = len(flow[self.dataset_name])
+                new_charge_data_type = np.dtype([
+                    ('event_id', 'i4'),
+                    ('topology', 'f4', (3, )),
+                    ('physics', 'f4', (9, )),
+                    ('vertex', 'f4'),
+                    ('tracklette_begin', 'f4'),
+                    ('tracklette_end', 'f4'),
+                    ('fragment_begin', 'f4'),
+                    ('fragment_end', 'f4'),
+                    ('shower_begin', 'f4')
+                ])
+                new_charge_data = np.full(
+                    dataset_size, -1, dtype=new_charge_data_type
+                )
+                if self.dataset_name in blip:
+                    del blip[self.dataset_name]
+
+                blip.create_dataset(self.dataset_name, data=new_charge_data)
+
     def apply_voxelization(
         self,
         output
@@ -238,6 +308,26 @@ class BlipDataset(Dataset):
 
         return output
 
+    def apply_normalization(
+        self,
+        output
+    ):
+        """
+        This function applies the selected feature normalization
+        to the features in a batch.
+        """
+        for feature in self.features:
+            if self.feature_normalization == 0:
+                output['features'] = (
+                    output['features'].clone() / (self.feature_max[feature] - self.feature_min[feature])
+                )
+            else:
+                output['features'] = (
+                    output['features'].clone() - self.feature_mean[feature]
+                ) / self.feature_std[feature]
+
+        return output
+
     @profiler
     def calculate_event_id_mapping(self):
         """
@@ -246,7 +336,16 @@ class BlipDataset(Dataset):
         self.file_indices = []
         self.event_start_indices = []
         self.event_end_indices = []
-        for ii, arrakis_file in enumerate(self.arrakis_files):
+        arrakis_file_loop = tqdm(
+            enumerate(self.arrakis_files, 0),
+            total=len(self.arrakis_files),
+            leave=True,
+            colour='green',
+        )
+        for ii, arrakis_file in arrakis_file_loop:
+            arrakis_file_loop.set_description(
+                f"Calculating event_id mapping [{ii+1}]"
+            )
             with h5py.File(self.arrakis_folder + arrakis_file, 'r') as f:
                 event_ids = f[self.dataset_name]['event_id'][:]
                 unique_values, start_indices = np.unique(event_ids, return_index=True)
@@ -255,6 +354,59 @@ class BlipDataset(Dataset):
                     self.file_indices.append(ii)
                     self.event_start_indices.append(start_indices[jj])
                     self.event_end_indices.append(end_indices[min(jj + self.chunk_size - 1, len(end_indices) - 1)])
+
+    @profiler
+    def calculate_feature_normalization(self):
+        """Calculate the totals for feature values over all files"""
+        if len(self.features) == 0:
+            return
+        self.feature_sum = {
+            feature: 0 for feature in self.features
+        }
+        self.feature_count = {
+            feature: 0 for feature in self.features
+        }
+        self.feature_max = {
+            feature: 0 for feature in self.features
+        }
+        self.feature_min = {
+            feature: 0 for feature in self.features
+        }
+        self.feature_std = {
+            feature: 0 for feature in self.features
+        }
+        flow_file_loop = tqdm(
+            enumerate(self.flow_files, 0),
+            total=len(self.flow_files),
+            leave=True,
+            colour='green',
+        )
+        for ii, flow_file in flow_file_loop:
+            flow_file_loop.set_description(
+                f"Calculating feature normalization [{ii+1}]"
+            )
+            with h5py.File(self.flow_folder + flow_file, 'r') as f:
+                for feature in self.features:
+                    flow_feature = f[self.dataset_name][feature]
+                    self.feature_sum[feature] += np.sum(flow_feature)
+                    self.feature_count[feature] += len(flow_feature)
+                    self.feature_max[feature] = max(self.feature_max[feature], np.max(flow_feature))
+                    self.feature_min[feature] = min(self.feature_min[feature], np.min(flow_feature))
+        """Compute the mean"""
+        self.feature_mean = {
+            feature: self.feature_sum[feature] / self.feature_count[feature]
+            for feature in self.features
+        }
+        """Compute the standard deviation"""
+        for ii, flow_file in enumerate(self.flow_files):
+            with h5py.File(self.flow_folder + flow_file, 'r') as f:
+                for feature in self.features:
+                    flow_feature = f[self.dataset_name][feature][:]
+                    self.feature_std[feature] += sum((
+                        flow_feature - self.feature_mean[feature]
+                    ) ** 2 / self.feature_count[feature])
+        for feature in self.features:
+            self.feature_std[feature] = np.sqrt(self.feature_std[feature])
 
     @profiler
     def calculate_class_weights(self):
@@ -270,7 +422,16 @@ class BlipDataset(Dataset):
         }
         self.total_instances = 0
         """Iterate over each file and grab instances"""
-        for ii, arrakis_file in enumerate(self.arrakis_files):
+        arrakis_file_loop = tqdm(
+            enumerate(self.arrakis_files, 0),
+            total=len(self.arrakis_files),
+            leave=True,
+            colour='green',
+        )
+        for ii, arrakis_file in arrakis_file_loop:
+            arrakis_file_loop.set_description(
+                f"Calculating class weights [{ii+1}]"
+            )
             with h5py.File(self.arrakis_folder + arrakis_file, 'r') as f:
                 charge = f[self.dataset_name]
                 for label in self.class_instances:
@@ -286,12 +447,10 @@ class BlipDataset(Dataset):
             for ll, cc in enumerate(self.class_instances[label]):
                 self.class_weights[label][ll] = self.class_instances[label][ll] / sum(self.class_instances[label])
 
-    @profiler
     def __len__(self):
         """Calculate total number of chunks"""
         return len(self.file_indices)
 
-    @profiler
     def __getitem__(self, idx):
         file_idx = self.file_indices[idx]
         chunk_start_idx = self.event_start_indices[idx]
@@ -301,8 +460,12 @@ class BlipDataset(Dataset):
         else:
             return self.get_data(file_idx, chunk_start_idx, chunk_end_idx)
 
-    @profiler
-    def get_simulation(self, file_idx, chunk_start_idx, chunk_end_idx):
+    def get_simulation(
+        self,
+        file_idx,
+        chunk_start_idx,
+        chunk_end_idx
+    ):
         flow_file = self.flow_files[file_idx]
         arrakis_file = self.arrakis_files[file_idx]
         output = {
@@ -310,6 +473,9 @@ class BlipDataset(Dataset):
             'features': None,
             'batch_id': None,
             'labels': None,
+            'file_idx': file_idx,
+            'chunk_start_idx': chunk_start_idx,
+            'chunk_end_idx': chunk_end_idx
         }
         with h5py.File(self.flow_folder + flow_file, 'r') as flow, \
              h5py.File(self.arrakis_folder + arrakis_file, 'r') as arrakis:
@@ -360,4 +526,88 @@ class BlipDataset(Dataset):
             """Apply voxelization"""
             output = self.apply_voxelization(output)
 
+            """Apply feature normalization"""
+            output = self.apply_normalization(output)
+
         return output
+
+    def get_data(
+        self,
+        file_idx,
+        chunk_start_idx,
+        chunk_end_idx
+    ):
+        flow_file = self.flow_files[file_idx]
+        output = {
+            'positions': None,
+            'features': None,
+            'batch_id': None,
+            'labels': None,
+            'file_idx': file_idx,
+            'chunk_start_idx': chunk_start_idx,
+            'chunk_end_idx': chunk_end_idx
+        }
+        with h5py.File(self.flow_folder + flow_file, 'r') as flow:
+
+            """Get charge data from flow and arrakis files"""
+            charge_flow = flow[self.dataset_name]
+
+            """Get positions from charge_flow"""
+            charge_positions = tuple(
+                charge_flow[position][chunk_start_idx:chunk_end_idx]
+                for position in self.positions
+            )
+            output['positions'] = torch.tensor(
+                np.vstack(charge_positions),
+                dtype=torch.float32
+            ).transpose(0, 1)
+
+            """Get event_id as batch_id"""
+            output['batch_id'] = torch.tensor(
+                charge_flow['event_id'][chunk_start_idx:chunk_end_idx],
+                dtype=torch.int32
+            ).unsqueeze(1)
+
+            """Get features from charge_flow"""
+            if self.features == []:
+                output['features'] = torch.ones_like(output['batch_id'])
+            else:
+                charge_features = tuple(
+                    charge_flow[feature][chunk_start_idx:chunk_end_idx]
+                    for feature in self.features
+                )
+                output['features'] = torch.tensor(
+                    np.vstack(charge_features),
+                    dtype=torch.float32
+                ).transpose(0, 1)
+
+            """Apply voxelization"""
+            output = self.apply_voxelization(output)
+
+            """Apply feature normalization"""
+            output = self.apply_normalization(output)
+
+        return output
+
+    def save_predictions(
+        self,
+        data,
+    ):
+        """Get blip file"""
+        for ii, file_idx in enumerate(data['file_idx']):
+            blip_file = self.blip_files[file_idx]
+            with h5py.File(self.blip_folder + blip_file, 'r+', driver='mpio', comm=self.comm) as blip:
+                for output in data['outputs']:
+                    file_start_idx = data['chunk_start_idx'][ii]
+                    file_end_idx = data['chunk_end_idx'][ii]
+                    pred_start_idx = data['relative_start_idx'][ii]
+                    pred_end_idx = data['relative_end_idx'][ii]
+
+                    """Assign the predictions to the appropriate indices"""
+                    output_data = data['outputs'][output][pred_start_idx:pred_end_idx]
+                    if output not in ['topology', 'physics']:
+                        output_data = output_data.squeeze(1)
+
+                    existing_data = blip[self.dataset_name][output][:]
+                    existing_data[file_start_idx:file_end_idx] = output_data.cpu().numpy()
+                    blip[self.dataset_name][output] = existing_data

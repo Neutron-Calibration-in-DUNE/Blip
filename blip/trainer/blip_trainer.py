@@ -6,10 +6,8 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.cuda.amp import autocast
 from torch.distributed import ReduceOp
-import numpy as np
 import os
 import time
-from mpi4py import MPI
 from tqdm import tqdm
 
 from blip.utils.logger import BlipError
@@ -50,6 +48,12 @@ class BlipTrainer:
             raise BlipError('"epochs" not specified in config!')
         else:
             self.num_epochs = self.meta["num_epochs"]
+        if "mode" not in self.meta:
+            self.mode = 'train'
+        else:
+            self.mode = self.config['mode']
+        if self.mode not in ['train', 'inference']:
+            raise BlipError(f"trainer mode set to {self.mode}, but can only be 'train' or 'inference'")
         if "checkpoint" not in self.config.keys():
             self.checkpoint = 10
         else:
@@ -74,7 +78,6 @@ class BlipTrainer:
     @profiler
     def parse_meta(self):
         self.parse_model()
-        self.parse_directories()
         self.parse_criterion()
         self.parse_optimizer()
         self.parse_metrics()
@@ -85,23 +88,6 @@ class BlipTrainer:
         if "model" not in self.meta:
             raise BlipError('no model specified in meta!')
         self.model = self.meta['model'].model
-
-    @profiler
-    def parse_directories(self):
-        # define directories
-        pass
-        # if "timing_dir" not in self.config:
-        #     self.config["timing_dir"] = f'{self.meta["local_scratch"]}/plots/{self.model.name}/timing/'
-        # self.meta['timing_dir'] = self.config['timing_dir']
-        # if not os.path.isdir(self.config['timing_dir']):
-        #     self.logger.info(f"creating timing directory {self.config['timing_dir']}")
-        #     os.makedirs(self.config['timing_dir'])
-        # if "memory_dir" not in self.config:
-        #     self.config["memory_dir"] = f'{self.meta["local_scratch"]}/plots/{self.model.name}/timing/'
-        # self.meta['memory_dir'] = self.config['memory_dir']
-        # if not os.path.isdir(self.config['memory_dir']):
-        #     self.logger.info(f"creating timing directory {self.config['memory_dir']}")
-        #     os.makedirs(self.config['memory_dir'])
 
     @profiler
     def parse_criterion(self):
@@ -135,19 +121,15 @@ class BlipTrainer:
         #     metrics=self.metrics
         # )
 
-    @profiler
     def save_checkpoint(
         self,
         epoch: int = 99999
     ):
-        if not os.path.exists(f"{self.meta['local_scratch']}/.checkpoints/"):
-            os.makedirs(f"{self.meta['local_scratch']}/.checkpoints/")
-        torch.save(
-            self.model.state_dict(),
-            f"{self.meta['local_scratch']}/.checkpoints/checkpoint_{epoch}.ckpt"
+        self.model.save_model(
+            epoch=epoch,
+            flag=f'checkpoint_{epoch}'
         )
 
-    @profiler
     def report_failure(
         self,
         data,
@@ -156,7 +138,7 @@ class BlipTrainer:
         step,
         exception
     ):
-        self.save_checkpoint(epoch=f'error_{epoch}')
+        # self.save_checkpoint(epoch=epoch)
         self.event_errors.append(
             '\n****RECORDED AN ERROR IN COMPUTATION****\n' +
             f'data:     {data}\n\n' +
@@ -167,7 +149,6 @@ class BlipTrainer:
             '****RECORDED AN ERROR IN COMPUTATION****\n'
         )
 
-    @profiler
     def train(
         self,
     ):
@@ -180,6 +161,12 @@ class BlipTrainer:
                 (c) Backpropagate the loss (training)
             (3) Evaluate the trained model on testing data.
         """
+        """Save the final model"""
+        try:
+            self.model.save_model(flag='initial')
+        except Exception:
+            raise BlipError('error saving final model')
+
         iterations = 0
 
         """Iterate over epochs"""
@@ -234,16 +221,34 @@ class BlipTrainer:
                 """Set scheduler parameters"""
                 try:
                     if self.meta["world_rank"] == 0:
-                        if (epoch == 3 and ii == 0):
+                        if (epoch == self.meta['num_epochs'] - 1 and ii == 0):
                             torch.cuda.profiler.start()
-                        if (epoch == 3 and ii == self.meta['num_iterations'] - 1):
+                        if (epoch == self.meta['num_epochs'] - 1 and ii == self.meta['num_iterations'] - 1):
                             torch.cuda.profiler.stop()
-                except Exception:
-                    raise BlipError('error occurred getting cuda profiler information')
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=epoch,
+                        batch=ii,
+                        step='cuda profiler training',
+                        exception=exception
+                    )
 
                 """Break if iterations maxed out"""
                 if iterations >= self.meta['num_iterations']:
                     break
+
+                """Push to NVTX"""
+                try:
+                    torch.cuda.nvtx.range_push(f"step {ii}")
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=epoch,
+                        batch=ii,
+                        step='nvtx range push step training',
+                        exception=exception
+                    )
 
                 """
                 There are choices here, either one can do:
@@ -253,16 +258,36 @@ class BlipTrainer:
                         param.grad = None
                 """
                 try:
+                    torch.cuda.nvtx.range_push("zero grad")
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=epoch,
+                        batch=ii,
+                        step='nvtx range push zero grad training',
+                        exception=exception
+                    )
+                try:
                     for param in self.model.parameters():
                         param.grad = None
-                except Exception:
-                    raise BlipError('error occurred resetting model parameters')
-
-                """Push to NVTX"""
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=epoch,
+                        batch=ii,
+                        step='optimizer zero grad training',
+                        exception=exception
+                    )
                 try:
-                    torch.cuda.nvtx.range_push(f"step {ii}")
-                except Exception:
-                    raise BlipError('error occurred pushing step number to nvtx')
+                    torch.cuda.nvtx.range_pop()
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=epoch,
+                        batch=ii,
+                        step='nvtx range pop zero grad training',
+                        exception=exception
+                    )
 
                 iterations += 1
 
@@ -275,15 +300,21 @@ class BlipTrainer:
                 (such as in an AE where the latent space values are
                 important). It's up to the loss function to know what to expect.
                 """
-                try:
-                    torch.cuda.nvtx.range_push("forward")
-                except Exception:
-                    raise BlipError('error occurred pushing forward call to nvtx')
-
                 with autocast(
                     enabled=self.meta["amp_enabled"],
                     dtype=self.meta["amp_dtype"]
                 ):
+                    """Forward call"""
+                    try:
+                        torch.cuda.nvtx.range_push("forward")
+                    except Exception as exception:
+                        self.report_failure(
+                            data=data,
+                            epoch=epoch,
+                            batch=ii,
+                            step='nvtx range push forward training',
+                            exception=exception
+                        )
                     try:
                         data['outputs'] = self.model(data)
                     except Exception as exception:
@@ -291,11 +322,31 @@ class BlipTrainer:
                             data=data,
                             epoch=epoch,
                             batch=ii,
-                            step='model forward',
+                            step='model forward training',
+                            exception=exception
+                        )
+                    try:
+                        torch.cuda.nvtx.range_pop()
+                    except Exception as exception:
+                        self.report_failure(
+                            data=data,
+                            epoch=epoch,
+                            batch=ii,
+                            step='nvtx range pop forward training',
                             exception=exception
                         )
 
                     """Compute loss"""
+                    try:
+                        torch.cuda.nvtx.range_push("loss")
+                    except Exception as exception:
+                        self.report_failure(
+                            data=data,
+                            epoch=epoch,
+                            batch=ii,
+                            step='nvtx range push loss training',
+                            exception=exception
+                        )
                     try:
                         loss = self.criterion.loss(data, iteration=iterations)
                     except Exception as exception:
@@ -303,37 +354,69 @@ class BlipTrainer:
                             data=data,
                             epoch=epoch,
                             batch=ii,
-                            step='loss evaluation',
+                            step='loss evaluation training',
+                            exception=exception
+                        )
+                    try:
+                        torch.cuda.nvtx.range_pop()
+                    except Exception as exception:
+                        self.report_failure(
+                            data=data,
+                            epoch=epoch,
+                            batch=ii,
+                            step='nvtx range pop loss training',
                             exception=exception
                         )
 
-                try:
-                    torch.cuda.nvtx.range_pop()
-                except Exception:
-                    raise BlipError('error occurred trying to range pop nvtx')
-
                 """Backprop step"""
                 try:
-                    if self.meta['amp_dtype'] == torch.float16:
-                        self.meta["scaler"].scale(loss).backward()
-                        torch.cuda.nvtx.range_push("optimizer")
-                        self.meta["scaler"].step(self.meta["optimizer"])
-                        torch.cuda.nvtx.range_pop()
-                    else:
-                        loss.backward()
-                        torch.cuda.nvtx.range_push("optimizer")
-                        self.meta["optimizer"].step()
-                        torch.cuda.nvtx.range_pop()
+                    torch.cuda.nvtx.range_push("optimizer")
                 except Exception as exception:
                     self.report_failure(
                         data=data,
                         epoch=epoch,
                         batch=ii,
-                        step='backprop',
+                        step='nvtx range push optimizer training',
+                        exception=exception
+                    )
+                try:
+                    if self.meta['amp_dtype'] == torch.float16:
+                        self.meta["scaler"].scale(loss).backward()
+                        self.meta["scaler"].step(self.meta["optimizer"].optimizer)
+                        self.meta["scaler"].update()
+                    else:
+                        loss.backward()
+                        self.meta["optimizer"].step()
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=epoch,
+                        batch=ii,
+                        step='backprop training',
+                        exception=exception
+                    )
+                try:
+                    torch.cuda.nvtx.range_pop()
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=epoch,
+                        batch=ii,
+                        step='nvtx range pop optimizer training',
                         exception=exception
                     )
 
                 """Reduce loss"""
+                try:
+                    torch.cuda.nvtx.range_push("reduce loss")
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=epoch,
+                        batch=ii,
+                        step='nvtx range push reduce loss training',
+                        exception=exception
+                    )
                 try:
                     if self.meta["distributed"]:
                         torch.distributed.all_reduce(
@@ -346,16 +429,42 @@ class BlipTrainer:
                         data=data,
                         epoch=epoch,
                         batch=ii,
-                        step='loss reduction',
+                        step='loss reduction training',
+                        exception=exception
+                    )
+                try:
+                    torch.cuda.nvtx.range_pop()
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=epoch,
+                        batch=ii,
+                        step='nvtx range pop reduce loss training',
                         exception=exception
                     )
 
                 try:
                     torch.cuda.nvtx.range_pop()
-                except Exception:
-                    raise BlipError('error occurred trying to range pop nvtx')
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=epoch,
+                        batch=ii,
+                        step='nvtx range pop step training',
+                        exception=exception
+                    )
 
                 """Update scheduler"""
+                try:
+                    torch.cuda.nvtx.range_push("scheduler")
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=epoch,
+                        batch=ii,
+                        step='nvtx range push scheduler training',
+                        exception=exception
+                    )
                 try:
                     self.meta["scheduler"].step()
                 except Exception as exception:
@@ -363,7 +472,17 @@ class BlipTrainer:
                         data=data,
                         epoch=epoch,
                         batch=ii,
-                        step='update scheduler',
+                        step='update scheduler training',
+                        exception=exception
+                    )
+                try:
+                    torch.cuda.nvtx.range_pop()
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=epoch,
+                        batch=ii,
+                        step='nvtx range pop scheduler training',
                         exception=exception
                     )
 
@@ -371,17 +490,53 @@ class BlipTrainer:
                 try:
                     if self.progress_bar in ['all', 'train']:
                         training_loop.set_description(
-                            f"Training: Epoch [{epoch+1}/{self.meta['num_epochs']}]"
+                            f"Training: Epoch [{epoch+1}/{self.meta['num_epochs']}] "
+                            + f"[{ii+1}/{self.meta['loader'].train_loader}]"
                         )
                         training_loop.set_postfix_str(f"loss={loss.item():.2e}")
-                except Exception:
-                    raise BlipError('error occurred setting training loop annotation')
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=epoch,
+                        batch=ii,
+                        step='training progress bar update',
+                        exception=exception
+                    )
 
                 """Update metrics if last epoch"""
                 if (epoch == self.meta['num_epochs'] - 1):
-                    """Evaluate metrics"""
-                    if self.metrics is not None:
-                        self.metrics.update(data)
+                    try:
+                        torch.cuda.nvtx.range_push("metric update")
+                    except Exception as exception:
+                        self.report_failure(
+                            data=data,
+                            epoch=epoch,
+                            batch=ii,
+                            step='nvtx range push metric update training',
+                            exception=exception
+                        )
+                    try:
+                        """Evaluate metrics"""
+                        if self.metrics is not None:
+                            self.metrics.update(data)
+                    except Exception as exception:
+                        self.report_failure(
+                            data=data,
+                            epoch=epoch,
+                            batch=ii,
+                            step='update metrics training',
+                            exception=exception
+                        )
+                    try:
+                        torch.cuda.nvtx.range_pop()
+                    except Exception as exception:
+                        self.report_failure(
+                            data=data,
+                            epoch=epoch,
+                            batch=ii,
+                            step='nvtx range pop metric update training',
+                            exception=exception
+                        )
 
                 step_count += 1
 
@@ -408,7 +563,6 @@ class BlipTrainer:
                     """Update metrics if last epoch"""
                     if (epoch == self.meta['num_epochs'] - 1):
                         if self.metrics is not None:
-                            metrics = self.metrics.compute()
                             self.metrics.report_tensorboard(iterations, train_type='train')
             except Exception:
                 raise BlipError('error occurred sending information to tensorboard')
@@ -416,8 +570,19 @@ class BlipTrainer:
             """
             Validation stage.
             """
-            if self.metrics is not None:
-                self.metrics.reset_batch()
+            """Update metrics if last epoch"""
+            if (epoch == self.meta['num_epochs'] - 1):
+                try:
+                    if self.metrics is not None:
+                        self.metrics.reset_batch()
+                except Exception as exception:
+                    self.report_failure(
+                        data=None,
+                        epoch=epoch,
+                        batch=-1,
+                        step='reset metrics post training',
+                        exception=exception
+                    )
 
             """Set the step_count for tensorboard"""
             step_count = 0
@@ -468,7 +633,7 @@ class BlipTrainer:
                                 data=data,
                                 epoch=epoch,
                                 batch=ii,
-                                step='model forward',
+                                step='model forward validation',
                                 exception=exception
                             )
 
@@ -480,15 +645,24 @@ class BlipTrainer:
                                 data=data,
                                 epoch=epoch,
                                 batch=ii,
-                                step='loss evaluation',
+                                step='loss evaluation validation',
                                 exception=exception
                             )
 
                         """Update metrics if last epoch"""
                         if (epoch == self.meta['num_epochs'] - 1):
-                            """Evaluate metrics"""
-                            if self.metrics is not None:
-                                self.metrics.update(data)
+                            try:
+                                """Evaluate metrics"""
+                                if self.metrics is not None:
+                                    self.metrics.update(data)
+                            except Exception as exception:
+                                self.report_failure(
+                                    data=data,
+                                    epoch=epoch,
+                                    batch=ii,
+                                    step='update metrics validation',
+                                    exception=exception
+                                )
 
                     step_count += 1
 
@@ -499,8 +673,14 @@ class BlipTrainer:
                                 f"Validation: Epoch [{epoch+1}/{self.meta['num_epochs']}]"
                             )
                             validation_loop.set_postfix_str(f"loss={loss.item():.2e}")
-                    except Exception:
-                        raise BlipError('error occurred setting validation loop annotation')
+                    except Exception as exception:
+                        self.report_failure(
+                            data=data,
+                            epoch=epoch,
+                            batch=ii,
+                            step='validation progress bar update',
+                            exception=exception
+                        )
 
                 try:
                     end = time.time()
@@ -519,7 +699,6 @@ class BlipTrainer:
                         """Update metrics if last epoch"""
                         if (epoch == self.meta['num_epochs'] - 1):
                             if self.metrics is not None:
-                                metrics = self.metrics.compute()
                                 self.metrics.report_tensorboard(iterations, train_type='validation')
                 except Exception:
                     raise BlipError('error occurred sending information to tensorboard')
@@ -544,8 +723,17 @@ class BlipTrainer:
         loop stage, since it is generally quick
         and doesn't need to be optimized for any reason.
         """
-        if self.metrics is not None:
-            self.metrics.reset_batch()
+        try:
+            if self.metrics is not None:
+                self.metrics.reset_batch()
+        except Exception as exception:
+            self.report_failure(
+                data=None,
+                epoch=epoch,
+                batch=-1,
+                step='reset metrics validation',
+                exception=exception
+            )
         try:
             if self.progress_bar in ['all', 'test']:
                 test_loop = tqdm(
@@ -566,6 +754,12 @@ class BlipTrainer:
         except Exception:
             raise BlipError('error occurred setting model to eval')
 
+        """Set the start time for tensorboard"""
+        try:
+            start = time.time()
+        except Exception:
+            raise BlipError('error occurred getting start time')
+
         with torch.no_grad():
             for ii, data in test_loop:
 
@@ -580,7 +774,7 @@ class BlipTrainer:
                             data=data,
                             epoch=epoch,
                             batch=ii,
-                            step='model forward',
+                            step='model forward test',
                             exception=exception
                         )
 
@@ -592,13 +786,22 @@ class BlipTrainer:
                             data=data,
                             epoch=epoch,
                             batch=ii,
-                            step='loss evaluation',
+                            step='loss evaluation test',
                             exception=exception
                         )
 
                 """Evaluate metrics"""
-                if self.metrics is not None:
-                    self.metrics.update(data)
+                try:
+                    if self.metrics is not None:
+                        self.metrics.update(data)
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=epoch,
+                        batch=ii,
+                        step='update metrics test',
+                        exception=exception
+                    )
 
                 """Update progress bar"""
                 try:
@@ -607,27 +810,33 @@ class BlipTrainer:
                             f"Testing: Batch [{ii+1}/{self.meta['loader'].num_test_batches}]"
                         )
                         test_loop.set_postfix_str(f"loss={loss.item():.2e}")
-                except Exception:
-                    raise BlipError('error occurred setting test loop annotation')
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=epoch,
+                        batch=ii,
+                        step='test progress bar update',
+                        exception=exception
+                    )
+        try:
+            end = time.time()
+        except Exception:
+            raise BlipError('error occurred getting end time for tensorboard')
 
-            if self.metrics is not None:
-                metrics = self.metrics.compute()
+        try:
+            if self.meta['world_rank'] == 0:
+                iters_per_sec = step_count / (end - start)
+                samples_per_sec = self.meta["global_batch_size"] * iters_per_sec
+                self.criterion.report_tensorboard(iterations, train_type='test')
+                self.optimizer.report_tensorboard(iterations, train_type='test')
+                self.meta['tensorboard'].add_scalar('Avg iters per sec (test)', iters_per_sec, iterations)
+                self.meta['tensorboard'].add_scalar('Avg samples per sec (test)', samples_per_sec, iterations)
 
-            try:
-                if self.meta['world_rank'] == 0:
-                    iters_per_sec = step_count / (end - start)
-                    samples_per_sec = self.meta["global_batch_size"] * iters_per_sec
-                    self.criterion.report_tensorboard(iterations, train_type='test')
-                    self.optimizer.report_tensorboard(iterations, train_type='test')
-                    self.meta['tensorboard'].add_scalar('Avg iters per sec (test)', iters_per_sec, iterations)
-                    self.meta['tensorboard'].add_scalar('Avg samples per sec (test)', samples_per_sec, iterations)
-
-                    """Update metrics if last epoch"""
-                    if self.metrics is not None:
-                        metrics = self.metrics.compute()
-                        self.metrics.report_tensorboard(iterations, train_type='test')
-            except Exception:
-                raise BlipError('error occurred sending information to tensorboard')
+                """Update metrics if last epoch"""
+                if self.metrics is not None:
+                    self.metrics.report_tensorboard(iterations, train_type='test')
+        except Exception:
+            raise BlipError('error occurred sending information to tensorboard')
 
         """Save the final model"""
         try:
@@ -643,32 +852,26 @@ class BlipTrainer:
 
     def inference(
         self,
-        dataset_type:   str = 'all',    # which dataset to use for inference
-        layers:         list = [],      # which forward views to save
+        dataset_type: str = 'all',
+        layers: list = [],
     ):
         """
         Here we just do inference on a particular part
         of the dataset_loader, either 'train', 'validation',
         'test' or 'all'.
         """
-
-        # determine loader
         try:
             if dataset_type == 'train':
                 inference_loader = self.meta['loader'].train_loader
-                num_batches = self.meta['loader'].num_training_batches
                 inference_indices = self.meta['loader'].train_indices
             elif dataset_type == 'validation':
                 inference_loader = self.meta['loader'].validation_loader
-                num_batches = self.meta['loader'].num_validation_batches
                 inference_indices = self.meta['loader'].validation_indices
             elif dataset_type == 'test':
                 inference_loader = self.meta['loader'].test_loader
-                num_batches = self.meta['loader'].num_test_batches
                 inference_indices = self.meta['loader'].test_indices
             else:
                 inference_loader = self.meta['loader'].all_loader
-                num_batches = self.meta['loader'].num_all_batches
                 inference_indices = self.meta['loader'].all_indices
         except Exception:
             raise BlipError('error occurred setting up inference loader')
@@ -677,7 +880,7 @@ class BlipTrainer:
         Set up progress bar.
         """
         try:
-            if (self.progress_bar is True):
+            if self.progress_bar in ['all', 'inference']:
                 inference_loop = tqdm(
                     enumerate(inference_loader, 0),
                     total=len(list(inference_indices)),
@@ -687,51 +890,131 @@ class BlipTrainer:
                 )
             else:
                 inference_loop = enumerate(inference_loader, 0)
-        except Exception as exception:
+        except Exception:
             raise BlipError('error occurred setting up inference loop')
 
-        """Set up array for predictions"""
-        predictions = {
-            layer: []
-            for layer in layers
-        }
-        for output in outputs:
-            predictions[output] = []
+        """Make sure to set model to eval() during validation!"""
+        try:
+            self.model.eval()
+        except Exception:
+            raise BlipError('error occurred setting model to eval')
 
-        # make sure to set model to eval() during validation!
-        self.model.eval()
+        """Set the start time for tensorboard"""
+        try:
+            start = time.time()
+        except Exception:
+            raise BlipError('error occurred getting start time')
+
         with torch.no_grad():
-            if self.metrics is not None:
-                self.metrics.reset_batch()
+            """Reset metrics"""
+            try:
+                if self.metrics is not None:
+                    self.metrics.reset_batch()
+            except Exception as exception:
+                self.report_failure(
+                    data=None,
+                    epoch=-1,
+                    batch=-1,
+                    step='reset metrics inference',
+                    exception=exception
+                )
+
+            iterations = 0
+
             for ii, data in inference_loop:
-                # get the network output
-                model_output = self.model(data)
-                for jj, key in enumerate(model_output.keys()):
-                    if key in predictions.keys():
-                        predictions[key].append([model_output[key].cpu().numpy()])
-                for jj, key in enumerate(layers):
-                    if key in predictions.keys():
-                        predictions[key].append([self.model.forward_views[key].cpu().numpy()])
-                # compute loss
-                if self.criterion is not None:
-                    loss = self.criterion.loss(model_output, data)
+                """Get network output"""
+                try:
+                    data['outputs'] = self.model(data)
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=-1,
+                        batch=ii,
+                        step='model forward inference',
+                        exception=exception
+                    )
+                try:
+                    for jj, key in enumerate(layers):
+                        data[key] = self.model.forward_views[key].cpu().numpy()
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=-1,
+                        batch=ii,
+                        step='layer inference',
+                        exception=exception
+                    )
 
-                # update metrics
-                if not self.skip_metrics:
+                """Compute the loss"""
+                try:
+                    if self.criterion is not None:
+                        loss = self.criterion.loss(data, iteration=iterations)
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=-1,
+                        batch=ii,
+                        step='loss evaluation inference',
+                        exception=exception
+                    )
+
+                """Update metrics"""
+                try:
                     if self.metrics is not None:
-                        self.metrics.update(model_output, data, train_type="inference")
+                        self.metrics.update(data)
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=-1,
+                        batch=ii,
+                        step='update metrics inference',
+                        exception=exception
+                    )
 
-                # update progress bar
-                if (self.progress_bar is True):
-                    inference_loop.set_description(f"Inference: Batch [{ii+1}/{num_batches}]")
-                    inference_loop.set_postfix_str(f"loss={loss.item():.2e}")
-        for key in predictions.keys():
-            predictions[key] = np.vstack(np.array(predictions[key], dtype=object))
-        # save predictions if wanted
-        if self.save_predictions:
-            self.meta['dataset'].save_predictions(
-                self.model.name + "_predictions",
-                predictions,
-                np.array(inference_indices, dtype=object)
-            )
-        return predictions
+                """Pass predictions to dataset for saving"""
+                try:
+                    self.meta['dataset'].save_predictions(data)
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=-1,
+                        batch=ii,
+                        step='saving predictions inference',
+                        exception=exception
+                    )
+
+                """Update progress bar"""
+                try:
+                    if self.progress_bar in ['all', 'inference']:
+                        inference_loop.set_description("Inference")
+                        if self.criterion is not None:
+                            inference_loop.set_postfix_str(f"loss={loss.item():.2e}")
+                except Exception as exception:
+                    self.report_failure(
+                        data=data,
+                        epoch=-1,
+                        batch=ii,
+                        step='inference progress bar update',
+                        exception=exception
+                    )
+                iterations += 1
+
+        try:
+            end = time.time()
+        except Exception:
+            raise BlipError('error occurred getting end time for tensorboard')
+
+        try:
+            if self.meta['world_rank'] == 0:
+                iters_per_sec = iterations / (end - start)
+                samples_per_sec = self.meta["global_batch_size"] * iters_per_sec
+                self.criterion.report_tensorboard(iterations, train_type='inference')
+                self.optimizer.report_tensorboard(iterations, train_type='inference')
+                self.meta['tensorboard'].add_scalar('Avg iters per sec (inference)', iters_per_sec, iterations)
+                self.meta['tensorboard'].add_scalar('Avg samples per sec (inference)', samples_per_sec, iterations)
+
+                """Update metrics if last epoch"""
+                if self.metrics is not None:
+                    self.metrics.report_tensorboard(iterations, train_type='inference')
+        except Exception:
+            raise BlipError('error occurred sending information to tensorboard')

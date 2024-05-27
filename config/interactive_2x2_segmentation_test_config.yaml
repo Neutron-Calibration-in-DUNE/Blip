@@ -2,7 +2,7 @@
 blip:
   # run configuration
   run_name: '2x2_segmentation'
-  run_num: '02'
+  run_num: '03'
 
   # parallelization and optimization
   model_parallel_sizes: [1]
@@ -12,7 +12,7 @@ blip:
   enable_jit: true
   bucket_cap_mb: 25
   lr_schedule: 'cosine'
-  num_iterations: 2000
+  num_iterations: 20000
 
   # Comms
   wireup_info: env
@@ -20,23 +20,45 @@ blip:
 
 dataset:
   dataset_mode: 'simulation'
-  flow_folder:  '/local_data/segmentation_test/'
-  arrakis_folder: '/local_data/segmentation_test/'
+  # flow_folder:  '/local_data/segmentation_test/'
+  # arrakis_folder: '/local_data/segmentation_test/'
+  flow_folder:  '/global/cfs/cdirs/dune/www/data/2x2/simulation/productions/MiniRun5_1E19_RHC/MiniRun5_1E19_RHC.flow.beta1/FLOW/0000000'
+  arrakis_folder: '/local_scratch/MiniRun5_1E19_RHC/MiniRun5_1E19_RHC.arrakis/ARRAKIS'
+  blip_folder: '/local_data/segmentation_test/'
   flow_files: 'all'
   dataset_name: 'charge/calib_final_hits/data'
   chunk_size: 10
   positions: ['x', 'y', 'z']
   features: []
-  labels: ['topology', 'physics', 'vertex', 'tracklette_begin', 'tracklette_end', 'fragment_begin', 'fragment_end']
-  class_weights: ['topology', 'physics', 'vertex', 'tracklette_begin', 'tracklette_end', 'fragment_begin', 'fragment_end']
+  labels: [
+    'topology', 
+    'physics', 
+    'vertex', 
+    'tracklette_begin', 
+    'tracklette_end', 
+    'fragment_begin', 
+    'fragment_end',
+    'shower_begin',
+  ]
+  class_weights: [
+    'topology', 
+    'physics', 
+    'vertex', 
+    'tracklette_begin', 
+    'tracklette_end', 
+    'fragment_begin', 
+    'fragment_end',
+    'shower_begin',
+  ]
+  feature_normalization: 'standardization'
 
 loader:
   quantization_mode:    "random_subsample"
   minkowski_algorithm:  "speed_optimized"
-  batch_size:       1
+  batch_size:       2
   test_split:       0.1
   test_seed:        100
-  validation_split: 0.3
+  validation_split: 0.25
   validation_seed:  100
   num_workers:      16
 
@@ -45,16 +67,28 @@ scheduler:
   warmup: 1
 
 trainer:
+  mode: 'train'
   checkpoint: 10
   progress_bar: 'all'
   rewrite_bar: false
+  save_predictions: true
 
 model:
-  model_type:       "single"    
+  model_type:       "single"
+  # load_model: '/local_scratch/2x2_segmentation/02/logs/14:58:6 [24/5/2024]/.tmp/models/BlipSegmentation/BlipSegmentation_trained_params.ckpt'
   BlipSegmentation:
     in_channels:      1
-    out_channels:     [3, 9, 1, 1, 1, 1, 1]
-    classifications:  ['topology', 'physics', 'vertex', 'tracklette_begin', 'tracklette_end', 'fragment_begin', 'fragment_end']
+    out_channels:     [3, 9, 1, 1, 1, 1, 1, 1]
+    classifications:  [
+      'topology', 
+      'physics', 
+      'vertex', 
+      'tracklette_begin', 
+      'tracklette_end', 
+      'fragment_begin', 
+      'fragment_end',
+      'shower_begin'
+    ]
     filtrations:      [64, 128, 256, 512]
     residual:         true
     sparse_conv_params:
@@ -63,7 +97,7 @@ model:
       dilation:   1
       activation: "leaky_relu"
       dimension:  3
-      batch_norm: True
+      batch_norm: true
       num_of_convs: 2
       dropout:    0.1
     conv_transpose_params:

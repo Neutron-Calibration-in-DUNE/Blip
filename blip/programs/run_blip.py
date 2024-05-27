@@ -3,11 +3,12 @@ Blip main program
 """
 import argparse
 import os
+import sys
+import subprocess
 from mpi4py import MPI
 import torch
 
 from blip.utils import comm
-from blip.utils.logger import Logger
 from blip.utils.config import ConfigParser
 from blip.blip.blip import Blip
 
@@ -15,11 +16,23 @@ from blip.blip.blip import Blip
 def run():
     """
     This program runs the Blip module from a config file.
-    It utilizes H5 + multi-gpu support to distribute the 
-    training of neural networks over multiple gpus which 
-    greatly speeds up runtime.  When used in conjunction 
+    It utilizes H5 + multi-gpu support to distribute the
+    training of neural networks over multiple gpus which
+    greatly speeds up runtime.  When used in conjunction
     with the "create_hyperparameter_runs" program,
     """
+
+    """Check if the script is run interactively or as an sbatch job"""
+    is_sbatch_job = 'SLURM_JOB_ID' in os.environ
+    
+    """Check if MPI is initialized"""
+    mpi_initialized = MPI.Is_initialized()
+
+    """If not running under MPI and not an sbatch job, re-execute with mpirun"""
+    if not is_sbatch_job and not mpi_initialized:
+        command = ['mpirun', '-np', '1', sys.executable] + sys.argv
+        result = subprocess.run(command)
+        sys.exit(result.returncode)
 
     """
     We do a preliminary check to ensure that MPI is available
@@ -27,10 +40,10 @@ def run():
     that Blip is being run on a system with more than one GPU.
     """
     try:
-        mpi_comm = MPI.COMM_WORLD
+        _ = MPI.COMM_WORLD
     except Exception as exception:
-        raise RuntimeError(f"error occurred with gathering MPI: {exception}")    
-    
+        raise RuntimeError(f"error occurred with gathering MPI: {exception}")
+
     """Set up command line arguments"""
     parser = argparse.ArgumentParser(
         prog="Blip Module Runner",
@@ -55,58 +68,58 @@ def run():
     )
     parser.add_argument(
         "-run_num",
-        dest="run_num", 
-        default=None, 
-        type=str, 
+        dest="run_num",
+        default=None,
+        type=str,
         help='tag for indexing the current experiment if wanting to override config (default "00")'
     )
     parser.add_argument(
         "-model_parallel_sizes",
-        dest="model_parallel_sizes", 
-        default=None, 
-        type=list, 
+        dest="model_parallel_sizes",
+        default=None,
+        type=list,
         help='list of model parallel sizes if wanting to override config (default [1])'
     )
     parser.add_argument(
         "-model_parallel_names",
-        dest="model_parallel_names", 
-        default=None, 
-        type=list, 
+        dest="model_parallel_names",
+        default=None,
+        type=list,
         help='list of names for parallel models if wanting to override config (default ["model"])'
     )
     parser.add_argument(
         "-global_batch_size",
-        dest="global_batch_size", 
-        default=None, 
-        type=int, 
+        dest="global_batch_size",
+        default=None,
+        type=int,
         help='global batch size if wanting to override config (default 16)'
     )
     parser.add_argument(
         "-amp_mode",
-        dest="amp_mode", 
-        default=None, 
-        type=str, 
+        dest="amp_mode",
+        default=None,
+        type=str,
         help='NVIDIA amp mode if wanting to override config (default "fp32")'
     )
     parser.add_argument(
         "-enable_jit",
-        dest="enable_jit", 
-        default=None, 
-        type=bool, 
+        dest="enable_jit",
+        default=None,
+        type=bool,
         help='whether to enable JIT for model and loss if wanting to override config (default false)'
     )
     parser.add_argument(
         "-bucket_cap_mb",
-        dest="bucket_cap_mb", 
-        default=None, 
-        type=int, 
+        dest="bucket_cap_mb",
+        default=None,
+        type=int,
         help='bucket cap in Mb if wanting to override config (default 25)'
     )
     parser.add_argument(
         "-num_iterations",
-        dest="num_iterations", 
-        default='10000', 
-        type=int, 
+        dest="num_iterations",
+        default='10000',
+        type=int,
         help='number of training batches if wanting to override config (default "10000")'
     )
     parser.add_argument(
@@ -145,7 +158,7 @@ def run():
         config = ConfigParser(config_file).data
     except Exception as exception:
         raise RuntimeError(f"failed to parse config: {exception}")
-    
+
     """Determine run_name and run_num"""
     if run_name is None:
         if "run_name" not in config["blip"]:
@@ -159,7 +172,7 @@ def run():
             config["blip"]["run_num"] = "00"
         else:
             run_num = config["blip"]["run_num"]
-    
+
     """Determine model parallel attributes"""
     if model_parallel_sizes is None:
         if "model_parallel_sizes" not in config["blip"]:
@@ -181,7 +194,7 @@ def run():
             config["blip"]["global_batch_size"] = 16
         else:
             global_batch_size = config["blip"]["global_batch_size"]
-    
+
     """Determine NVIDIA amp mode"""
     if amp_mode is None:
         if "amp_mode" not in config["blip"]:
@@ -189,7 +202,7 @@ def run():
             config["blip"]["amp_mode"] = "fp32"
         else:
             amp_mode = config["blip"]["amp_mode"]
-            
+
     """Determine whether to use NVIDIA Amp with mixed precision"""
     amp_dtype = torch.float32
     if amp_mode in ["fp16", "bf16"]:
@@ -199,8 +212,8 @@ def run():
         elif amp_mode == "bf16":
             amp_dtype = torch.bfloat16
     else:
-        amp_enabled = False        
-    
+        amp_enabled = False
+
     """Determine enable JIT"""
     if enable_jit is None:
         if "enable_jit" not in config["blip"]:
@@ -208,7 +221,7 @@ def run():
             config["blip"]["enable_jit"] = False
         else:
             enable_jit = config["blip"]["enable_jit"]
-    
+
     """Determine global batch size"""
     if bucket_cap_mb is None:
         if "bucket_cap_mb" not in config["blip"]:
@@ -216,13 +229,13 @@ def run():
             config["blip"]["bucket_cap_mb"] = 25
         else:
             bucket_cap_mb = config["blip"]["bucket_cap_mb"]
-    
+
     """Determine number of training batches"""
     if "num_iterations" not in config["blip"]:
         config["blip"]["num_iterations"] = num_iterations
     else:
         num_iterations = config["blip"]["num_iterations"]
-        
+
     """Set up local scratch directory"""
     try:
         if not os.path.isdir(local_scratch):
@@ -250,13 +263,13 @@ def run():
         if isinstance(number_of_files, int):
             if number_of_files > 0:
                 config["blip"]["number_of_files"] = number_of_files
-    
+
     """Set up MPI variables"""
     try:
         config["blip"]["model_parallel_size"] = comm.init(config["blip"], verbose=True)
     except Exception as exception:
         raise RuntimeError(f"failed to run comm.init: {exception}")
-    
+
     """Get info from MPI"""
     try:
         world_size = comm.get_world_size()
@@ -267,18 +280,18 @@ def run():
         raise RuntimeError(
             f"failed to get world_size, world_rank and local_rank variables: {exception}"
         )
-    
+
     """Assert global batch size is divisible by number of GPUs"""
     if global_batch_size % comm.get_size("data") != 0:
         raise RuntimeError(f'cannot evenly distribute {global_batch_size} across {comm.get_size("data")} GPU(s)')
-    
+
     """Determine the local data shards"""
     try:
         num_data_shards = comm.get_size("data")
         data_shard_id = comm.get_rank("data")
     except Exception as exception:
         raise RuntimeError(f"failed to get data shard information from utils.comm: {exception}")
-    
+
     """Set up experiment directory"""
     try:
         experiment_directory = os.path.join(
@@ -290,7 +303,7 @@ def run():
                 os.makedirs(experiment_directory)
     except Exception as exception:
         raise RuntimeError(f"failed to construct experiment directory: {exception}")
-    
+
     """Construct meta dictionary"""
     meta = {
         "run_name": run_name,
@@ -311,7 +324,7 @@ def run():
         'experiment_directory': os.path.abspath(experiment_directory),
         'local_scratch': os.environ['LOCAL_SCRATCH'],
     }
-    
+
     """Create the Blip instance"""
     try:
         blip = Blip(config, meta)
@@ -323,6 +336,7 @@ def run():
 
     if distributed:
         torch.distributed.barrier()
+
 
 if __name__ == "__main__":
     run()

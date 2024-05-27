@@ -4,9 +4,8 @@ Generic metrics for blip.
 import torch
 import torch.nn as nn
 from matplotlib import pyplot as plt
-from torchmetrics.classification import ROC
+from torchmetrics.classification import ROC, AUROC
 
-from blip.utils.logger import BlipError
 from blip.utils.utils import fig_to_array
 from blip.metrics.generic_metric import GenericMetric
 
@@ -30,7 +29,8 @@ class BlipSegmentationROC(GenericMetric):
             'tracklette_begin',
             'tracklette_end',
             'fragment_begin',
-            'fragment_end'
+            'fragment_end',
+            'shower_begin',
         ]
         self.class_labels = {
             'topology': ['Track', 'Shower', 'Blip'],
@@ -50,6 +50,7 @@ class BlipSegmentationROC(GenericMetric):
             'tracklette_end': ['tracklette_end'],
             'fragment_begin': ['fragment_begin'],
             'fragment_end': ['fragment_end'],
+            'shower_begin': ['shower_begin'],
         }
         self.num_classes = {
             'topology': 3,
@@ -59,6 +60,7 @@ class BlipSegmentationROC(GenericMetric):
             'tracklette_end': None,
             'fragment_begin': None,
             'fragment_end': None,
+            'shower_begin': None,
         }
         self.tasks = {
             'topology': 'multiclass',
@@ -68,6 +70,7 @@ class BlipSegmentationROC(GenericMetric):
             'tracklette_end': 'binary',
             'fragment_begin': 'binary',
             'fragment_end': 'binary',
+            'shower_begin': 'binary',
         }
         self.num_thresholds = 100
 
@@ -80,6 +83,15 @@ class BlipSegmentationROC(GenericMetric):
             ).to(self.device)
             for key in self.labels
         }
+        self.auroc = {
+            key: AUROC(
+                task=self.tasks[key],
+                num_classes=self.num_classes[key],
+                thresholds=self.num_thresholds,
+                average=None
+            ).to(self.device)
+            for key in self.labels
+        }
 
     def reset_batch(self):
         for key in self.roc.keys():
@@ -87,6 +99,12 @@ class BlipSegmentationROC(GenericMetric):
                 task=self.tasks[key],
                 num_classes=self.num_classes[key],
                 thresholds=self.num_thresholds
+            ).to(self.device)
+            self.auroc[key] = AUROC(
+                task=self.tasks[key],
+                num_classes=self.num_classes[key],
+                thresholds=self.num_thresholds,
+                average=None
             ).to(self.device)
 
     def set_device(
@@ -96,6 +114,7 @@ class BlipSegmentationROC(GenericMetric):
         self.device = device
         for key in self.roc.keys():
             self.roc[key].to(self.device)
+            self.auroc[key].to(self.device)
 
     def report_tensorboard(
         self,
@@ -104,14 +123,16 @@ class BlipSegmentationROC(GenericMetric):
     ):
         for ii, output in enumerate(self.roc.keys()):
             fpr, tpr, thresholds = self.roc[output].compute()
+            aurocs = self.auroc[output].compute()
             if output in ['topology', 'physics']:
                 for jj, label in enumerate(self.class_labels[output]):
                     fig, axs = plt.subplots(figsize=(10, 10))
-                    axs.set_title(f"{output.capitalize()} ({train_type.capitalize()})")
-                    axs.plot(tpr[jj].cpu(), 1 - fpr[jj].cpu(), linestyle='--', c='k')
+                    axs.set_title(f"{output.capitalize()}:{label.capitalize()} ({train_type.capitalize()})")
+                    axs.plot(tpr[jj].cpu(), 1 - fpr[jj].cpu(), linestyle='--', c='k', label=f'AUC = {aurocs[jj].cpu():.2f}')
                     axs.set_xlabel('Signal Acceptance [tpr]')
                     axs.set_ylabel('Background Rejection [1 - fpr]')
                     axs.set_title(f'ROC tpr vs. 1 - fpr: {output}:{label} ({train_type})')
+                    axs.legend()
                     fig_array = fig_to_array(fig)
                     self.meta['tensorboard'].add_image(
                         f'{self.name}: {output}:{label} ({train_type})',
@@ -123,10 +144,11 @@ class BlipSegmentationROC(GenericMetric):
             else:
                 fig, axs = plt.subplots(figsize=(10, 10))
                 axs.set_title(f"{output.capitalize()} ({train_type.capitalize()})")
-                axs.plot(tpr.cpu(), 1 - fpr.cpu(), linestyle='--', c='k')
+                axs.plot(tpr.cpu(), 1 - fpr.cpu(), linestyle='--', c='k', label=f'AUC = {aurocs.cpu():.2f}')
                 axs.set_xlabel('Signal Acceptance [tpr]')
                 axs.set_ylabel('Background Rejection [1 - fpr]')
                 axs.set_title(f'ROC tpr vs. 1 - fpr: {output} ({train_type})')
+                axs.legend()
                 fig_array = fig_to_array(fig)
                 self.meta['tensorboard'].add_image(
                     f'{self.name}: {output} ({train_type})',
@@ -146,8 +168,16 @@ class BlipSegmentationROC(GenericMetric):
                     nn.functional.softmax(data['outputs'][output].to(self.device), dim=1, dtype=torch.float),
                     data['labels'].squeeze(0)[:, ii].long().to(self.device)
                 )
+                self.auroc[output].update(
+                    nn.functional.softmax(data['outputs'][output].to(self.device), dim=1, dtype=torch.float),
+                    data['labels'].squeeze(0)[:, ii].long().to(self.device)
+                )
             else:
                 self.roc[output].update(
+                    nn.functional.softmax(data['outputs'][output].squeeze(1).to(self.device), dim=0, dtype=torch.float),
+                    data['labels'].squeeze(0)[:, ii].long().to(self.device)
+                )
+                self.auroc[output].update(
                     nn.functional.softmax(data['outputs'][output].squeeze(1).to(self.device), dim=0, dtype=torch.float),
                     data['labels'].squeeze(0)[:, ii].long().to(self.device)
                 )
@@ -156,6 +186,6 @@ class BlipSegmentationROC(GenericMetric):
         self,
     ):
         return {
-            output: self.roc[output].compute()
+            output: [self.roc[output].compute(), self.auroc[output].compute()]
             for output in self.roc.keys()
         }

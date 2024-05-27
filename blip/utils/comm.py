@@ -16,6 +16,7 @@ _COMM_LIST = []
 _COMM_NAMES = {}
 _COMM_NAMES_META = []
 
+
 # world comm
 def get_size(comm_id: Union[str, int]) -> int:
     """Returns the size of a specified communicator."""
@@ -91,16 +92,15 @@ def get_names(meta=True):
     if meta:
         return _COMM_NAMES
     else:
-        return [c for c,v in _COMM_NAMES.items() if c not in _COMM_NAMES_META]
+        return [c for c, v in _COMM_NAMES.items() if c not in _COMM_NAMES_META]
 
 
 def is_distributed(name: str):
     """check if distributed."""
     return name in _COMM_NAMES
- 
-    
 
-def init(params, verbose = False):
+
+def init(params, verbose=False):
     init_process_group(
         info=params["wireup_info"],
         store=params["wireup_store"]
@@ -110,11 +110,12 @@ def init(params, verbose = False):
     model_parallel_sizes = params["model_parallel_sizes"]
     model_parallel_names = params["model_parallel_names"]
     model_parallel_size = init_model_parallel_info(
-        names=model_parallel_names, 
+        names=model_parallel_names,
         sizes=model_parallel_sizes,
         verbose=verbose
     )
     return model_parallel_size
+
 
 def init_process_group(info: str, store: str):
     """Initial torch distributed process group based on ``info`` and ``store``
@@ -122,7 +123,6 @@ def init_process_group(info: str, store: str):
     Args:
         info: either ``env`` or ``mpi``
         store: either ``file`` or ``tcp``
-    
     """
     # set up global and local communicator
     if info == "env":
@@ -137,7 +137,6 @@ def init_process_group(info: str, store: str):
             # Use MASTER_ADDRESS if available for backwards compatibility
             master_address = os.getenv('MASTER_ADDRESS')
     elif info == "mpi":
-        
         mpi_comm = MPI.COMM_WORLD.Dup()
         world_size = mpi_comm.Get_size()
         world_rank = mpi_comm.Get_rank()
@@ -155,7 +154,6 @@ def init_process_group(info: str, store: str):
 
     # set local rank to 0 if env var not available
     local_rank = int(os.getenv('LOCAL_RANK', 0))
-    
     if world_size > 1:
         with disable_logging():
             if store == "file":
@@ -163,19 +161,24 @@ def init_process_group(info: str, store: str):
                 store = dist.FileStore(wireup_file_path, world_size)
             elif store == "tcp":
                 # create tcp store
-                store = dist.TCPStore(host_name = master_address,
-                                             port = port,
-                                             world_size = world_size,
-                                             is_master = (world_rank == 0),
-                                             timeout = dt.timedelta(seconds=900))
+                store = dist.TCPStore(
+                    host_name=master_address,
+                    port=port,
+                    world_size=world_size,
+                    is_master=(world_rank == 0),
+                    timeout=dt.timedelta(seconds=900)
+                )
             else:
                 store = None
-                
+
             # initialize process groups
-            dist.init_process_group(backend = 'nccl',
-                                    rank = world_rank,
-                                    world_size = world_size,
-                                    store = store)
+            dist.init_process_group(
+                backend='nccl',
+                rank=world_rank,
+                world_size=world_size,
+                store=store
+            )
+
 
 def init_model_parallel_info(names, sizes, verbose=False):
     """Create communicators for model parallelism _COMM_LIST, _COMM_NAMES"""
@@ -186,25 +189,25 @@ def init_model_parallel_info(names, sizes, verbose=False):
     model_parallel_names = names
     model_parallel_sizes = sizes
 
-    assert(len(model_parallel_names) == len(model_parallel_sizes)), "Please specify names for your communicators"
+    assert (len(model_parallel_names) == len(model_parallel_sizes)), "Please specify names for your communicators"
     model_parallel_size = math.prod(model_parallel_sizes)
 
-    assert ( (world_size % model_parallel_size == 0) ), \
+    assert ((world_size % model_parallel_size == 0)), \
         "Error, please make sure that the product of model parallel ranks evenly divides the total number of ranks"
 
     # we set this to be orthogonal to the MP groups
     # we can play tricks with the ddp_group later, in case if all the weights are shared
     data_parallel_size = world_size // model_parallel_size
-    
+
     # create orthogonal communicators first
     global _COMM_LIST
     global _COMM_NAMES
-        
+
     if world_size > 1:
         # set up the strides:
         model_parallel_sizes_reversed = model_parallel_sizes[::-1]
         model_grid = np.reshape(np.arange(0, model_parallel_size), model_parallel_sizes[::-1])
-        perm = np.roll(np.arange(0,len(model_parallel_sizes)), 1).tolist()
+        perm = np.roll(np.arange(0, len(model_parallel_sizes)), 1).tolist()
         ranks_lookup = {}
 
         comm_count = 0
@@ -216,16 +219,16 @@ def init_model_parallel_info(names, sizes, verbose=False):
 
             if verbose and world_rank == 0:
                 print(f"Creating comm groups for id {mpname}: {model_groups}")
-                
+
             for grp in model_groups:
                 if len(grp) > 1:
-                    tmp_group = dist.new_group(ranks = grp)
+                    tmp_group = dist.new_group(ranks=grp)
                     if world_rank in grp:
                         _COMM_LIST.append(tmp_group)
                         _COMM_NAMES[mpname] = comm_count
                         comm_count += 1
             ranks_lookup[mpname] = model_groups
-                
+
             # go for the next step
             model_grid = np.transpose(model_grid, perm)
 
@@ -252,20 +255,21 @@ def init_model_parallel_info(names, sizes, verbose=False):
                     pooled = [set(subList) for subList in coll]
                     merging = True
                     while merging:
-                        merging=False
-                        for i,group in enumerate(pooled):
-                            merged = next((g for g in pooled[i+1:] if g.intersection(group)),None)
-                            if not merged: continue
+                        merging = False
+                        for i, group in enumerate(pooled):
+                            merged = next((g for g in pooled[i+1:] if g.intersection(group)), None)
+                            if not merged:
+                                continue
                             group.update(merged)
                             pooled.remove(merged)
                             merging = True
                     return [list(x) for x in pooled]
-    
+
                 model_groups = merge_ranks(ranks_lookup[comm_name_1], ranks_lookup[comm_name_2])
                 if verbose and world_rank == 0:
                     print(f'Creating comm groups for id {merge_name}: {model_groups}')
                 for grp in model_groups:
-                    tmp_group = dist.new_group(ranks = grp)
+                    tmp_group = dist.new_group(ranks=grp)
                     if world_rank in grp:
                         _COMM_LIST.append(tmp_group)
                         _COMM_NAMES[merge_name] = comm_count
@@ -278,38 +282,38 @@ def init_model_parallel_info(names, sizes, verbose=False):
 
         # merge matmul
         comm_count = merge_comms(comm_count, ranks_lookup, "row_matmul", "col_matmul", "matmul")
-                    
+
         # now the data and model comm:
         model_groups = np.reshape(np.arange(0, world_size), (-1, model_parallel_size)).tolist()
         for grp in model_groups:
             if len(grp) > 1:
-                tmp_group = dist.new_group(ranks = grp)
+                tmp_group = dist.new_group(ranks=grp)
                 if world_rank in grp:
                     _COMM_LIST.append(tmp_group)
                     _COMM_NAMES["model"] = comm_count
                     _COMM_NAMES_META.append("model")
                     comm_count += 1
-        
+
         if data_parallel_size == world_size:
             if verbose and world_rank == 0:
                 print(f"Creating comm groups for id data: {[list(range(0, world_size))]}")
-            
+
             _COMM_LIST.append(None)
             _COMM_NAMES["data"] = comm_count
         else:
             data_groups = [sorted(list(i)) for i in zip(*model_groups)]
             if verbose and world_rank == 0:
                 print(f"Creating comm groups for id data: {data_groups}")
-            
+
             for grp in data_groups:
-                tmp_group = dist.new_group(ranks = grp)
+                tmp_group = dist.new_group(ranks=grp)
                 if world_rank in grp:
                     _COMM_LIST.append(tmp_group)
                     _COMM_NAMES["data"] = comm_count
                     _COMM_NAMES_META.append("data")
-    
+
 #    if verbose and world_rank == 0:
 #        print(f"comm lists are: {_COMM_LIST}")
 #        print(f"comm names are: {_COMM_NAMES}")
 
-    return model_parallel_size 
+    return model_parallel_size

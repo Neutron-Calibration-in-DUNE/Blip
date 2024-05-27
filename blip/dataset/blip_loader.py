@@ -43,29 +43,48 @@ class BlipLoader:
 
         self.parse_config()
 
-    @profiler
     def blip_collate(
         self,
         batch
     ):
         """Batch the incoming data"""
         positions, features, batch_ids, labels = [], [], [], []
+        file_idxs, chunk_start_idxs, chunk_end_idxs = [], [], []
+        relative_start_idxs, relative_end_idxs = [], []
+        relative_start_idx = 0
         for sample in batch:
+            relative_end_idx = relative_start_idx + len(sample['positions'])
             positions.append(sample['positions'])
             features.append(sample['features'])
             batch_ids.append(sample['batch_id'])
             labels.append(sample['labels'])
+            file_idxs.append(sample['file_idx'])
+            chunk_start_idxs.append(sample['chunk_start_idx'])
+            chunk_end_idxs.append(sample['chunk_end_idx'])
+            relative_start_idxs.append(relative_start_idx)
+            relative_end_idxs.append(relative_end_idx)
+            relative_start_idx = relative_end_idx + 1
 
         """Concatenate """
         batched_positions = torch.cat(positions)
         batched_features = torch.cat(features)
         batched_batch_ids = torch.cat(batch_ids)
         batched_labels = torch.cat(labels)
+        batched_file_idxs = torch.tensor(file_idxs)
+        batched_chunk_start_idxs = torch.tensor(chunk_start_idxs)
+        batched_chunk_end_idxs = torch.tensor(chunk_end_idxs)
+        batched_relative_start_idxs = torch.tensor(relative_start_idxs)
+        batched_relative_end_idxs = torch.tensor(relative_end_idxs)
         return {
             'positions': batched_positions,
             'features': batched_features,
             'batch_id': batched_batch_ids,
-            'labels': batched_labels
+            'labels': batched_labels,
+            'file_idx': batched_file_idxs,
+            'chunk_start_idx': batched_chunk_start_idxs,
+            'chunk_end_idx': batched_chunk_end_idxs,
+            'relative_start_idx': batched_relative_start_idxs,
+            'relative_end_idx': batched_relative_end_idxs
         }
 
     @profiler

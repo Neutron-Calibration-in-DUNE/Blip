@@ -27,6 +27,7 @@ def get_memory_format(tensor):
     else:
         return torch.contiguous_format
 
+
 def sync_params(model):
     """Helper routine to ensure shared weights are the same after initialization"""
     with torch.no_grad():
@@ -47,7 +48,8 @@ def sync_params(model):
                     # use weight of rank 0
                     # important to use copy here otherwise the handle gets detaches from the optimizer
                     param.copy_(tlist[0])
- 
+
+
 # distributed primitives
 def _reduce(input_, use_fp32=True, group=None):
     """All-reduce the input tensor across model parallel group."""
@@ -83,7 +85,8 @@ def split_tensor_along_dim(tensor, dim, num_chunks):
 
     return tensor_list
 
-def _split(input_, dim_, group=None):  
+
+def _split(input_, dim_, group=None):
     """Split the tensor along dim."""
     # get input format
     input_format = get_memory_format(input_)
@@ -101,6 +104,7 @@ def _split(input_, dim_, group=None):
     output = input_list[rank].contiguous(memory_format=input_format)
 
     return output
+
 
 def _gather(input_, dim_, group=None):
     """Gather tensors and concatinate along the last dimension."""

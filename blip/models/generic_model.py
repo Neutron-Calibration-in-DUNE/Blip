@@ -85,12 +85,13 @@ class GenericModel(nn.Module):
 
     def save_model(
         self,
+        epoch:  int = -1,
         flag:   str = ''
     ):
         # save meta information
-        if not os.path.isdir(f"{self.meta['local_scratch']}/.tmp/models/{self.name}/"):
-            os.makedirs(f"{self.meta['local_scratch']}/.tmp/models/{self.name}/")
-        output = f"{self.meta['local_scratch']}/.tmp/models/{self.name}/" + self.name
+        if not os.path.isdir(f"{self.meta['tensorboard_directory']}/models/{self.name}/"):
+            os.makedirs(f"{self.meta['tensorboard_directory']}/models/{self.name}/")
+        output = f"{self.meta['tensorboard_directory']}/models/{self.name}/" + self.name
         if flag != '':
             output += "_" + flag
         meta_info = {
@@ -120,6 +121,11 @@ class GenericModel(nn.Module):
             },
             output + "_params.ckpt"
         )
+        self.meta['tensorboard'].add_text(
+            f'Saved Models/{flag}',
+            output + "_params.ckpt",
+            epoch
+        )
 
     def total_parameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
@@ -136,10 +142,6 @@ class GenericModel(nn.Module):
     ):
         try:
             checkpoint = torch.load(model_file)
-            self.config = checkpoint['model_config']
-            self.construct_model()
-            # register hooks
-            self.register_forward_hooks()
             self.load_state_dict(checkpoint['model_state_dict'])
         except Exception as e:
             raise BlipError(f"unable to load model file {model_file}: {e}.")

@@ -13,6 +13,8 @@ import traceback
 from matplotlib import pyplot as plt
 from importlib.metadata import version
 import pynvml
+import time
+import torch._dynamo
 
 from blip.dataset.blip_dataset import BlipDataset
 from blip.dataset.blip_loader import BlipLoader
@@ -304,7 +306,7 @@ class Blip:
             )
         if self.meta["world_rank"] == 0:
             mem_usage = self.get_cuda_usage()
-            self.logger.info(f'device allocated {mem_usage:.2f} Gb')
+            self.logger.info(f'[device] device allocated {mem_usage:.2f} Gb')
 
     @profiler
     def set_up_dataset(
@@ -326,6 +328,54 @@ class Blip:
             self.report_error(
                 exception=exception,
                 message="error creating BlipDataset"
+            )
+        """Calculate the event id mapping"""
+        try:
+            start = time.time()
+            self.meta['dataset'].calculate_event_id_mapping()
+            end = time.time()
+            if self.meta["world_rank"] == 0:
+                self.logger.info(f"[dataset] calculated event_id mapping [{end - start}] s")
+        except Exception as exception:
+            self.report_error(
+                exception=exception,
+                message="error calculating event_id mapping"
+            )
+        """Calculate class weights"""
+        try:
+            start = time.time()
+            self.meta['dataset'].calculate_class_weights()
+            end = time.time()
+            if self.meta["world_rank"] == 0:
+                self.logger.info(f"[dataset] calculated class weights [{end - start}] s")
+        except Exception as exception:
+            self.report_error(
+                exception=exception,
+                message="error calculating class weights"
+            )
+        """Calculate the feature normalization parameters"""
+        try:
+            start = time.time()
+            self.meta['dataset'].calculate_feature_normalization()
+            end = time.time()
+            if self.meta["world_rank"] == 0:
+                self.logger.info(f"[dataset] calculated feature normalization [{end - start}] s")
+        except Exception as exception:
+            self.report_error(
+                exception=exception,
+                message="error calculating feature normalization"
+            )
+        """Create the blip output files"""
+        try:
+            start = time.time()
+            self.meta['dataset'].create_blip_files()
+            end = time.time()
+            if self.meta["world_rank"] == 0:
+                self.logger.info(f"[dataset] created blip files [{end - start}] s")
+        except Exception as exception:
+            self.report_error(
+                exception=exception,
+                message="error creating blip files"
             )
 
     @profiler
@@ -380,6 +430,15 @@ class Blip:
                 message="error setting model to device"
             )
 
+        """Report model memory usage"""
+        if self.meta["world_rank"] == 0:
+            ending_mem = self.get_cuda_usage()
+            self.logger.info(f'model allocated {(ending_mem - starting_mem):.2f} Gb')
+
+        """Update cache limit if memory is too large"""
+        if self.meta["world_rank"] == 0:
+            torch._dynamo.config.cache_size_limit = 25
+
         """Compile model if jit is enabled"""
         try:
             if self.meta["enable_jit"]:
@@ -414,11 +473,6 @@ class Blip:
                 exception=exception,
                 message="error setting up distributed data parallel with model"
             )
-
-        """Report model memory usage"""
-        if self.meta["world_rank"] == 0:
-            ending_mem = self.get_cuda_usage()
-            self.logger.info(f'model allocated {(ending_mem - starting_mem):.2f} Gb')
 
     @profiler
     def set_up_scaler(
@@ -458,6 +512,14 @@ class Blip:
                 exception=exception,
                 message="failed to construct optimizer"
             )
+
+    @profiler
+    def custom_lr_scale(self, x):
+        """Custom lr scale function using warmup parameter"""
+        return min(
+            (x + 1) / self.config['scheduler']['warmup'],
+            0.5 * (1 + np.cos(np.pi * x / self.meta['num_iterations']))
+        )
 
     @profiler
     def set_up_scheduler(
@@ -569,19 +631,25 @@ class Blip:
     ):
         if self.meta["world_rank"] == 0:
             self.logger.info("setting up tensorboard")
+        self.meta['tensorboard_directory'] = os.path.join(
+            self.meta["experiment_directory"], "logs/", self.now
+        )
         self.meta['tensorboard'] = SummaryWriter(
-            log_dir=os.path.join(
-                self.meta["experiment_directory"], "logs/", self.now
-            )
+            log_dir=self.meta['tensorboard_directory']
         )
 
     @profiler
     def run_training(
         self,
     ):
-        if self.meta["world_rank"] == 0:
-            self.logger.info("running training")
-        self.meta['trainer'].train()
+        if self.meta['trainer'].mode == 'train':
+            if self.meta["world_rank"] == 0:
+                self.logger.info("running training")
+            self.meta['trainer'].train()
+        elif self.meta['trainer'].mode == 'inference':
+            if self.meta['world_rank'] == 0:
+                self.logger.info("running inference")
+            self.meta['trainer'].inference()
 
     @profiler
     def run_blip(self):
@@ -591,6 +659,12 @@ class Blip:
         """Set device and benchmarks"""
         try:
             self.set_up_device()
+        except Exception as exception:
+            self.report_error(exception=exception)
+
+        """Set up tensorboard"""
+        try:
+            self.set_up_tensorboard()
         except Exception as exception:
             self.report_error(exception=exception)
 
@@ -645,12 +719,6 @@ class Blip:
         """Set up trainer"""
         try:
             self.set_up_trainer()
-        except Exception as exception:
-            self.report_error(exception=exception)
-
-        """Set up tensorboard"""
-        try:
-            self.set_up_tensorboard()
         except Exception as exception:
             self.report_error(exception=exception)
 
