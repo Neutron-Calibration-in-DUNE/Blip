@@ -2,7 +2,7 @@
 blip:
   # run configuration
   run_name: '2x2_segmentation'
-  run_num: '03'
+  run_num: '04'
 
   # parallelization and optimization
   model_parallel_sizes: [1]
@@ -27,35 +27,35 @@ dataset:
   blip_folder: '/local_data/segmentation_test/'
   flow_files: 'all'
   dataset_name: 'charge/calib_final_hits/data'
-  chunk_size: 10
+  chunk_size: 100
   positions: ['x', 'y', 'z']
   features: []
   labels: [
     'topology', 
     'physics', 
-    'vertex', 
-    'tracklette_begin', 
-    'tracklette_end', 
-    'fragment_begin', 
-    'fragment_end',
-    'shower_begin',
+    # 'vertex', 
+    # 'tracklette_begin', 
+    # 'tracklette_end', 
+    # 'fragment_begin', 
+    # 'fragment_end',
+    # 'shower_begin',
   ]
   class_weights: [
     'topology', 
     'physics', 
-    'vertex', 
-    'tracklette_begin', 
-    'tracklette_end', 
-    'fragment_begin', 
-    'fragment_end',
-    'shower_begin',
+    # 'vertex', 
+    # 'tracklette_begin', 
+    # 'tracklette_end', 
+    # 'fragment_begin', 
+    # 'fragment_end',
+    # 'shower_begin',
   ]
   feature_normalization: 'standardization'
 
 loader:
   quantization_mode:    "random_subsample"
   minkowski_algorithm:  "speed_optimized"
-  batch_size:       2
+  batch_size:       1
   test_split:       0.1
   test_seed:        100
   validation_split: 0.25
@@ -78,16 +78,16 @@ model:
   # load_model: '/local_scratch/2x2_segmentation/02/logs/14:58:6 [24/5/2024]/.tmp/models/BlipSegmentation/BlipSegmentation_trained_params.ckpt'
   BlipSegmentation:
     in_channels:      1
-    out_channels:     [3, 9, 1, 1, 1, 1, 1, 1]
+    out_channels:     [3, 9]
     classifications:  [
       'topology', 
       'physics', 
-      'vertex', 
-      'tracklette_begin', 
-      'tracklette_end', 
-      'fragment_begin', 
-      'fragment_end',
-      'shower_begin'
+      # 'vertex', 
+      # 'tracklette_begin', 
+      # 'tracklette_end', 
+      # 'fragment_begin', 
+      # 'fragment_end',
+      # 'shower_begin'
     ]
     filtrations:      [64, 128, 256, 512]
     residual:         true

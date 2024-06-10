@@ -38,5 +38,6 @@ srun --mpi=pmi2 -u shifter --image=docker:infophysics/nersc:latest \
     bash -c "
     source /global/common/software/nersc9/nccl/2.19/env_nccl.sh
     source export_DDP_vars.sh
+    pip install ${LOCAL_DATA}/Blip
     ${PROFILE_CMD} blip segmentation_blip_config.yaml
     "

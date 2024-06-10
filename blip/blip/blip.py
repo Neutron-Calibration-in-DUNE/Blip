@@ -7,7 +7,6 @@ import torch.multiprocessing as mp
 from torch.cuda.amp import autocast, GradScaler
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
-from datetime import datetime
 from mpi4py import MPI
 import traceback
 from matplotlib import pyplot as plt
@@ -43,7 +42,6 @@ class Blip:
     @profiler
     def __init__(
         self,
-        config: dict = {},
         meta:   dict = {},
     ):
         """_summary_
@@ -54,10 +52,26 @@ class Blip:
             be shared across all nodes.
         """
 
-        """Get mpi communication parameters"""
-        self.config = config
         self.meta = meta
 
+    def parse_config_and_run(
+        self,
+        config
+    ):
+        self.config = config
+        try:
+            self.parse_config()
+        except Exception as exception:
+            self.report_error(
+                exception=exception,
+                message='error parsing config'
+            )
+        self.run_blip()
+
+    @profiler
+    def parse_config(
+        self,
+    ):
         try:
             self.comm = MPI.COMM_WORLD
         except Exception as exception:
@@ -89,22 +103,6 @@ class Blip:
         self.event_plugin_tb_strs = []
         self.event_plugin_traceback_details = []
 
-        time = datetime.now()
-        self.now = f"{time.hour}:{time.minute}:{time.second} [{time.day}/{time.month}/{time.year}]"
-
-        """Parse config"""
-        try:
-            self.parse_config()
-        except Exception as exception:
-            self.report_error(
-                exception=exception,
-                message='error parsing config'
-            )
-
-    @profiler
-    def parse_config(
-        self,
-    ):
         """Startup main Blip program"""
         if self.meta["local_rank"] == 0:
             self.logger.info(
@@ -124,7 +122,7 @@ class Blip:
         """Try to grab system info and display to the logger"""
         if self.meta["local_rank"] == 0:
             system_info = self.logger.get_system_info()
-            self.logger.info(f'system_info - local time: {self.now}')
+            self.logger.info(f'system_info - local time: {self.meta["now"]}')
             for key, value in system_info.items():
                 self.logger.info(f"system_info - {key}: {value}")
 
@@ -632,7 +630,7 @@ class Blip:
         if self.meta["world_rank"] == 0:
             self.logger.info("setting up tensorboard")
         self.meta['tensorboard_directory'] = os.path.join(
-            self.meta["experiment_directory"], "logs/", self.now
+            self.meta["experiment_directory"], "logs/", self.meta['now']
         )
         self.meta['tensorboard'] = SummaryWriter(
             log_dir=self.meta['tensorboard_directory']

@@ -161,6 +161,9 @@ class BlipDataset(Dataset):
                 f'specified "flow_files" parameter: {self.config["files"]} incompatible!'
             )
 
+        if "number_of_files" in self.config:
+            flow_files = flow_files[:self.config["number_of_files"]]
+
         """Set arrakis files from flow files"""
         if self.dataset_mode == 'simulation':
             arrakis_files = [

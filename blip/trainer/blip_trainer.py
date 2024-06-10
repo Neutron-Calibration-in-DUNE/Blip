@@ -1,6 +1,8 @@
 """
 Class for a generic model trainer.
 """
+import ray
+from ray import train
 import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -125,10 +127,20 @@ class BlipTrainer:
         self,
         epoch: int = 99999
     ):
-        self.model.save_model(
-            epoch=epoch,
-            flag=f'checkpoint_{epoch}'
-        )
+        if self.meta["local_rank"] == 0:
+            try:
+                if self.meta["distributed"]:
+                    self.model.module.save_model(
+                        epoch=epoch,
+                        flag=f'checkpoint_{epoch}'
+                    )
+                else:
+                    self.model.save_model(
+                        epoch=epoch,
+                        flag=f'checkpoint_{epoch}'
+                    )
+            except Exception:
+                raise BlipError(f'error saving checkpoint {epoch}')
 
     def report_failure(
         self,
@@ -161,16 +173,23 @@ class BlipTrainer:
                 (c) Backpropagate the loss (training)
             (3) Evaluate the trained model on testing data.
         """
-        """Save the final model"""
-        try:
-            self.model.save_model(flag='initial')
-        except Exception:
-            raise BlipError('error saving final model')
+        """Save the initial model"""
+        if self.meta["local_rank"] == 0:
+            try:
+                if self.meta['distributed']:
+                    self.model.module.save_model(flag='initial')
+                else:
+                    self.model.save_model(flag='initial')
+            except Exception:
+                raise BlipError('error saving initial model')
 
         iterations = 0
 
         """Iterate over epochs"""
         for epoch in range(self.meta['num_epochs']):
+            """Set tuning variables"""
+            epoch_loss = 0
+
             """Synchronize devices"""
             try:
                 torch.cuda.synchronize()
@@ -491,7 +510,7 @@ class BlipTrainer:
                     if self.progress_bar in ['all', 'train']:
                         training_loop.set_description(
                             f"Training: Epoch [{epoch+1}/{self.meta['num_epochs']}] "
-                            + f"[{ii+1}/{self.meta['loader'].train_loader}]"
+                            + f"[{ii+1}/{len(self.meta['loader'].train_loader)}]"
                         )
                         training_loop.set_postfix_str(f"loss={loss.item():.2e}")
                 except Exception as exception:
@@ -502,6 +521,10 @@ class BlipTrainer:
                         step='training progress bar update',
                         exception=exception
                     )
+
+                """Update tuning variables"""
+                if self.meta['world_rank'] == 0:
+                    epoch_loss += loss.item() / len(training_loop)
 
                 """Update metrics if last epoch"""
                 if (epoch == self.meta['num_epochs'] - 1):
@@ -540,6 +563,13 @@ class BlipTrainer:
 
                 step_count += 1
 
+            """Update tuning variables"""
+            if self.meta['world_rank'] == 0:
+                train.report(
+                    epoch=epoch,
+                    epoch_loss=epoch_loss
+                )
+
             """Synchronize CUDA"""
             try:
                 torch.cuda.synchronize()
@@ -550,6 +580,14 @@ class BlipTrainer:
                 end = time.time()
             except Exception:
                 raise BlipError('error occurred getting end time for tensorboard')
+
+            """If last epoch, report training loss"""
+            if (epoch == self.meta['num_epochs'] - 1):
+                if self.meta['world_rank'] == 0:
+                    train.report(
+                        train_loss=epoch_loss,
+                        training_time=(end - start)
+                    )
 
             try:
                 if self.meta['world_rank'] == 0:
@@ -583,6 +621,9 @@ class BlipTrainer:
                         step='reset metrics post training',
                         exception=exception
                     )
+
+            """Set up epoch loss for raytune"""
+            epoch_loss = 0
 
             """Set the step_count for tensorboard"""
             step_count = 0
@@ -649,6 +690,10 @@ class BlipTrainer:
                                 exception=exception
                             )
 
+                        """Update tuning variables"""
+                        if self.meta['world_rank'] == 0:
+                            epoch_loss += loss.item() / len(validation_loop)
+
                         """Update metrics if last epoch"""
                         if (epoch == self.meta['num_epochs'] - 1):
                             try:
@@ -686,6 +731,13 @@ class BlipTrainer:
                     end = time.time()
                 except Exception:
                     raise BlipError('error occurred getting end time for tensorboard')
+
+                """If last epoch, report training loss"""
+                if (epoch == self.meta['num_epochs'] - 1):
+                    if self.meta['world_rank'] == 0:
+                        train.report(
+                            val_loss=epoch_loss
+                        )
 
                 try:
                     if self.meta['world_rank'] == 0:
@@ -839,10 +891,14 @@ class BlipTrainer:
             raise BlipError('error occurred sending information to tensorboard')
 
         """Save the final model"""
-        try:
-            self.model.save_model(flag='trained')
-        except Exception:
-            raise BlipError('error saving final model')
+        if self.meta["local_rank"] == 0:
+            try:
+                if self.meta['distributed']:
+                    self.model.module.save_model(flag='trained')
+                else:
+                    self.model.save_model(flag='trained')
+            except Exception:
+                raise BlipError('error saving final model')
 
         """Get predictions if wanted"""
         if self.save_predictions:

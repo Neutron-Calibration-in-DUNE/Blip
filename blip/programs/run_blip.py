@@ -5,8 +5,13 @@ import argparse
 import os
 import sys
 import subprocess
+from datetime import datetime
 from mpi4py import MPI
 import torch
+import ray
+from ray import train, tune
+from ray.train import Checkpoint
+from ray.tune.schedulers import AsyncHyperBandScheduler
 
 from blip.utils import comm
 from blip.utils.config import ConfigParser
@@ -122,6 +127,12 @@ def run():
         default="/local_scratch",
         help='local scratch directory'
     )
+    parser.add_argument(
+        "-hp_search",
+        dest="hp_search",
+        default=False,
+        help='whether to do a hyperparameter search'
+    )
 
     """Parse command line arguments"""
     try:
@@ -138,6 +149,7 @@ def run():
         number_of_files = args.number_of_files
         local_scratch = args.local_scratch
         num_iterations = args.num_iterations
+        hp_search = args.hp_search
     except Exception as exception:
         raise RuntimeError(f"failed to parse command line arguments: {exception}")
 
@@ -250,7 +262,7 @@ def run():
 
         if isinstance(number_of_files, int):
             if number_of_files > 0:
-                config["blip"]["number_of_files"] = number_of_files
+                config["dataset"]["number_of_files"] = number_of_files
 
     """Set up MPI variables"""
     try:
@@ -292,6 +304,10 @@ def run():
     except Exception as exception:
         raise RuntimeError(f"failed to construct experiment directory: {exception}")
 
+    """Get time"""
+    time = datetime.now()
+    now = f"{time.hour}:{time.minute}:{time.second} [{time.day}/{time.month}/{time.year}]"
+
     """Construct meta dictionary"""
     meta = {
         "run_name": run_name,
@@ -310,21 +326,59 @@ def run():
         "data_shard_id": data_shard_id,
         "config_file": config_file,
         'experiment_directory': os.path.abspath(experiment_directory),
+        'now': now,
         'local_scratch': os.environ['LOCAL_SCRATCH'],
+        'hyperparameter_search': hp_search,
     }
 
     """Create the Blip instance"""
     try:
-        blip = Blip(config, meta)
+        blip = Blip(meta)
     except Exception as exception:
         raise RuntimeError(f"failed to construct Blip object: {exception}")
 
     """Run Blip"""
-    blip.run_blip()
+    if meta['hyperparameter_search']:
+        """If hyperparameter search is set to True, start up raytune"""
+        search_space = {
+            'dataset': {
+                'chunksize': tune.choice([4, 8, 16, 32])
+            },
+            'optimizer': {
+                'learning_rate': tune.loguniform(1e-4, 1e-1),
+            }
+        }
+        resources_per_trial = {"cpu": 2, "gpu": 1}
+        sched = AsyncHyperBandScheduler()
+        tuner = tune.Tuner(
+            tune.with_resources(
+                blip.parse_config_and_run,
+                resources=resources_per_trial
+            ),
+            param_space=search_space,
+            tune_config=tune.TuneConfig(
+                metric="val_loss",
+                mode="min",
+                scheduler=sched,
+                num_samples=100
+            ),
+            run_config=train.RunConfig(
+                local_dir=os.path.join(
+                    meta["experiment_directory"], "logs/", meta['now']
+                ),
+                name="hyperparameter_search"
+            )
+        )
+        results = tuner.fit()
+        print("Best hyperparameters found were: ", results.get_best_result().config)
+    else:
+        """Run Blip"""
+        blip.parse_config_and_run(config)
 
     if distributed:
         torch.distributed.barrier()
 
 
 if __name__ == "__main__":
+    ray.init(address='auto', _temp_dir='/tmp/ray')
     run()
