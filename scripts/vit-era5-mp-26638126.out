@@ -1,216 +1,0 @@
-+ srun --mpi=pmi2 -u shifter --image=docker:infophysics/nersc:latest -V '/pscratch/sd/n/ncarrara:/local_scratch;/global/cfs/cdirs/dune/users/ncarrara:/local_data' bash -c '
-    source /global/common/software/nersc9/nccl/2.19/env_nccl.sh
-    source export_DDP_vars.sh
-    pip install /global/cfs/cdirs/dune/users/ncarrara/Blip
-     blip segmentation_blip_config.yaml
-    '
-Defaulting to user installation because normal site-packages is not writeable
-Defaulting to user installation because normal site-packages is not writeable
-Defaulting to user installation because normal site-packages is not writeable
-Defaulting to user installation because normal site-packages is not writeable
-Looking in indexes: https://pypi.org/simple, https://pypi.ngc.nvidia.com
-Processing /global/cfs/cdirs/dune/users/ncarrara/Blip
-Looking in indexes: https://pypi.org/simple, https://pypi.ngc.nvidia.com
-Looking in indexes: https://pypi.org/simple, https://pypi.ngc.nvidia.com
-Looking in indexes: https://pypi.org/simple, https://pypi.ngc.nvidia.com
-Processing /global/cfs/cdirs/dune/users/ncarrara/Blip
-Processing /global/cfs/cdirs/dune/users/ncarrara/Blip
-Processing /global/cfs/cdirs/dune/users/ncarrara/Blip
-  Installing build dependencies ... [?25l-  Installing build dependencies ... [?25l-  Installing build dependencies ... [?25l-  Installing build dependencies ... [?25l- \ \ \ \ | | | | / / / / - - - - \ \ \ | \ | | / | / - / / - - - \ \ done
- done
- done
- done
-[?25h  Getting requirements to build wheel ... [?25l- \[?25h  Getting requirements to build wheel ... [?25l-[?25h  Getting requirements to build wheel ... [?25l-[?25h  Getting requirements to build wheel ... [?25l- done
- \ \ \[?25h  Preparing metadata (pyproject.toml) ... [?25l- done
- done
- done
- done
-[?25hBuilding wheels for collected packages: blip
-[?25h  Preparing metadata (pyproject.toml) ... [?25l-[?25h  Preparing metadata (pyproject.toml) ... [?25l-[?25h  Preparing metadata (pyproject.toml) ... [?25l-  Building wheel for blip (pyproject.toml) ... [?25l- done
- done
- done
-[?25hBuilding wheels for collected packages: blip
-[?25hBuilding wheels for collected packages: blip
-[?25hBuilding wheels for collected packages: blip
- \  Building wheel for blip (pyproject.toml) ... [?25l-  Building wheel for blip (pyproject.toml) ... [?25l-  Building wheel for blip (pyproject.toml) ... [?25l- error
-  error: subprocess-exited-with-error
-  
-  × Building wheel for blip (pyproject.toml) did not run successfully.
-  │ exit code: 1
-  ╰─> [10 lines of output]
-      /tmp/pip-build-env-9gh1p8rq/overlay/local/lib/python3.10/dist-packages/setuptools/_distutils/dist.py:266: UserWarning: Unknown distribution option: 'install_reqs'
-        warnings.warn(msg)
-      /tmp/pip-build-env-9gh1p8rq/overlay/local/lib/python3.10/dist-packages/setuptools/dist.py:318: InformationOnly: Normalizing '01.00.00' to '1.0.0'
-        self.metadata.version = self._normalize_version(self.metadata.version)
-      running bdist_wheel
-      running build
-      running build_py
-      copying blip/__init__.py -> build/lib/blip
-      copying blip/blip_parameters.py -> build/lib/blip
-      error: could not delete 'build/lib/blip/blip_parameters.py': No such file or directory
-      [end of output]
-  
-  note: This error originates from a subprocess, and is likely not a problem with pip.
-  ERROR: Failed building wheel for blip
-[?25hFailed to build blip
-ERROR: Could not build wheels for blip, which is required to install pyproject.toml-based projects
- error
-  error: subprocess-exited-with-error
-  
-  × Building wheel for blip (pyproject.toml) did not run successfully.
-  │ exit code: 1
-  ╰─> [11 lines of output]
-      /tmp/pip-build-env-_1fqadpn/overlay/local/lib/python3.10/dist-packages/setuptools/_distutils/dist.py:266: UserWarning: Unknown distribution option: 'install_reqs'
-        warnings.warn(msg)
-      /tmp/pip-build-env-_1fqadpn/overlay/local/lib/python3.10/dist-packages/setuptools/dist.py:318: InformationOnly: Normalizing '01.00.00' to '1.0.0'
-        self.metadata.version = self._normalize_version(self.metadata.version)
-      running bdist_wheel
-      running build
-      running build_py
-      copying blip/__init__.py -> build/lib/blip
-      copying blip/blip_parameters.py -> build/lib/blip
-      copying blip/dataset/__init__.py -> build/lib/blip/dataset
-      error: could not delete 'build/lib/blip/dataset/__init__.py': No such file or directory
-      [end of output]
-  
-  note: This error originates from a subprocess, and is likely not a problem with pip.
-  ERROR: Failed building wheel for blip
-[?25hFailed to build blip
-ERROR: Could not build wheels for blip, which is required to install pyproject.toml-based projects
- | \ | / error
-  error: subprocess-exited-with-error
-  
-  × Building wheel for blip (pyproject.toml) did not run successfully.
-  │ exit code: 1
-  ╰─> [17 lines of output]
-      /tmp/pip-build-env-0fgab0yn/overlay/local/lib/python3.10/dist-packages/setuptools/_distutils/dist.py:266: UserWarning: Unknown distribution option: 'install_reqs'
-        warnings.warn(msg)
-      /tmp/pip-build-env-0fgab0yn/overlay/local/lib/python3.10/dist-packages/setuptools/dist.py:318: InformationOnly: Normalizing '01.00.00' to '1.0.0'
-        self.metadata.version = self._normalize_version(self.metadata.version)
-      running bdist_wheel
-      running build
-      running build_py
-      copying blip/__init__.py -> build/lib/blip
-      copying blip/blip_parameters.py -> build/lib/blip
-      copying blip/dataset/__init__.py -> build/lib/blip/dataset
-      copying blip/dataset/blip_loader.py -> build/lib/blip/dataset
-      copying blip/dataset/common.py -> build/lib/blip/dataset
-      copying blip/dataset/blip_dataset.py -> build/lib/blip/dataset
-      copying blip/optimizers/__init__.py -> build/lib/blip/optimizers
-      copying blip/optimizers/blip_optimizer.py -> build/lib/blip/optimizers
-      copying blip/metrics/__init__.py -> build/lib/blip/metrics
-      error: [Errno 2] No such file or directory: 'build/lib/blip/metrics/blip_metric.py'
-      [end of output]
-  
-  note: This error originates from a subprocess, and is likely not a problem with pip.
-  ERROR: Failed building wheel for blip
-[?25hFailed to build blip
-ERROR: Could not build wheels for blip, which is required to install pyproject.toml-based projects
- - \ | / - \ | / - \ | / - \ | / - \ | / done
-[?25h  Created wheel for blip: filename=blip-1.0.0-py3-none-any.whl size=86267 sha256=3a126a9c28c99946e9532605a0c4f6baf31ea149bf6068850ac59602d4ac86af
-  Stored in directory: /tmp/pip-ephem-wheel-cache-yz1dqpz2/wheels/21/d5/81/0a061ebe344c541af504833a3a81521dcdfa61723996989308
-Successfully built blip
-Installing collected packages: blip
-  Attempting uninstall: blip
-    Found existing installation: blip 1.0.0
-    Uninstalling blip-1.0.0:
-      Successfully uninstalled blip-1.0.0
-  WARNING: The script blip is installed in '/global/homes/n/ncarrara/.local/bin' which is not on PATH.
-  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
-Successfully installed blip-1.0.0
-/usr/local/lib/python3.10/dist-packages/MinkowskiEngine-0.5.4-py3.10-linux-x86_64.egg/MinkowskiEngine/__init__.py:36: UserWarning: The environment variable `OMP_NUM_THREADS` not set. MinkowskiEngine will automatically set `OMP_NUM_THREADS=16`. If you want to set `OMP_NUM_THREADS` manually, please export it on the command line before running a python script. e.g. `export OMP_NUM_THREADS=12; python your_program.py`. It is recommended to set it below 24.
-  warnings.warn(
-/usr/local/lib/python3.10/dist-packages/MinkowskiEngine-0.5.4-py3.10-linux-x86_64.egg/MinkowskiEngine/__init__.py:36: UserWarning: The environment variable `OMP_NUM_THREADS` not set. MinkowskiEngine will automatically set `OMP_NUM_THREADS=16`. If you want to set `OMP_NUM_THREADS` manually, please export it on the command line before running a python script. e.g. `export OMP_NUM_THREADS=12; python your_program.py`. It is recommended to set it below 24.
-  warnings.warn(
-/usr/local/lib/python3.10/dist-packages/MinkowskiEngine-0.5.4-py3.10-linux-x86_64.egg/MinkowskiEngine/__init__.py:36: UserWarning: The environment variable `OMP_NUM_THREADS` not set. MinkowskiEngine will automatically set `OMP_NUM_THREADS=16`. If you want to set `OMP_NUM_THREADS` manually, please export it on the command line before running a python script. e.g. `export OMP_NUM_THREADS=12; python your_program.py`. It is recommended to set it below 24.
-  warnings.warn(
-/usr/local/lib/python3.10/dist-packages/MinkowskiEngine-0.5.4-py3.10-linux-x86_64.egg/MinkowskiEngine/__init__.py:36: UserWarning: The environment variable `OMP_NUM_THREADS` not set. MinkowskiEngine will automatically set `OMP_NUM_THREADS=16`. If you want to set `OMP_NUM_THREADS` manually, please export it on the command line before running a python script. e.g. `export OMP_NUM_THREADS=12; python your_program.py`. It is recommended to set it below 24.
-  warnings.warn(
-Creating comm groups for id model: [[0], [1], [2], [3]]
-Creating comm groups for id data: [[0, 1, 2, 3]]
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: ############################ BLIP  v. [1.0.0] ############################
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - local time: 14:28:41 [10/6/2024]
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - run_name: 2x2_segmentation
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - run_number: 05
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - world_size: 4
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - world_rank: 0
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - local_rank: 0
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - num_data_shards: 4
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - platform: Linux
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - platform-release: 5.14.21-150400.24.81_12.0.87-cray_shasta_c
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - platform-version: #1 SMP Thu Jan 11 20:03:21 UTC 2024 (e30c7c1)
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - architecture: x86_64
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - hostname: nid008236
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - ip-address: 128.55.82.101
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - mac-address: 00:40:a6:87:7c:64
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - processor: x86_64
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - physical_cores: 64
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - logical_cores: 128
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - local_scratch: 10746916 GB
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - RAM: 251 GB
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - git_branch: b'* develop\n  main'
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - git_hash: b'88b39b36de269ccb1c14c7d04f25de8e0c189b15'
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: system_info - torch_version: 2.2.0a0+81ea7a4
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: CUDA is available with devices:
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]:  -- device: 0
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]:        name: NVIDIA A100-SXM4-80GB
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]:        compute: 8.0
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]:        memory: 79 GB
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]:  -- device: 1
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]:        name: NVIDIA A100-SXM4-80GB
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]:        compute: 8.0
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]:        memory: 79 GB
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]:  -- device: 2
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]:        name: NVIDIA A100-SXM4-80GB
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]:        compute: 8.0
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]:        memory: 79 GB
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]:  -- device: 3
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]:        name: NVIDIA A100-SXM4-80GB
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]:        compute: 8.0
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]:        memory: 79 GB
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: setting up devices
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: [device] device allocated 0.85 Gb
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: setting up tensorboard
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: setting up dataset
-  0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating event_id mapping [1]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating event_id mapping [1]:  50%|[32m█████     [0m| 1/2 [00:00<00:00,  4.09it/s]Calculating event_id mapping [2]:  50%|[32m█████     [0m| 1/2 [00:00<00:00,  4.09it/s]  0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating event_id mapping [1]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]  0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating event_id mapping [1]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]  0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating event_id mapping [1]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating event_id mapping [2]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating event_id mapping [2]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating event_id mapping [2]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating event_id mapping [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00,  6.06it/s]Calculating event_id mapping [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00,  5.65it/s]
-Calculating event_id mapping [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00, 23.10it/s]
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: [dataset] calculated event_id mapping [0.35595107078552246] s
-  0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating class weights [1]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating event_id mapping [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00, 20.42it/s]
-  0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating class weights [1]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]  0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating class weights [1]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating event_id mapping [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00, 20.09it/s]
-  0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating class weights [1]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating class weights [2]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating class weights [2]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating class weights [2]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating class weights [2]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Calculating class weights [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00, 13.41it/s]Calculating class weights [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00, 13.40it/s]
-Calculating class weights [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00, 13.28it/s]Calculating class weights [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00, 13.27it/s]
-Calculating class weights [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00, 13.07it/s]Calculating class weights [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00, 13.06it/s]
-Calculating class weights [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00, 13.03it/s]Calculating class weights [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00, 13.02it/s]
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: [dataset] calculated class weights [0.21145105361938477] s
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: [dataset] calculated feature normalization [0.00011587142944335938] s
-  0%|[32m          [0m| 0/2 [00:00<?, ?it/s]  0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Creating blip files [1]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Creating blip files [1]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]  0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Creating blip files [1]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]  0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Creating blip files [1]:   0%|[32m          [0m| 0/2 [00:00<?, ?it/s]Creating blip files [1]:  50%|[32m█████     [0m| 1/2 [00:00<00:00,  3.69it/s]Creating blip files [2]:  50%|[32m█████     [0m| 1/2 [00:00<00:00,  3.69it/s]Creating blip files [1]:  50%|[32m█████     [0m| 1/2 [00:00<00:00,  3.68it/s]Creating blip files [1]:  50%|[32m█████     [0m| 1/2 [00:00<00:00,  3.67it/s]Creating blip files [1]:  50%|[32m█████     [0m| 1/2 [00:00<00:00,  3.67it/s]Creating blip files [2]:  50%|[32m█████     [0m| 1/2 [00:00<00:00,  3.68it/s]Creating blip files [2]:  50%|[32m█████     [0m| 1/2 [00:00<00:00,  3.67it/s]Creating blip files [2]:  50%|[32m█████     [0m| 1/2 [00:00<00:00,  3.67it/s]Creating blip files [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00,  3.81it/s]Creating blip files [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00,  3.81it/s]Creating blip files [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00,  3.81it/s]Creating blip files [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00,  3.81it/s]Creating blip files [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00,  3.79it/s]
-Creating blip files [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00,  3.79it/s]
-Creating blip files [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00,  3.79it/s]
-Creating blip files [2]: 100%|[32m██████████[0m| 2/2 [00:00<00:00,  3.79it/s]
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: [dataset] created blip files [0.5281238555908203] s
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: setting up loader
-[[1;34mINFO[0m] [[1;35m2x2_segmentation[0m]: setting up model
-[[31;1mCRITICAL[0m] [[1;35m2x2_segmentation[0m]: error creating BlipModel
-[[31;1mCRITICAL[0m] [[1;35m2x2_segmentation[0m]: exception:   [Errno 17] File exists: '/local_scratch/2x2_segmentation/05/logs/14:28:41 [10/6/2024]/models/BlipSegmentation/'
-[[31;1mCRITICAL[0m] [[1;35m2x2_segmentation[0m]: exc_type:    <class 'FileExistsError'>
-[[31;1mCRITICAL[0m] [[1;35m2x2_segmentation[0m]: line_number: 414
-[[31;1mCRITICAL[0m] [[1;35m2x2_segmentation[0m]: file_name:   /global/homes/n/ncarrara/.local/lib/python3.10/site-packages/blip/blip/blip.py
-[[31;1mCRITICAL[0m] [[1;35m2x2_segmentation[0m]: traceback:   Traceback (most recent call last):
-  File "/global/homes/n/ncarrara/.local/lib/python3.10/site-packages/blip/blip/blip.py", line 414, in set_up_model
-    self.meta['model'] = BlipModel(
-  File "/global/homes/n/ncarrara/.local/lib/python3.10/site-packages/blip/models/blip_model.py", line 25, in __init__
-    self.parse_config()
-  File "/global/homes/n/ncarrara/.local/lib/python3.10/site-packages/blip/utils/utils.py", line 567, in wrapper
-    result = func(*args, **kwargs)
-  File "/global/homes/n/ncarrara/.local/lib/python3.10/site-packages/blip/models/blip_model.py", line 101, in parse_config
-    self.models[item] = self.available_models[item](
-  File "/global/homes/n/ncarrara/.local/lib/python3.10/site-packages/blip/models/blip_segmentation.py", line 228, in __init__
-    self.save_model(flag='init')
-  File "/global/homes/n/ncarrara/.local/lib/python3.10/site-packages/blip/models/generic_model.py", line 93, in save_model
-    os.makedirs(f"{self.meta['tensorboard_directory']}/models/{self.name}/")
-  File "/usr/lib/python3.10/os.py", line 225, in makedirs
-    mkdir(name, mode)
-FileExistsError: [Errno 17] File exists: '/local_scratch/2x2_segmentation/05/logs/14:28:41 [10/6/2024]/models/BlipSegmentation/'
-
-slurmstepd: error: *** STEP 26638126.0 ON nid008236 CANCELLED AT 2024-06-10T14:41:46 ***
-slurmstepd: error: *** JOB 26638126 ON nid008236 CANCELLED AT 2024-06-10T14:41:46 ***

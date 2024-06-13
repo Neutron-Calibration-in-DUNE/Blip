@@ -2,7 +2,7 @@
 blip:
   # run configuration
   run_name: '2x2_segmentation'
-  run_num: '05'
+  run_num: '06'
 
   # parallelization and optimization
   model_parallel_sizes: [1]
@@ -12,7 +12,7 @@ blip:
   enable_jit: true
   bucket_cap_mb: 25
   lr_schedule: 'cosine'
-  num_iterations: 50
+  num_iterations: 100000
 
   # Comms
   wireup_info: env
@@ -20,14 +20,14 @@ blip:
 
 dataset:
   dataset_mode: 'simulation'
-  flow_folder:  '/local_data/segmentation_test/'
-  arrakis_folder: '/local_data/segmentation_test/'
-  # flow_folder:  '/global/cfs/cdirs/dune/www/data/2x2/simulation/productions/MiniRun5_1E19_RHC/MiniRun5_1E19_RHC.flow.beta1/FLOW/0000000'
-  # arrakis_folder: '/local_scratch/MiniRun5_1E19_RHC/MiniRun5_1E19_RHC.arrakis/ARRAKIS'
+  # flow_folder:  '/local_data/segmentation_test/'
+  # arrakis_folder: '/local_data/segmentation_test/'
+  flow_folder:  '/global/cfs/cdirs/dune/www/data/2x2/simulation/productions/MiniRun5_1E19_RHC/MiniRun5_1E19_RHC.flow.beta1/FLOW/0000000'
+  arrakis_folder: '/local_scratch/MiniRun5_1E19_RHC/MiniRun5_1E19_RHC.arrakis/ARRAKIS'
   blip_folder: '/local_data/segmentation_test/'
   flow_files: 'all'
   dataset_name: 'charge/calib_final_hits/data'
-  chunk_size: 100
+  chunk_size: 50
   positions: ['x', 'y', 'z']
   features: []
   labels: [

@@ -598,10 +598,10 @@ class BlipTrainer:
                     self.meta['tensorboard'].add_scalar('Avg iters per sec (train)', iters_per_sec, iterations)
                     self.meta['tensorboard'].add_scalar('Avg samples per sec (train)', samples_per_sec, iterations)
 
-                    """Update metrics if last epoch"""
-                    if (epoch == self.meta['num_epochs'] - 1):
-                        if self.metrics is not None:
-                            self.metrics.report_tensorboard(iterations, train_type='train')
+                """Update metrics if last epoch"""
+                if (epoch == self.meta['num_epochs'] - 1):
+                    if self.metrics is not None:
+                        self.metrics.report_tensorboard(iterations, train_type='train')
             except Exception:
                 raise BlipError('error occurred sending information to tensorboard')
 
@@ -727,6 +727,12 @@ class BlipTrainer:
                             exception=exception
                         )
 
+                """Synchronize devices"""
+                try:
+                    torch.cuda.synchronize()
+                except Exception:
+                    raise BlipError('error occurred attempting to synchronize cuda')
+
                 try:
                     end = time.time()
                 except Exception:
@@ -748,10 +754,10 @@ class BlipTrainer:
                         self.meta['tensorboard'].add_scalar('Avg iters per sec (validation)', iters_per_sec, iterations)
                         self.meta['tensorboard'].add_scalar('Avg samples per sec (validation)', samples_per_sec, iterations)
 
-                        """Update metrics if last epoch"""
-                        if (epoch == self.meta['num_epochs'] - 1):
-                            if self.metrics is not None:
-                                self.metrics.report_tensorboard(iterations, train_type='validation')
+                    """Update metrics if last epoch"""
+                    if (epoch == self.meta['num_epochs'] - 1):
+                        if self.metrics is not None:
+                            self.metrics.report_tensorboard(iterations, train_type='validation')
                 except Exception:
                     raise BlipError('error occurred sending information to tensorboard')
 
@@ -775,6 +781,12 @@ class BlipTrainer:
         loop stage, since it is generally quick
         and doesn't need to be optimized for any reason.
         """
+        """Synchronize devices"""
+        try:
+            torch.cuda.synchronize()
+        except Exception:
+            raise BlipError('error occurred attempting to synchronize cuda')
+
         try:
             if self.metrics is not None:
                 self.metrics.reset_batch()
@@ -884,9 +896,9 @@ class BlipTrainer:
                 self.meta['tensorboard'].add_scalar('Avg iters per sec (test)', iters_per_sec, iterations)
                 self.meta['tensorboard'].add_scalar('Avg samples per sec (test)', samples_per_sec, iterations)
 
-                """Update metrics if last epoch"""
-                if self.metrics is not None:
-                    self.metrics.report_tensorboard(iterations, train_type='test')
+            """Update metrics if last epoch"""
+            if self.metrics is not None:
+                self.metrics.report_tensorboard(iterations, train_type='test')
         except Exception:
             raise BlipError('error occurred sending information to tensorboard')
 
@@ -899,6 +911,12 @@ class BlipTrainer:
                     self.model.save_model(flag='trained')
             except Exception:
                 raise BlipError('error saving final model')
+
+        """Synchronize devices"""
+        try:
+            torch.cuda.synchronize()
+        except Exception:
+            raise BlipError('error occurred attempting to synchronize cuda')
 
         """Get predictions if wanted"""
         if self.save_predictions:
@@ -948,6 +966,12 @@ class BlipTrainer:
                 inference_loop = enumerate(inference_loader, 0)
         except Exception:
             raise BlipError('error occurred setting up inference loop')
+
+        """Synchronize devices"""
+        try:
+            torch.cuda.synchronize()
+        except Exception:
+            raise BlipError('error occurred attempting to synchronize cuda')
 
         """Make sure to set model to eval() during validation!"""
         try:
@@ -1054,6 +1078,12 @@ class BlipTrainer:
                         exception=exception
                     )
                 iterations += 1
+
+        """Synchronize devices"""
+        try:
+            torch.cuda.synchronize()
+        except Exception:
+            raise BlipError('error occurred attempting to synchronize cuda')
 
         try:
             end = time.time()

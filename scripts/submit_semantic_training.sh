@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-node 4
 #SBATCH --cpus-per-task 32
 #SBATCH --gpus-per-node 4
-#SBATCH --time=01:00:00
+#SBATCH --time=04:00:00
 #SBATCH --image=docker:infophysics/nersc:latest
 #SBATCH --module=gpu
 #SBATCH -J vit-era5-mp
@@ -39,5 +39,5 @@ srun --mpi=pmi2 -u shifter --image=docker:infophysics/nersc:latest \
     source /global/common/software/nersc9/nccl/2.19/env_nccl.sh
     source export_DDP_vars.sh
     pip install ${LOCAL_DATA}/Blip
-    ${PROFILE_CMD} blip segmentation_blip_config.yaml
+    ${PROFILE_CMD} blip segmentation_blip_config.yaml -n 10
     "

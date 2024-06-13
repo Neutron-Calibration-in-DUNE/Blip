@@ -12,7 +12,7 @@ blip:
   enable_jit: true
   bucket_cap_mb: 25
   lr_schedule: 'cosine'
-  num_iterations: 20000
+  num_iterations: 50000
 
   # Comms
   wireup_info: env
@@ -27,7 +27,7 @@ dataset:
   blip_folder: '/local_data/segmentation_test/'
   flow_files: 'all'
   dataset_name: 'charge/calib_final_hits/data'
-  chunk_size: 100
+  chunk_size: 50
   positions: ['x', 'y', 'z']
   features: []
   labels: [
