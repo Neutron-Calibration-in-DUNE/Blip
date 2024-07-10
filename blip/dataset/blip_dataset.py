@@ -338,17 +338,17 @@ class BlipDataset(Dataset):
         self.file_indices = []
         self.event_start_indices = []
         self.event_end_indices = []
-        flow_file_loop = tqdm(
-            enumerate(self.flow_files, 0),
-            total=len(self.flow_files),
+        arrakis_file_loop = tqdm(
+            enumerate(self.arrakis_files, 0),
+            total=len(self.arrakis_files),
             leave=True,
             colour='green',
         )
-        for ii, flow_file in flow_file_loop:
-            flow_file_loop.set_description(
+        for ii, arrakis_file in arrakis_file_loop:
+            arrakis_file_loop.set_description(
                 f"Calculating event_id mapping [{ii+1}]"
             )
-            with h5py.File(self.flow_folder + flow_file, 'r') as f:
+            with h5py.File(self.arrakis_folder + arrakis_file, 'r') as f:
                 event_ids = f[self.dataset_name]['event_id'][:]
                 unique_values, start_indices = np.unique(event_ids, return_index=True)
                 end_indices = start_indices[1:] + [len(event_ids)]

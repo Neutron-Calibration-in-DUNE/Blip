@@ -2,7 +2,7 @@
 blip:
   # run configuration
   run_name: '2x2_segmentation'
-  run_num: '09'
+  run_num: '00'
 
   # parallelization and optimization
   model_parallel_sizes: [1]
@@ -12,7 +12,7 @@ blip:
   enable_jit: true
   bucket_cap_mb: 25
   lr_schedule: 'cosine'
-  num_iterations: 100000
+  num_iterations: 100
 
   # Comms
   wireup_info: env
