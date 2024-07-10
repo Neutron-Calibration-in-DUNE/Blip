@@ -74,3 +74,8 @@ class BlipOptimizer:
             self.optimizer.param_groups[0]['lr'],
             iterations
         )
+        self.meta['tensorboard'].add_scalar(
+            f'Weight Decay ({train_type})',
+            self.optimizer.param_groups[0]['weight_decay'],
+            iterations
+        )

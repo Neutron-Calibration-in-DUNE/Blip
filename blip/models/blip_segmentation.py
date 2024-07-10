@@ -19,14 +19,19 @@ def get_activation(
         return sparse_activations[activation]
 
 
-class SparseConv(ME.MinkowskiNetwork):
+class SegmentationBlock(ME.MinkowskiNetwork):
     """
+    The main block structure of the BlipSegmentation model.
+    A block consists of a series of convolutions structured according
+    to a ResNext architecture which has the following form:
+    
     """
     def __init__(
         self,
         name,
         in_channels,
         out_channels,
+        cardinality:    int = 1,
         kernel_size:    int = 3,
         stride:         int = 1,
         dilation:       int = 1,
@@ -39,18 +44,82 @@ class SparseConv(ME.MinkowskiNetwork):
     ):
         """
         """
-        super(SparseConv, self).__init__(dimension)
+        super(SegmentationBlock, self).__init__(dimension)
         self.name = name
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.dilation = dilation
+        self.cardinality = cardinality
         self.dimension = dimension
         self.batch_norm = batch_norm
         self.dropout = dropout
         self.num_of_convs = num_of_convs
         self.residual = residual
+        
+        """Check input parameters"""
+        if dimension <= 0:
+            raise BlipError(
+                f'dimension given to SegmentationBlock is {dimension} but should be > 0'
+            )
+        if cardinality <= 0:
+            raise BlipError(
+                f'cardinality given to SegmentationBlock is {cardinality} but should be > 0'
+            )
+        if in_channels % cardinality != 0:
+            raise BlipError(
+                f'in_channels ({in_channels}) must be divisible by cardinality ({cardinality})'
+            )
+        if out_channels % cardinality != 0:
+            raise BlipError(
+                f'out_channels ({out_channels}) must be divisible by cardinality ({cardinality})'
+            )
+        
+        self.card_in_channels = self.in_channels // cardinality
+        self.card_out_channels = self.out_channels // cardinality
+        
+        """Set up lists of kernels, dilations and strides for different cardinalities"""
+        self.dilation = []
+        if dilation is None:
+            self.dilation = [3**i for i in range(cardinality)]
+        elif isinstance(dilation, int):
+            self.dilation = [dilation for _ in range(cardinality)]
+        elif isinstance(dilation, list):
+            if len(dilation) != cardinality:
+                raise BlipError(
+                    f'length of dilation ({len(dilation)}) and cardinality ({cardinality}) must be equal'
+                )
+            self.dilation = dilation
+        else:
+            raise BlipError(
+                f'type for dilation was {type(dilation)} but must be int or list'
+            )
+
+        self.kernel_size = []
+        if isinstance(kernel_size, int):
+            self.kernel_size = [kernel_size for _ in range(cardinality)]
+        elif isinstance(kernel_size, list):
+            if len(kernel_size) != cardinality:
+                raise BlipError(
+                    f'length of kernel_size ({len(kernel_size)}) and cardinality ({cardinality}) must be equal'
+                )
+            self.kernel_size = kernel_size
+        else:
+            raise BlipError(
+                f'type for stride was {type(kernel_size)} but must be int or list'
+            )
+
+        self.stride = []
+        if isinstance(stride, int):
+            self.stride = [stride for _ in range(cardinality)]
+        elif isinstance(stride, list):
+            if len(stride) != cardinality:
+                raise BlipError(
+                    f'length of stride ({len(stride)}) and cardinality ({cardinality}) must be equal'
+                )
+            self.stride = stride
+        else:
+            raise BlipError(
+                f'type for stride was {type(stride)} but must be int or list'
+            )
 
         if self.batch_norm:
             self.bias = False
@@ -67,7 +136,9 @@ class SparseConv(ME.MinkowskiNetwork):
         _conv_dict = OrderedDict()
         _dropout_dict = OrderedDict()
         _residual_dict = OrderedDict()
+        _output_dict = OrderedDict()
 
+        """The residual connection at the output of the block"""
         if self.in_channels != self.out_channels:
             _residual_dict['residual'] = ME.MinkowskiLinear(
                 self.in_channels, self.out_channels, bias=self.bias
@@ -75,29 +146,47 @@ class SparseConv(ME.MinkowskiNetwork):
         else:
             _residual_dict['residual'] = Identity()
 
-        # create conv layer
-        in_channels = self.in_channels
-        for i in range(1, self.num_of_convs):
-            _conv_dict[f'{self.name}_conv[i]'] = ME.MinkowskiConvolution(
-                in_channels=in_channels,
-                out_channels=self.out_channels,
-                kernel_size=self.kernel_size,
-                stride=self.stride,
-                dilation=self.dilation,
-                bias=self.bias,
-                dimension=self.dimension
-            )
-            in_channels = self.out_channels
-
-            if self.batch_norm:
-                _conv_dict[f'{self.name}_batch_norm_{i}'] = ME.MinkowskiBatchNorm(self.out_channels)
-
-        if self.dropout > 0.0:
-            _dropout_dict['dropout'] = ME.MinkowskiDropout(p=self.dropout)
+        """Create the ResNext layers"""
+        for ii in range(self.cardinality):
+            """
+            Each layer consists of a linear input layer, followed
+            by a number of convolutional layers with a specific kernel,
+            and then another linear layer at the output.
+            """
+            in_channels = self.in_channels
+            """Start with a linear layer"""
+            conv_layers = [
+                ME.MinkowskiLinear(in_channels, self.card_in_channels)
+            ]
+            for jj in range(self.num_of_convs):
+                in_C = (self.card_in_channels if jj == 0 else self.card_out_channels)
+                conv_layers.append(ME.MinkowskiConvolution(
+                    in_channels=in_C, 
+                    out_channels=self.card_out_channels,
+                    kernel_size=self.kernel_size[ii], 
+                    stride=self.stride[ii],
+                    dilation=self.dilation[ii],
+                    bias=self.bias,
+                    dimension=self.dimension
+                ))
+                if self.batch_norm:
+                    conv_layers.append(ME.MinkowskiBatchNorm(self.card_out_channels))
+                conv_layers.append(self.activation_fn)
+            if self.dropout > 0.0:
+                conv_layers.append(ME.MinkowskiDropout(p=self.dropout))
+            _conv_dict[f'{self.name}_path_{ii}'] = nn.Sequential(*conv_layers)
+        
+        """Output layer"""
+        _output_dict[f'{self.name}_output_linear'] = ME.MinkowskiLinear(self.out_channels, self.out_channels)
+        if self.batch_norm:
+            _output_dict[f'{self.name}_output_batch_norm'] = ME.MinkowskiBatchNorm(self.out_channels)
+        
+        _output_dict[f'{self.name}_output_activation'] = self.activation_fn
 
         self.conv_dict = nn.ModuleDict(_conv_dict)
         self.dropout_dict = nn.ModuleDict(_dropout_dict)
         self.residual_dict = nn.ModuleDict(_residual_dict)
+        self.output_dict = nn.ModuleDict(_output_dict)
 
     def forward(
         self,
@@ -106,8 +195,13 @@ class SparseConv(ME.MinkowskiNetwork):
         """
         Iterate over the module dictionary.
         """
-        if self.residual:
-            identity = self.residual_dict['residual'](x)
+        identity = self.residual_dict['residual'](x)
+        output = tuple([self.conv_dict[layer](x) for layer in self.conv_dict.keys()])
+        output = ME.cat(output)
+        for layer in self.output_dict.keys():
+            output = self.output_dict[layer](output)
+        output += identity
+        return output
         for layer in self.conv_dict.keys():
             x = self.conv_dict[layer](x)
         if self.residual:
@@ -230,21 +324,33 @@ class BlipSegmentation(GenericModel):
     def construct_model(self):
         """
         """
+        _input_dict = OrderedDict()
         _down_dict = OrderedDict()
+        _pooling_dict = OrderedDict()
         _up_dict = OrderedDict()
         _bottleneck_dict = OrderedDict()
         _classification_dict = OrderedDict()
 
         """Create spatial attention module"""
         # self.spatial_attention = SpatialAttention(in_channels=2*self.config['filtrations'][-1])
+        
+        """Create input layer"""
+        _input_dict['input_layer'] = ME.MinkowskiConvolution(
+            self.config['in_channels'], 
+            self.config['filtrations'][0],
+            kernel_size=self.config['input_kernel'], 
+            stride=1, 
+            dimension=self.config['sparse_conv_params']['dimension']
+        )
 
         """Iterate over the down part"""
-        in_channels = self.config['in_channels']
+        in_channels = self.config['filtrations'][0]
         for filter in self.config['filtrations']:
-            _down_dict[f'down_filter_double_conv{filter}'] = SparseConv(
+            _down_dict[f'down_filter_double_conv{filter}'] = SegmentationBlock(
                 name=f'down_{filter}',
                 in_channels=in_channels,
                 out_channels=filter,
+                cardinality=self.config['sparse_conv_params']['cardinality'],
                 kernel_size=self.config['sparse_conv_params']['kernel_size'],
                 stride=self.config['sparse_conv_params']['stride'],
                 dilation=self.config['sparse_conv_params']['dilation'],
@@ -256,6 +362,13 @@ class BlipSegmentation(GenericModel):
                 residual=self.config['residual']
             )
             in_channels = filter
+            _pooling_dict[f'down_filter_pooling{filter}'] = ME.MinkowskiConvolution(
+                in_channels=filter,
+                out_channels=filter,
+                kernel_size=2, 
+                stride=2, 
+                dimension=self.config['sparse_conv_params']['dimension']
+            )
 
         """Iterate over the up part"""
         for filter in reversed(self.config['filtrations']):
@@ -267,10 +380,11 @@ class BlipSegmentation(GenericModel):
                 dilation=self.config['conv_transpose_params']['dilation'],
                 dimension=self.config['conv_transpose_params']['dimension']
             )
-            _up_dict[f'up_filter_double_conv{filter}'] = SparseConv(
+            _up_dict[f'up_filter_double_conv{filter}'] = SegmentationBlock(
                 name=f'up_{filter}',
                 in_channels=2*filter,
                 out_channels=filter,
+                cardinality=self.config['sparse_conv_params']['cardinality'],
                 kernel_size=self.config['sparse_conv_params']['kernel_size'],
                 stride=self.config['sparse_conv_params']['stride'],
                 dilation=self.config['sparse_conv_params']['dilation'],
@@ -283,10 +397,11 @@ class BlipSegmentation(GenericModel):
             )
 
         """Create bottleneck layer"""
-        _bottleneck_dict['bottleneck'] = SparseConv(
+        _bottleneck_dict['bottleneck'] = SegmentationBlock(
             name=f"bottleneck_{self.config['filtrations'][-1]}",
             in_channels=self.config['filtrations'][-1],
             out_channels=2*self.config['filtrations'][-1],
+            cardinality=self.config['sparse_conv_params']['cardinality'],
             kernel_size=self.config['sparse_conv_params']['kernel_size'],
             stride=self.config['sparse_conv_params']['stride'],
             dilation=self.config['sparse_conv_params']['dilation'],
@@ -316,7 +431,9 @@ class BlipSegmentation(GenericModel):
         )
 
         """Create the dictionaries"""
+        self.input_dict = nn.ModuleDict(_input_dict)
         self.module_down_dict = nn.ModuleDict(_down_dict)
+        self.pooling_dict = nn.ModuleDict(_pooling_dict)
         self.module_up_dict = nn.ModuleDict(_up_dict)
         self.bottleneck_dict = nn.ModuleDict(_bottleneck_dict)
         self.classification_dict = nn.ModuleDict(_classification_dict)
@@ -356,11 +473,15 @@ class BlipSegmentation(GenericModel):
 
         """Record the skip connections"""
         skip_connections = {}
+        
+        """Step 3: Iterate over initial layer"""
+        x = self.input_dict['input_layer'](x)
+        
         """Step 3: Iterate over the downward part"""
         for filter in self.config['filtrations']:
             x = self.module_down_dict[f'down_filter_double_conv{filter}'](x)
             skip_connections[f'{filter}'] = x
-            x = self.max_pooling(x)
+            x = self.pooling_dict[f'down_filter_pooling{filter}'](x)
 
         """Step 4: Step through the bottleneck layer"""
         x = self.bottleneck_dict['bottleneck'](x)

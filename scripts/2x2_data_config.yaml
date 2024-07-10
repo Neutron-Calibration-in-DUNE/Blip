@@ -1,8 +1,8 @@
 # Test config file for Blip
 blip:
   # run configuration
-  run_name: '2x2_segmentation'
-  run_num: '09'
+  run_name: '2x2_data'
+  run_num: '10'
 
   # parallelization and optimization
   model_parallel_sizes: [1]
@@ -19,12 +19,12 @@ blip:
   wireup_store: tcp
 
 dataset:
-  dataset_mode: 'simulation'
-  # flow_folder:  '/local_data/segmentation_test/beta2b/'
-  # arrakis_folder: '/local_data/segmentation_test/beta2b/'
-  flow_folder:  '/global/cfs/cdirs/dune/www/data/2x2/simulation/productions/MiniRun5_1E19_RHC/MiniRun5_1E19_RHC.flow.beta2a/FLOW/0000000'
-  arrakis_folder: '/local_scratch/MiniRun5_1E19_RHC/MiniRun5_1E19_RHC.arrakis/ARRAKIS'
-  blip_folder: '/local_data/segmentation_test/'
+  dataset_mode: 'data'
+  flow_folder:  '/local_scratch/2x2_data_test/'
+  arrakis_folder: null
+  # flow_folder:  '/global/cfs/cdirs/dune/www/data/2x2/simulation/productions/MiniRun5_1E19_RHC/MiniRun5_1E19_RHC.flow.beta2a/FLOW/0000000'
+  # arrakis_folder: null
+  blip_folder: '/local_scratch/2x2_data_test/'
   flow_files: 'all'
   dataset_name: 'charge/calib_prompt_hits/data'
   chunk_size: 128
@@ -80,7 +80,7 @@ trainer:
 
 model:
   model_type:       "single"
-  # load_model: '/local_scratch/2x2_segmentation/02/logs/14:58:6 [24/5/2024]/.tmp/models/BlipSegmentation/BlipSegmentation_trained_params.ckpt'
+  load_model: '/global/homes/n/ncarrara/scratch/2x2_segmentation/09/2024.6.28.17:40:45/models/BlipSegmentation/BlipSegmentation_checkpoint_0_params.ckpt'
   BlipSegmentation:
     in_channels:      1
     out_channels:     [3, 9]

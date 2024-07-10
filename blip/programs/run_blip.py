@@ -306,7 +306,7 @@ def run():
 
     """Get time"""
     time = datetime.now()
-    now = f"{time.hour}:{time.minute}:{time.second} [{time.day}/{time.month}/{time.year}]"
+    now = f"{time.year}.{time.month}.{time.day}.{time.hour}:{time.minute}:{time.second}"
 
     """Construct meta dictionary"""
     meta = {

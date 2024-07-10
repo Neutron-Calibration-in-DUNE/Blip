@@ -153,7 +153,7 @@ class Logger:
         self.meta = meta
 
         self.local_log_dir = os.path.join(
-            self.meta["experiment_directory"], "logs/"
+            f'{self.meta["experiment_directory"]}/{self.meta["now"]}/', "logs/"
         )
         if not os.path.isdir(self.local_log_dir):
             os.makedirs(self.local_log_dir)

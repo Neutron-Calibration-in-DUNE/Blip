@@ -20,6 +20,7 @@ from blip.dataset.blip_loader import BlipLoader
 from blip.models.blip_model import BlipModel
 from blip.models.common import init_ddp_model_and_reduction_hooks
 from blip.optimizers.blip_optimizer import BlipOptimizer
+from blip.scheduler.blip_scheduler import BlipScheduler
 from blip.losses.blip_loss import BlipLoss
 from blip.metrics.blip_metric import BlipMetric
 from blip.trainer.blip_trainer import BlipTrainer
@@ -526,36 +527,21 @@ class Blip:
         if self.meta["world_rank"] == 0:
             self.logger.info("setting up scheduler")
         if "scheduler" not in self.config.keys():
-            self.meta['scheduler'] = None
-        else:
-            if 'lr_schedule' not in self.config['scheduler']:
-                self.meta['scheduler'] = None
-            else:
-                try:
-                    if self.config['scheduler']['lr_schedule'] == 'cosine':
-                        if "warmup" not in self.config['scheduler']:
-                            self.config['scheduler']["warmup"] = 1
-                        if self.config['scheduler']['warmup'] > 0:
-                            lr_scale = lambda x: min(
-                                (x + 1) / self.config['scheduler']['warmup'],
-                                0.5 * (1 + np.cos(np.pi * x / self.meta['num_iterations']))
-                            )
-                            self.meta['scheduler'] = torch.optim.lr_scheduler.LambdaLR(
-                                self.meta['optimizer'].optimizer,
-                                lr_scale
-                            )
-                        else:
-                            self.meta['scheduler'] = torch.optim.lr_scheduler.CosineAnnealingLR(
-                                self.meta['optimizer'].optimizer,
-                                self.meta['num_iterations']
-                            )
-                    else:
-                        self.meta['scheduler'] = None
-                except Exception as exception:
-                    self.report_error(
-                        exception=exception,
-                        message="failed to construct scheduler"
-                    )
+            self.report_error(
+                exception=KeyError,
+                message="'scheduler' not specified in config!"
+            )
+        try:
+            self.config['scheduler']['num_epochs'] = self.meta["num_epochs"]
+            self.meta['scheduler'] = BlipScheduler(
+                self.config['scheduler'],
+                self.meta
+            )
+        except Exception as exception:
+            self.report_error(
+                exception=exception,
+                message="failed to construct scheduler"
+            )
 
     @profiler
     def set_up_criterion(
@@ -629,12 +615,38 @@ class Blip:
     ):
         if self.meta["world_rank"] == 0:
             self.logger.info("setting up tensorboard")
-        self.meta['tensorboard_directory'] = os.path.join(
-            self.meta["experiment_directory"], "logs/", self.meta['now']
-        )
+        self.meta['tensorboard_directory'] = f'{self.meta["experiment_directory"]}/{self.meta["now"]}/'
         self.meta['tensorboard'] = SummaryWriter(
             log_dir=self.meta['tensorboard_directory']
         )
+
+    @profiler
+    def optimize_hyperparameters(
+        self,
+    ):
+        if 'hyperparameters' not in self.config:
+            if self.meta["world_rank"] == 0:
+                self.logger.info("skipping hyperparameter search")
+                return
+        if 'scheduler' in self.config['hyperparameters']:
+            if self.meta["world_rank"] == 0:
+                self.logger.info("optimizing learning rate")
+            self.config['scheduler']['num_epochs'] = self.config['hyperparameters']['scheduler']['num_epochs']
+            self.meta['scheduler'] = BlipScheduler(
+                self.config['scheduler'],
+                self.meta
+            )
+            self.meta["trainer"].optimize_learning_rate(
+                num_epochs=self.config['hyperparameters']['scheduler']['num_epochs']
+            )
+            if self.meta["world_rank"] == 0:
+                self.logger.info(f"found optimal max_lr of {self.meta['max_lr']}")
+            self.config['scheduler']['max_lr'] = self.meta['max_lr']
+            self.config['scheduler']['num_epochs'] = self.meta["num_epochs"]
+            self.meta['scheduler'] = BlipScheduler(
+                self.config['scheduler'],
+                self.meta
+            )
 
     @profiler
     def run_training(
@@ -648,6 +660,11 @@ class Blip:
             if self.meta['world_rank'] == 0:
                 self.logger.info("running inference")
             self.meta['trainer'].inference()
+        if 'patience_epoch' in self.meta:
+            if self.meta['world_rank'] == 0:
+                self.logger.info(
+                    f"patience threshold reached after {self.meta['patience_epoch']} epochs"
+                )
 
     @profiler
     def run_blip(self):
@@ -719,6 +736,9 @@ class Blip:
             self.set_up_trainer()
         except Exception as exception:
             self.report_error(exception=exception)
+
+        """Optimize hyper-parameters"""
+        self.optimize_hyperparameters()
 
         """Run training"""
         self.run_training()
