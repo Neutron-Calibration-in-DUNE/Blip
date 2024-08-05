@@ -1134,7 +1134,9 @@ class BlipTrainer:
                     patience += 1
                 else:
                     best_val_loss = epoch_val_loss
+                    self.save_checkpoint()
                     patience = 0
+
                 if patience >= self.patience:
                     self.meta['patience_epoch'] = epoch
                     break

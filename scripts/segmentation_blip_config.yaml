@@ -2,7 +2,7 @@
 blip:
   # run configuration
   run_name: '2x2_segmentation'
-  run_num: '00'
+  run_num: '12'
 
   # parallelization and optimization
   model_parallel_sizes: [1]
@@ -11,8 +11,7 @@ blip:
   amp_mode: null
   enable_jit: true
   bucket_cap_mb: 25
-  lr_schedule: 'cosine'
-  num_iterations: 10000
+  num_iterations: 1000
 
   # Comms
   wireup_info: env
@@ -23,7 +22,7 @@ dataset:
   # flow_folder:  '/local_data/segmentation_test/beta2b/'
   # arrakis_folder: '/local_data/segmentation_test/beta2b/'
   flow_folder:  '/global/cfs/cdirs/dune/www/data/2x2/simulation/productions/MiniRun5_1E19_RHC/MiniRun5_1E19_RHC.flow.beta2a/FLOW/0000000'
-  arrakis_folder: '/local_scratch/MiniRun5_1E19_RHC/MiniRun5_1E19_RHC.arrakis/ARRAKIS'
+  arrakis_folder: '/global/homes/n/ncarrara/scratch/MiniRun5_1E19_RHC/MiniRun5_1E19_RHC.arrakis/ARRAKIS'
   blip_folder: '/local_data/segmentation_test/'
   flow_files: 'all'
   dataset_name: 'charge/calib_prompt_hits/data'
@@ -32,17 +31,19 @@ dataset:
   features: []
   labels: [
     'topology', 
-    'physics', 
+    # 'physics', 
     # 'vertex', 
     # 'tracklette_begin', 
     # 'tracklette_end', 
     # 'fragment_begin', 
     # 'fragment_end',
     # 'shower_begin',
+    # 'vertex_heat_map',
+    # 'tracklette_begin_heat_map'
   ]
   class_weights: [
     'topology', 
-    'physics', 
+    # 'physics', 
     # 'vertex', 
     # 'tracklette_begin', 
     # 'tracklette_end', 
@@ -63,9 +64,9 @@ loader:
   num_workers:      16
 
 scheduler:
-  lr_schedule: '1cycle'
+  lr_schedule: 'cosine'
   max_lr: 0.001
-  warmup: 1
+  warmup: 100
 
 # hyperparameters:
 #   scheduler:
@@ -73,26 +74,31 @@ scheduler:
 #   chunk_size:
 
 trainer:
-  checkpoint: 10
+  checkpoint: 100
   progress_bar: true
   rewrite_bar: false
-  patience: 50
+  patience: 100000
+  save_predictions: true
 
 model:
   model_type:       "single"
-  # load_model: '/local_scratch/2x2_segmentation/02/logs/14:58:6 [24/5/2024]/.tmp/models/BlipSegmentation/BlipSegmentation_trained_params.ckpt'
+  # load_model: '/local_scratch/BlipSegmentation_trained_params.ckpt'
   BlipSegmentation:
     in_channels:      1
-    out_channels:     [3, 9]
+    out_channels:     [3]
     classifications:  [
       'topology', 
-      'physics', 
+      # 'physics', 
       # 'vertex', 
       # 'tracklette_begin', 
       # 'tracklette_end', 
       # 'fragment_begin', 
       # 'fragment_end',
       # 'shower_begin'
+    ]
+    heat_maps: [
+      # 'vertex_heat_map',
+      # 'tracklette_begin_heat_map'
     ]
     input_kernel: 3
     filtrations:  [32, 64, 128, 256]

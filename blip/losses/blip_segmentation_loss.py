@@ -13,7 +13,7 @@ class BlipSegmentationLoss(GenericLoss):
     """
     def __init__(
         self,
-        name:           str = 'cross_entropy_loss',
+        name:           str = 'segmentation_loss',
         alpha:          float = 1.0,
         meta:           dict = {}
     ):
@@ -21,7 +21,7 @@ class BlipSegmentationLoss(GenericLoss):
             name, alpha, meta
         )
         self.reduction = 'mean'
-        self.cross_entropy_loss = {
+        self.classification_loss = {
             'topology': nn.CrossEntropyLoss(
                 reduction=self.reduction,
                 weight=self.meta['dataset'].class_weights['topology'].to(self.device)
@@ -73,6 +73,26 @@ class BlipSegmentationLoss(GenericLoss):
                 ).to(self.device)
             ),
         }
+        self.heat_map_loss = {
+            'vertex_heat_map': nn.MSELoss(
+                reduction=self.reduction,
+            ),
+            'tracklette_begin_heat_map': nn.MSELoss(
+                reduction=self.reduction,
+            ),
+            'tracklette_end_heat_map': nn.MSELoss(
+                reduction=self.reduction,
+            ),
+            'fragment_begin_heat_map': nn.MSELoss(
+                reduction=self.reduction,
+            ),
+            'fragment_end_heat_map': nn.MSELoss(
+                reduction=self.reduction,
+            ),
+            'shower_begin_heat_map': nn.MSELoss(
+                reduction=self.reduction,
+            ),
+        }
 
     def loss(
         self,
@@ -83,13 +103,26 @@ class BlipSegmentationLoss(GenericLoss):
         for ii, output in enumerate(self.meta['dataset'].labels):
             if output in ['topology', 'physics']:
                 """We have to convert cross entropy labels to type long"""
-                temp_loss = self.alpha * self.cross_entropy_loss[output](
+                temp_loss = self.alpha * self.classification_loss[output](
                     data['outputs'][output].to(self.device),
                     data['labels'].squeeze(0)[:, ii].long().to(self.device)
                 )
-            else:
+            elif output in [
+                'vertex',
+                'tracklette_begin',
+                'tracklette_end',
+                'fragment_begin',
+                'fragment_end',
+                'shower_begin'
+            ]:
                 """But for binary with logits we want both to be floats (weird)"""
-                temp_loss = self.alpha * self.cross_entropy_loss[output](
+                temp_loss = self.alpha * self.classification_loss[output](
+                    data['outputs'][output].squeeze(1).to(self.device),
+                    data['labels'].squeeze(0)[:, ii].float().to(self.device)
+                )
+            else:
+                """For heat maps we use MSE"""
+                temp_loss = self.alpha * self.heat_map_loss[output](
                     data['outputs'][output].squeeze(1).to(self.device),
                     data['labels'].squeeze(0)[:, ii].float().to(self.device)
                 )

@@ -270,7 +270,9 @@ class BlipDataset(Dataset):
                     ('tracklette_end', 'f4'),
                     ('fragment_begin', 'f4'),
                     ('fragment_end', 'f4'),
-                    ('shower_begin', 'f4')
+                    ('shower_begin', 'f4'),
+                    ('vertex_heat_map', 'f4'),
+                    ('end_point_heat_map', 'f4')
                 ])
                 new_charge_data = np.full(
                     dataset_size, -1, dtype=new_charge_data_type
@@ -308,6 +310,28 @@ class BlipDataset(Dataset):
         """
         """Step 1: Apply the voxelization to positions"""
         output['positions'] = (output['positions'].clone() / self.voxelization).to(torch.int32)
+
+        return output
+
+    def apply_augmentations(
+        self,
+        output
+    ):
+        """
+        This function applies a series of augmentations to the
+        original positions, such as flipping along the x,y,z axes.
+        """
+        """Whether to flip x"""
+        positions = output['positions'].clone()
+        if np.random.rand() > 0.5:
+            positions[:, 0] = -positions[:, 0]
+        """Whether to flip y"""
+        if np.random.rand() > 0.5:
+            positions[:, 1] = -positions[:, 1]
+        """Whether to flip z"""
+        if np.random.rand() > 0.5:
+            positions[:, 2] = -positions[:, 2]
+        output['positions'] = positions
 
         return output
 
@@ -535,6 +559,9 @@ class BlipDataset(Dataset):
 
             """Apply voxelization"""
             output = self.apply_voxelization(output)
+
+            """Apply augmentations"""
+            output = self.apply_augmentations(output)
 
             """Apply feature normalization"""
             output = self.apply_normalization(output)

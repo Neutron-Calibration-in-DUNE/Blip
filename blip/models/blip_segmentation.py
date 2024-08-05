@@ -54,7 +54,7 @@ class SegmentationBlock(ME.MinkowskiNetwork):
         self.dropout = dropout
         self.num_of_convs = num_of_convs
         self.residual = residual
-        
+
         """Check input parameters"""
         if dimension <= 0:
             raise BlipError(
@@ -72,10 +72,10 @@ class SegmentationBlock(ME.MinkowskiNetwork):
             raise BlipError(
                 f'out_channels ({out_channels}) must be divisible by cardinality ({cardinality})'
             )
-        
+
         self.card_in_channels = self.in_channels // cardinality
         self.card_out_channels = self.out_channels // cardinality
-        
+
         """Set up lists of kernels, dilations and strides for different cardinalities"""
         self.dilation = []
         if dilation is None:
@@ -161,9 +161,9 @@ class SegmentationBlock(ME.MinkowskiNetwork):
             for jj in range(self.num_of_convs):
                 in_C = (self.card_in_channels if jj == 0 else self.card_out_channels)
                 conv_layers.append(ME.MinkowskiConvolution(
-                    in_channels=in_C, 
+                    in_channels=in_C,
                     out_channels=self.card_out_channels,
-                    kernel_size=self.kernel_size[ii], 
+                    kernel_size=self.kernel_size[ii],
                     stride=self.stride[ii],
                     dilation=self.dilation[ii],
                     bias=self.bias,
@@ -175,12 +175,12 @@ class SegmentationBlock(ME.MinkowskiNetwork):
             if self.dropout > 0.0:
                 conv_layers.append(ME.MinkowskiDropout(p=self.dropout))
             _conv_dict[f'{self.name}_path_{ii}'] = nn.Sequential(*conv_layers)
-        
+
         """Output layer"""
         _output_dict[f'{self.name}_output_linear'] = ME.MinkowskiLinear(self.out_channels, self.out_channels)
         if self.batch_norm:
             _output_dict[f'{self.name}_output_batch_norm'] = ME.MinkowskiBatchNorm(self.out_channels)
-        
+
         _output_dict[f'{self.name}_output_activation'] = self.activation_fn
 
         self.conv_dict = nn.ModuleDict(_conv_dict)
@@ -330,16 +330,17 @@ class BlipSegmentation(GenericModel):
         _up_dict = OrderedDict()
         _bottleneck_dict = OrderedDict()
         _classification_dict = OrderedDict()
+        _heat_map_dict = OrderedDict()
 
         """Create spatial attention module"""
         # self.spatial_attention = SpatialAttention(in_channels=2*self.config['filtrations'][-1])
-        
+
         """Create input layer"""
         _input_dict['input_layer'] = ME.MinkowskiConvolution(
-            self.config['in_channels'], 
+            self.config['in_channels'],
             self.config['filtrations'][0],
-            kernel_size=self.config['input_kernel'], 
-            stride=1, 
+            kernel_size=self.config['input_kernel'],
+            stride=1,
             dimension=self.config['sparse_conv_params']['dimension']
         )
 
@@ -365,8 +366,8 @@ class BlipSegmentation(GenericModel):
             _pooling_dict[f'down_filter_pooling{filter}'] = ME.MinkowskiConvolution(
                 in_channels=filter,
                 out_channels=filter,
-                kernel_size=2, 
-                stride=2, 
+                kernel_size=2,
+                stride=2,
                 dimension=self.config['sparse_conv_params']['dimension']
             )
 
@@ -413,12 +414,21 @@ class BlipSegmentation(GenericModel):
             residual=self.config['residual']
         )
 
-        """Create output layer"""
+        """Create output layer for classifications"""
         for ii, classification in enumerate(self.config['classifications']):
             _classification_dict[f"{classification}"] = ME.MinkowskiConvolution(
                 in_channels=self.config['filtrations'][0],      # to match first filtration
                 out_channels=self.config['out_channels'][ii],   # to the number of classes
                 kernel_size=1,                                  # a one-one convolution
+                dimension=self.config['sparse_conv_params']['dimension'],
+            )
+
+        """Create output layer for heat maps"""
+        for ii, heat_map in enumerate(self.config["heat_maps"]):
+            _heat_map_dict[f"{heat_map}"] = ME.MinkowskiConvolution(
+                in_channels=self.config['filtrations'][0],
+                out_channels=1,
+                kernel_size=1,
                 dimension=self.config['sparse_conv_params']['dimension'],
             )
 
@@ -437,6 +447,7 @@ class BlipSegmentation(GenericModel):
         self.module_up_dict = nn.ModuleDict(_up_dict)
         self.bottleneck_dict = nn.ModuleDict(_bottleneck_dict)
         self.classification_dict = nn.ModuleDict(_classification_dict)
+        self.heat_map_dict = nn.ModuleDict(_heat_map_dict)
 
     def forward(
         self,
@@ -473,10 +484,10 @@ class BlipSegmentation(GenericModel):
 
         """Record the skip connections"""
         skip_connections = {}
-        
+
         """Step 3: Iterate over initial layer"""
         x = self.input_dict['input_layer'](x)
-        
+
         """Step 3: Iterate over the downward part"""
         for filter in self.config['filtrations']:
             x = self.module_down_dict[f'down_filter_double_conv{filter}'](x)
@@ -498,9 +509,11 @@ class BlipSegmentation(GenericModel):
             concat_skip = ME.cat(skip_connection, x)
             x = self.module_up_dict[f'up_filter_double_conv{filter}'](concat_skip)
 
-        """Step 6: Evaluate the classification output"""
+        """Step 6: Evaluate the classification and heat_map output"""
         outputs = {
             classifications: self.classification_dict[classifications](x).features[inverse_indices]
             for classifications in self.classification_dict.keys()
         }
+        for heat_map in self.heat_map_dict.keys():
+            outputs[heat_map] = self.heat_map_dict[heat_map](x).features[inverse_indices]
         return outputs

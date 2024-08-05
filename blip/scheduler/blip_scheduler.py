@@ -32,20 +32,24 @@ class BlipScheduler:
         if self.config['lr_schedule'] == 'cosine':
             if "warmup" not in self.config:
                 self.config["warmup"] = 1
-            if self.config['warmup'] > 0:
-                lr_scale = lambda x: min(
-                    (x + 1) / self.config['warmup'],
-                    0.5 * (1 + np.cos(np.pi * x / self.meta['num_iterations']))
-                )
-                self.scheduler = optim.lr_scheduler.LambdaLR(
-                    self.meta['optimizer'].optimizer,
-                    lr_scale
-                )
-            else:
-                self.scheduler = optim.lr_scheduler.CosineAnnealingLR(
-                    self.meta['optimizer'].optimizer,
-                    self.meta['num_iterations']
-                )
+            """Fix This"""
+            # if self.config['warmup'] > 0:
+            #     lr_scale = []
+            #     for ii in range(self.meta['num_iterations']):
+            #         lr = min(
+            #             (ii + 1) / self.config['warmup'],
+            #             0.5 * (1 + np.cos(np.pi * ii / self.meta['num_iterations']))
+            #         )
+            #         lr_scale.append(lr)
+            #     self.scheduler = optim.lr_scheduler.LambdaLR(
+            #         self.meta['optimizer'].optimizer,
+            #         lr_scale
+            #     )
+            # else:
+            self.scheduler = optim.lr_scheduler.CosineAnnealingLR(
+                self.meta['optimizer'].optimizer,
+                self.meta['num_iterations']
+            )
         elif self.config['lr_schedule'] == '1cycle':
             self.scheduler = optim.lr_scheduler.OneCycleLR(
                 self.meta['optimizer'].optimizer,
